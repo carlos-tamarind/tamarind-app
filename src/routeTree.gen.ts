@@ -9,38 +9,174 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as BootstrapRouteImport } from './routes/bootstrap'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as AuthenticatedWWorkspaceIdIndexRouteImport } from './routes/_authenticated.w.$workspaceId.index'
+import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BootstrapRoute = BootstrapRouteImport.update({
+  id: '/bootstrap',
+  path: '/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWWorkspaceIdRoute =
+  AuthenticatedWWorkspaceIdRouteImport.update({
+    id: '/w/$workspaceId',
+    path: '/w/$workspaceId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedWWorkspaceIdIndexRoute =
+  AuthenticatedWWorkspaceIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+  } as any)
+const AuthenticatedWWorkspaceIdSettingsRoute =
+  AuthenticatedWWorkspaceIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bootstrap': typeof BootstrapRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/w/$workspaceId/': typeof AuthenticatedWWorkspaceIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bootstrap': typeof BootstrapRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/bootstrap': typeof BootstrapRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/_authenticated/w/$workspaceId/': typeof AuthenticatedWWorkspaceIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bootstrap'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/w/$workspaceId'
+    | '/w/$workspaceId/settings'
+    | '/w/$workspaceId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/bootstrap'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/w/$workspaceId/settings'
+    | '/w/$workspaceId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/bootstrap'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/_authenticated/w/$workspaceId'
+    | '/_authenticated/w/$workspaceId/settings'
+    | '/_authenticated/w/$workspaceId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  BootstrapRoute: typeof BootstrapRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bootstrap': {
+      id: '/bootstrap'
+      path: '/bootstrap'
+      fullPath: '/bootstrap'
+      preLoaderRoute: typeof BootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +184,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/w/$workspaceId': {
+      id: '/_authenticated/w/$workspaceId'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/w/$workspaceId/': {
+      id: '/_authenticated/w/$workspaceId/'
+      path: '/'
+      fullPath: '/w/$workspaceId/'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdIndexRouteImport
+      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    }
+    '/_authenticated/w/$workspaceId/settings': {
+      id: '/_authenticated/w/$workspaceId/settings'
+      path: '/settings'
+      fullPath: '/w/$workspaceId/settings'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdSettingsRouteImport
+      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    }
   }
 }
 
+interface AuthenticatedWWorkspaceIdRouteChildren {
+  AuthenticatedWWorkspaceIdSettingsRoute: typeof AuthenticatedWWorkspaceIdSettingsRoute
+  AuthenticatedWWorkspaceIdIndexRoute: typeof AuthenticatedWWorkspaceIdIndexRoute
+}
+
+const AuthenticatedWWorkspaceIdRouteChildren: AuthenticatedWWorkspaceIdRouteChildren =
+  {
+    AuthenticatedWWorkspaceIdSettingsRoute:
+      AuthenticatedWWorkspaceIdSettingsRoute,
+    AuthenticatedWWorkspaceIdIndexRoute: AuthenticatedWWorkspaceIdIndexRoute,
+  }
+
+const AuthenticatedWWorkspaceIdRouteWithChildren =
+  AuthenticatedWWorkspaceIdRoute._addFileChildren(
+    AuthenticatedWWorkspaceIdRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedWWorkspaceIdRoute: typeof AuthenticatedWWorkspaceIdRouteWithChildren
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedWWorkspaceIdRoute: AuthenticatedWWorkspaceIdRouteWithChildren,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  BootstrapRoute: BootstrapRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
