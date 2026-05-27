@@ -60,7 +60,7 @@ function WorkspaceShell() {
       )}
 
       {/* Main resizable area */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
+      <ResizablePanelGroup orientation="horizontal" className="flex-1">
         <ResizablePanel defaultSize={railOpen ? 22 : 24} minSize={16} maxSize={35}>
           <aside className="flex h-full flex-col border-r">
             <div className="flex items-center justify-between border-b px-3 py-2">
