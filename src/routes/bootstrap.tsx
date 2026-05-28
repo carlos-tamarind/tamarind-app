@@ -23,14 +23,18 @@ function BootstrapPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const { data: signupData, error: signupErr } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (signupErr) throw signupErr;
-      if (!signupData.session) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        // Try sign-in first (handles "user already exists" case), fall back to sign-up.
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInErr) throw signInErr;
+        if (signInErr) {
+          const { data: signupData, error: signupErr } = await supabase.auth.signUp({ email, password });
+          if (signupErr) throw signupErr;
+          if (!signupData.session) {
+            const { error: retryErr } = await supabase.auth.signInWithPassword({ email, password });
+            if (retryErr) throw retryErr;
+          }
+        }
       }
       const { workspaceId } = await bootstrapFirstWorkspace({ data: { name: workspaceName } });
       toast.success("Workspace created");
