@@ -17,6 +17,14 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const goNext = () => {
+    if (redirect && redirect.startsWith("/")) {
+      window.location.assign(redirect);
+    } else {
+      navigate({ to: "/" });
+    }
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
