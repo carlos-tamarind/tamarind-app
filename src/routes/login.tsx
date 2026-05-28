@@ -44,7 +44,9 @@ function LoginPage() {
   const handleGoogle = async () => {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: redirect && redirect.startsWith("/")
+        ? `${window.location.origin}${redirect}`
+        : window.location.origin,
     });
     if (result.error) {
       setBusy(false);
@@ -52,7 +54,7 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/" });
+    goNext();
   };
 
   return (
