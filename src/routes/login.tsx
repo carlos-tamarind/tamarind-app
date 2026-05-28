@@ -9,11 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const goNext = () => {
+    if (redirect && redirect.startsWith("/")) {
+      window.location.assign(redirect);
+    } else {
+      navigate({ to: "/" });
+    }
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,13 +38,15 @@ function LoginPage() {
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/" });
+    goNext();
   };
 
   const handleGoogle = async () => {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: redirect && redirect.startsWith("/")
+        ? `${window.location.origin}${redirect}`
+        : window.location.origin,
     });
     if (result.error) {
       setBusy(false);
@@ -41,7 +54,7 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/" });
+    goNext();
   };
 
   return (
