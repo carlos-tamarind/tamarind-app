@@ -38,7 +38,7 @@ function LoginPage() {
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/" });
+    goNext();
   };
 
   const handleGoogle = async () => {
