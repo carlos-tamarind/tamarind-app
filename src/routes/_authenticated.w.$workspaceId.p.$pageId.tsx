@@ -26,7 +26,7 @@ function PageView() {
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: data?.content ?? { type: "doc", content: [] },
+    content: (data?.content as any) ?? { type: "doc", content: [] },
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -45,7 +45,7 @@ function PageView() {
   useEffect(() => {
     if (data && editor) {
       setTitle(data.title ?? "Untitled");
-      editor.commands.setContent(data.content ?? { type: "doc", content: [] });
+      editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
     }
   }, [data, editor]);
 
