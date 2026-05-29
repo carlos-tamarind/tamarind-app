@@ -74,7 +74,9 @@ export const updatePage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = { last_modified_at: new Date().toISOString() };
+    const patch: { title?: string; content?: any; last_modified_at: string } = {
+      last_modified_at: new Date().toISOString(),
+    };
     if (data.title !== undefined) patch.title = data.title;
     if (data.content !== undefined) patch.content = data.content;
     const { error } = await supabase.from("pages").update(patch).eq("id", data.pageId);

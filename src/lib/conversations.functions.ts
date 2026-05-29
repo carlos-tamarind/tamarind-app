@@ -118,7 +118,7 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
     const rows = targetSet.map((wuId) => ({
       conversation_id: conv.id as string,
       workspace_user_id: wuId,
-      role: wuId === meWuId ? "owner" : "member",
+      role: (wuId === meWuId ? "admin" : "member") as "admin" | "member",
     }));
     const { error: ppErr } = await supabaseAdmin
       .from("conversation_participants")
