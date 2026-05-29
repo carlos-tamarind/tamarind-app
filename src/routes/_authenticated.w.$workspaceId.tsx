@@ -1,6 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -28,9 +27,9 @@ function WorkspaceShell() {
 
   return (
     <div className="flex h-screen w-screen bg-background text-foreground">
-      {/* Workspace rail */}
+      {/* Workspace rail — 10% when open */}
       {railOpen && (
-        <div className="flex w-[10%] min-w-[64px] flex-col items-center gap-2 border-r bg-muted/30 py-3">
+        <div className="flex h-full w-[10%] min-w-[64px] flex-col items-center gap-2 border-r bg-muted/30 py-3">
           <button
             onClick={() => setRailOpen(false)}
             className="rounded p-1.5 text-muted-foreground hover:bg-accent"
@@ -59,59 +58,58 @@ function WorkspaceShell() {
         </div>
       )}
 
-      {/* Main resizable area */}
-      <ResizablePanelGroup orientation="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={railOpen ? 22 : 24} minSize={16} maxSize={35}>
-          <aside className="flex h-full flex-col border-r">
-            <div className="flex items-center justify-between border-b px-3 py-2">
-              <div className="truncate text-sm font-semibold">{current?.name ?? "Workspace"}</div>
-              {!railOpen && (
-                <button
-                  onClick={() => setRailOpen(true)}
-                  className="rounded p-1 text-muted-foreground hover:bg-accent"
-                  aria-label="Show workspace rail"
-                >
-                  <PanelLeftOpen className="size-4" />
-                </button>
-              )}
-            </div>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "conversations" | "pages")} className="flex flex-1 flex-col">
-              <TabsList className="mx-3 mt-3 grid grid-cols-2">
-                <TabsTrigger value="conversations">Conversations</TabsTrigger>
-                <TabsTrigger value="pages">Pages</TabsTrigger>
-              </TabsList>
-              <div className="flex-1 overflow-y-auto p-3 text-sm text-muted-foreground">
-                {tab === "conversations" ? "No conversations yet." : "No pages yet."}
-              </div>
-            </Tabs>
-            <div className="flex items-center justify-between border-t px-3 py-2">
-              <Link
-                to="/w/$workspaceId/settings"
-                params={{ workspaceId }}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Settings className="size-3.5" /> Settings
-              </Link>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  navigate({ to: "/login" });
-                }}
-              >
-                <LogOut className="size-3.5" />
-              </Button>
-            </div>
-          </aside>
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={railOpen ? 78 : 76}>
-          <main className="h-full overflow-hidden">
-            <Outlet />
-          </main>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      {/* Navigation panel — always 20% of viewport */}
+      <aside className="flex h-full w-[20vw] min-w-[200px] flex-col border-r">
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <div className="truncate text-sm font-semibold">{current?.name ?? "Workspace"}</div>
+          {!railOpen && (
+            <button
+              onClick={() => setRailOpen(true)}
+              className="rounded p-1 text-muted-foreground hover:bg-accent"
+              aria-label="Show workspace rail"
+            >
+              <PanelLeftOpen className="size-4" />
+            </button>
+          )}
+        </div>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as "conversations" | "pages")}
+          className="flex flex-1 flex-col"
+        >
+          <TabsList className="mx-3 mt-3 grid grid-cols-2">
+            <TabsTrigger value="conversations">Conversations</TabsTrigger>
+            <TabsTrigger value="pages">Pages</TabsTrigger>
+          </TabsList>
+          <div className="flex-1 overflow-y-auto p-3 text-sm text-muted-foreground">
+            {tab === "conversations" ? "No conversations yet." : "No pages yet."}
+          </div>
+        </Tabs>
+        <div className="flex items-center justify-between border-t px-3 py-2">
+          <Link
+            to="/w/$workspaceId/settings"
+            params={{ workspaceId }}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="size-3.5" /> Settings
+          </Link>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/login" });
+            }}
+          >
+            <LogOut className="size-3.5" />
+          </Button>
+        </div>
+      </aside>
+
+      {/* Central panel — takes the rest (80% when rail hidden, 70% when shown) */}
+      <main className="h-full flex-1 overflow-hidden">
+        <Outlet />
+      </main>
     </div>
   );
 }
