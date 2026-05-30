@@ -128,8 +128,9 @@ function LoginPage() {
       <Dialog
         open={noWorkspaceOpen}
         onOpenChange={(open) => {
-          // Prevent outside-click / esc auto-close: only allow programmatic close.
-          if (open) setNoWorkspaceOpen(true);
+          if (!open) {
+            void handleCloseNoWorkspace();
+          }
         }}
       >
         <DialogContent
