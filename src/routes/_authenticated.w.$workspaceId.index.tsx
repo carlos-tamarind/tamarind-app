@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { MessageSquarePlus, FileText, Loader2 } from "lucide-react";
@@ -29,6 +29,7 @@ function WorkspaceIndex() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId/" });
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [convOpen, setConvOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -88,6 +89,7 @@ function WorkspaceIndex() {
     setCreatingPage(true);
     try {
       const { pageId } = await newPage({ data: { workspaceId } });
+      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
       navigate({
         to: "/w/$workspaceId/p/$pageId",
         params: { workspaceId, pageId },

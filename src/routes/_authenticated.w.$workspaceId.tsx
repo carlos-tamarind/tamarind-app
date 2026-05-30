@@ -1,11 +1,13 @@
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen, Settings, LogOut } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Settings, LogOut, FileText, Lock, Globe } from "lucide-react";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
+import { listMyPages } from "@/lib/pages.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
@@ -18,9 +20,16 @@ function WorkspaceShell() {
   const [railOpen, setRailOpen] = useState(true);
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
 
+  const fetchPages = useServerFn(listMyPages);
+
   const { data: workspaces } = useQuery({
     queryKey: ["my-workspaces"],
     queryFn: () => listMyWorkspaces(),
+  });
+
+  const { data: pages } = useQuery({
+    queryKey: ["pages-list", workspaceId],
+    queryFn: () => fetchPages({ data: { workspaceId } }),
   });
 
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
@@ -81,8 +90,33 @@ function WorkspaceShell() {
             <TabsTrigger value="conversations">Conversations</TabsTrigger>
             <TabsTrigger value="pages">Pages</TabsTrigger>
           </TabsList>
-          <div className="flex-1 overflow-y-auto p-3 text-sm text-muted-foreground">
-            {tab === "conversations" ? "No conversations yet." : "No pages yet."}
+          <div className="flex-1 overflow-y-auto p-2 text-sm">
+            {tab === "conversations" ? (
+              <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
+            ) : (pages?.length ?? 0) === 0 ? (
+              <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {pages!.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      to="/w/$workspaceId/p/$pageId"
+                      params={{ workspaceId, pageId: p.id }}
+                      className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                      activeProps={{ className: "bg-accent" }}
+                    >
+                      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{p.title || "Untitled"}</span>
+                      {p.visibility === "private" ? (
+                        <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                      ) : p.visibility === "workspace" ? (
+                        <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                      ) : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </Tabs>
         <div className="flex items-center justify-between border-t px-3 py-2">

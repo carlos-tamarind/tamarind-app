@@ -23,7 +23,6 @@ export const createBlankPage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
-
     const { data: page, error } = await supabaseAdmin
       .from("pages")
       .insert({
@@ -40,6 +39,27 @@ export const createBlankPage = createServerFn({ method: "POST" })
     return { pageId: page.id as string };
   });
 
+export const listMyPages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: pages, error } = await supabase
+      .from("pages")
+      .select("id, title, visibility, last_modified_at")
+      .eq("workspace_id", data.workspaceId)
+      .order("last_modified_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (pages ?? []).map((p) => ({
+      id: p.id as string,
+      title: (p.title as string) ?? "Untitled",
+      visibility: p.visibility as "private" | "workspace" | "conversation" | "external",
+      lastModifiedAt: p.last_modified_at as string,
+    }));
+  });
+
 export const getPage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -49,7 +69,7 @@ export const getPage = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: page, error } = await supabase
       .from("pages")
-      .select("id, title, content, workspace_id")
+      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id")
       .eq("id", data.pageId)
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
@@ -58,6 +78,8 @@ export const getPage = createServerFn({ method: "GET" })
       title: page.title as string,
       content: page.content,
       workspaceId: page.workspace_id as string,
+      visibility: page.visibility as "private" | "workspace" | "conversation" | "external",
+      ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
     };
   });
 
@@ -82,4 +104,63 @@ export const updatePage = createServerFn({ method: "POST" })
     const { error } = await supabase.from("pages").update(patch).eq("id", data.pageId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const setPageVisibility = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        pageId: z.string().uuid(),
+        visibility: z.enum(["private", "workspace"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("pages")
+      .update({ visibility: data.visibility, last_modified_at: new Date().toISOString() })
+      .eq("id", data.pageId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Scan all pages content for mention nodes that point to the given page id.
+// Returns pages that reference it (backlinks).
+export const getPageBacklinks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ pageId: z.string().uuid(), workspaceId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: pages, error } = await supabase
+      .from("pages")
+      .select("id, title, content")
+      .eq("workspace_id", data.workspaceId)
+      .neq("id", data.pageId);
+    if (error) throw new Error(error.message);
+
+    const backlinks: Array<{ id: string; title: string }> = [];
+    const target = data.pageId;
+    const walk = (node: any): boolean => {
+      if (!node || typeof node !== "object") return false;
+      if (
+        node.type === "pageMention" &&
+        node.attrs &&
+        node.attrs.id === target
+      )
+        return true;
+      if (Array.isArray(node.content)) {
+        for (const child of node.content) if (walk(child)) return true;
+      }
+      return false;
+    };
+    for (const p of pages ?? []) {
+      if (walk(p.content)) {
+        backlinks.push({ id: p.id as string, title: (p.title as string) ?? "Untitled" });
+      }
+    }
+    return backlinks;
   });
