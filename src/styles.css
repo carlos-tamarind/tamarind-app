@@ -142,3 +142,31 @@
     color: var(--color-foreground);
   }
 }
+
+/* TipTap editor */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  height: 0;
+}
+.ProseMirror .mention-member {
+  background-color: color-mix(in oklab, var(--primary) 15%, transparent);
+  color: var(--primary);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-top: 0.25rem;
+}
