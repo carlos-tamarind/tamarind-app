@@ -4,9 +4,18 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -18,27 +27,42 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
-  const goNext = () => {
-    if (redirect && redirect.startsWith("/")) {
-      window.location.assign(redirect);
-    } else {
-      navigate({ to: "/" });
-    }
-  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [noWorkspaceOpen, setNoWorkspaceOpen] = useState(false);
+
+  const routeAfterLogin = async () => {
+    if (redirect && redirect.startsWith("/")) {
+      window.location.assign(redirect);
+      return;
+    }
+    try {
+      const workspaces = await listMyWorkspaces();
+      if (workspaces && workspaces.length > 0) {
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId: workspaces[0].workspaceId },
+        });
+      } else {
+        setNoWorkspaceOpen(true);
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to load workspaces");
+    }
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       toast.error(error.message);
       return;
     }
-    goNext();
+    await routeAfterLogin();
+    setBusy(false);
   };
 
   const handleGoogle = async () => {
@@ -54,7 +78,13 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    goNext();
+    await routeAfterLogin();
+    setBusy(false);
+  };
+
+  const handleCloseNoWorkspace = async () => {
+    setNoWorkspaceOpen(false);
+    await supabase.auth.signOut();
   };
 
   return (
@@ -94,6 +124,33 @@ function LoginPage() {
           <Link to="/forgot-password" className="underline">Forgot password?</Link>
         </p>
       </div>
+
+      <Dialog
+        open={noWorkspaceOpen}
+        onOpenChange={(open) => {
+          // Prevent outside-click / esc auto-close: only allow programmatic close.
+          if (open) setNoWorkspaceOpen(true);
+        }}
+      >
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>No workspace access</DialogTitle>
+            <DialogDescription>
+              Currently you don't have access to any workspaces. Please ask the admin
+              of your organization to invite you to a workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseNoWorkspace}>
+              Go back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
