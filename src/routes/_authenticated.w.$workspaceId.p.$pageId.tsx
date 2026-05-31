@@ -6,14 +6,17 @@ import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Mention from "@tiptap/extension-mention";
+import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { Lock, Globe, Link2 } from "lucide-react";
 
-import { getPage, updatePage, setPageVisibility, getPageBacklinks } from "@/lib/pages.functions";
-import { listWorkspaceMembers } from "@/lib/conversations.functions";
+import { getPage, updatePage, setPageVisibility, getPageBacklinks, listMyPages } from "@/lib/pages.functions";
+import { listWorkspaceMembers, listMyConversations } from "@/lib/conversations.functions";
 import { SlashCommand } from "@/components/editor/slash-command";
+import { PageMention, ConversationMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -29,8 +32,12 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId/p/$pageId")
   component: PageView,
 });
 
-function buildMentionSuggestion(getItems: (query: string) => Promise<MentionItem[]>) {
+function buildMentionSuggestion(
+  char: string,
+  getItems: (query: string) => Promise<MentionItem[]>,
+) {
   return {
+    char,
     items: ({ query }: any) => getItems(query),
     render: () => {
       let component: ReactRenderer | null = null;
@@ -68,14 +75,29 @@ function buildMentionSuggestion(getItems: (query: string) => Promise<MentionItem
   };
 }
 
+// Markdown-style underline: __text__
+const UnderlineMarkdown = Underline.extend({
+  addInputRules() {
+    return [
+      markInputRule({
+        find: /(?:^|\s)(__([^_]+)__)$/,
+        type: this.type,
+      }),
+    ];
+  },
+});
+
 function PageView() {
   const { workspaceId, pageId } = useParams({
     from: "/_authenticated/w/$workspaceId/p/$pageId",
   });
+  const navigate = useNavigate();
   const fetchPage = useServerFn(getPage);
   const savePage = useServerFn(updatePage);
   const setVis = useServerFn(setPageVisibility);
   const fetchMembers = useServerFn(listWorkspaceMembers);
+  const fetchPages = useServerFn(listMyPages);
+  const fetchConversations = useServerFn(listMyConversations);
   const fetchBacklinks = useServerFn(getPageBacklinks);
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -96,7 +118,7 @@ function PageView() {
 
   const memberSuggestion = useMemo(
     () =>
-      buildMentionSuggestion(async (query) => {
+      buildMentionSuggestion("@", async (query) => {
         const members = await fetchMembers({ data: { workspaceId } });
         return members
           .filter((m) =>
@@ -113,18 +135,62 @@ function PageView() {
     [workspaceId, fetchMembers],
   );
 
+  const pageSuggestion = useMemo(
+    () =>
+      buildMentionSuggestion("@@", async (query) => {
+        const pages = await fetchPages({ data: { workspaceId } });
+        return pages
+          .filter((p) =>
+            (p.title ?? "Untitled").toLowerCase().includes(query.toLowerCase()),
+          )
+          .filter((p) => p.id !== pageId)
+          .slice(0, 8)
+          .map((p) => ({ id: p.id, label: p.title || "Untitled" }));
+      }),
+    [workspaceId, pageId, fetchPages],
+  );
+
+  const conversationSuggestion = useMemo(
+    () =>
+      buildMentionSuggestion("\\", async (query) => {
+        const convs = await fetchConversations({ data: { workspaceId } });
+        return convs
+          .filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 8)
+          .map((c) => ({ id: c.id, label: c.title }));
+      }),
+    [workspaceId, fetchConversations],
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit,
+      UnderlineMarkdown,
       Placeholder.configure({
-        placeholder: 'Type "/" for commands, "@" to mention…',
+        placeholder: 'Type "/" for commands, "@" member, "@@" page, "\\" conversation…',
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
       SlashCommand,
       Mention.configure({
         HTMLAttributes: { class: "mention-member" },
-        suggestion: { char: "@", ...memberSuggestion },
+        suggestion: memberSuggestion,
+      }),
+      PageMention.extend({
+        addOptions() {
+          return {
+            ...this.parent?.(),
+            suggestion: pageSuggestion,
+          };
+        },
+      }),
+      ConversationMention.extend({
+        addOptions() {
+          return {
+            ...this.parent?.(),
+            suggestion: conversationSuggestion,
+          };
+        },
       }),
     ],
     content: (data?.content as any) ?? { type: "doc", content: [] },
@@ -134,6 +200,23 @@ function PageView() {
         class:
           "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[60vh]",
       },
+      handleClickOn: (_view, _pos, node) => {
+        if (node.type.name === "pageMention" && node.attrs.id) {
+          navigate({
+            to: "/w/$workspaceId/p/$pageId",
+            params: { workspaceId, pageId: node.attrs.id },
+          });
+          return true;
+        }
+        if (node.type.name === "conversationMention" && node.attrs.id) {
+          navigate({
+            to: "/w/$workspaceId/c/$conversationId",
+            params: { workspaceId, conversationId: node.attrs.id },
+          });
+          return true;
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor: ed }) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -141,6 +224,7 @@ function PageView() {
         savePage({ data: { pageId, content: ed.getJSON() } })
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+            queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
           })
           .catch(() => {});
       }, 600);
