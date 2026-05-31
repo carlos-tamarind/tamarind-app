@@ -176,21 +176,15 @@ function PageView() {
         HTMLAttributes: { class: "mention-member" },
         suggestion: memberSuggestion,
       }),
-      PageMention.extend({
-        addOptions() {
-          return {
-            ...this.parent?.(),
-            suggestion: pageSuggestion,
-          };
-        },
+      PageMention.configure({
+        HTMLAttributes: { class: "mention-page" },
+        renderText: ({ node }) => `@@${node.attrs.label ?? node.attrs.id}`,
+        suggestion: pageSuggestion,
       }),
-      ConversationMention.extend({
-        addOptions() {
-          return {
-            ...this.parent?.(),
-            suggestion: conversationSuggestion,
-          };
-        },
+      ConversationMention.configure({
+        HTMLAttributes: { class: "mention-conversation" },
+        renderText: ({ node }) => `\\${node.attrs.label ?? node.attrs.id}`,
+        suggestion: conversationSuggestion,
       }),
     ],
     content: (data?.content as any) ?? { type: "doc", content: [] },
