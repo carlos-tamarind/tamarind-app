@@ -18,6 +18,10 @@ import {
   Code,
   Minus,
   Type,
+  Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Underline as UnderlineIcon,
+  Strikethrough,
 } from "lucide-react";
 
 type Cmd = {
@@ -31,25 +35,49 @@ const COMMANDS: Cmd[] = [
     title: "Text",
     icon: <Type className="size-4" />,
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setParagraph().run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .clearNodes()
+        .setParagraph()
+        .run(),
   },
   {
     title: "Heading 1",
     icon: <Heading1 className="size-4" />,
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .clearNodes()
+        .setNode("heading", { level: 1 })
+        .run(),
   },
   {
     title: "Heading 2",
     icon: <Heading2 className="size-4" />,
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .clearNodes()
+        .setNode("heading", { level: 2 })
+        .run(),
   },
   {
     title: "Heading 3",
     icon: <Heading3 className="size-4" />,
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .clearNodes()
+        .setNode("heading", { level: 3 })
+        .run(),
   },
   {
     title: "Bullet list",
@@ -86,6 +114,30 @@ const COMMANDS: Cmd[] = [
     icon: <Minus className="size-4" />,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+  },
+  {
+    title: "Bold",
+    icon: <BoldIcon className="size-4" />,
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).toggleBold().run(),
+  },
+  {
+    title: "Italic",
+    icon: <ItalicIcon className="size-4" />,
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).toggleItalic().run(),
+  },
+  {
+    title: "Underline",
+    icon: <UnderlineIcon className="size-4" />,
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).toggleUnderline().run(),
+  },
+  {
+    title: "Strikethrough",
+    icon: <Strikethrough className="size-4" />,
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).toggleStrike().run(),
   },
 ];
 
@@ -151,7 +203,7 @@ export const SlashCommand = Extension.create({
         items: ({ query }: any) =>
           COMMANDS.filter((c) =>
             c.title.toLowerCase().includes(query.toLowerCase()),
-          ).slice(0, 10),
+          ).slice(0, 12),
         render: () => {
           let component: ReactRenderer | null = null;
           let popup: TippyInstance | null = null;
