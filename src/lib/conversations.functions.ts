@@ -39,6 +39,61 @@ export const listWorkspaceMembers = createServerFn({ method: "GET" })
     }));
   });
 
+export const listMyConversations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const meWuId = await getCurrentWorkspaceUser(data.workspaceId, userId);
+
+    const { data: parts, error } = await supabaseAdmin
+      .from("conversation_participants")
+      .select(
+        "conversation_id, conversations!inner(id, title, workspace_id, last_modified_at)",
+      )
+      .eq("workspace_user_id", meWuId);
+    if (error) throw new Error(error.message);
+
+    const convs = (parts ?? [])
+      .map((p: any) => p.conversations)
+      .filter((c: any) => c && c.workspace_id === data.workspaceId);
+
+    // Fetch participant display names for untitled conversations
+    const convIds = convs.map((c: any) => c.id as string);
+    let labelByConv = new Map<string, string>();
+    if (convIds.length > 0) {
+      const { data: allParts } = await supabaseAdmin
+        .from("conversation_participants")
+        .select(
+          "conversation_id, workspace_users!inner(id, display_name, user_id)",
+        )
+        .in("conversation_id", convIds);
+      const byConv = new Map<string, string[]>();
+      for (const row of allParts ?? []) {
+        const cid = row.conversation_id as string;
+        const wu: any = (row as any).workspace_users;
+        if (wu.id === meWuId) continue;
+        const name = wu.display_name ?? (wu.user_id as string).slice(0, 6);
+        if (!byConv.has(cid)) byConv.set(cid, []);
+        byConv.get(cid)!.push(name);
+      }
+      for (const [cid, names] of byConv) {
+        labelByConv.set(cid, names.slice(0, 3).join(", "));
+      }
+    }
+
+    return convs.map((c: any) => ({
+      id: c.id as string,
+      title:
+        (c.title as string | null) ??
+        labelByConv.get(c.id as string) ??
+        "Conversation",
+      lastModifiedAt: c.last_modified_at as string,
+    }));
+  });
+
 export const findOrCreateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -58,7 +113,6 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
     );
     const targetSet = Array.from(new Set([meWuId, ...otherIds])).sort();
 
-    // Find existing conversation in workspace whose participant set equals target set.
     const { data: myConvParts, error: mErr } = await supabaseAdmin
       .from("conversation_participants")
       .select("conversation_id, conversations!inner(workspace_id)")
@@ -93,7 +147,6 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
       }
     }
 
-    // Validate all participants belong to workspace.
     const { data: validMembers, error: vErr } = await supabaseAdmin
       .from("workspace_users")
       .select("id")
@@ -104,7 +157,6 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
       throw new Error("Some participants are not members of this workspace");
     }
 
-    // Create conversation + participants via admin (bypass chicken-and-egg RLS).
     const { data: conv, error: cErr } = await supabaseAdmin
       .from("conversations")
       .insert({
