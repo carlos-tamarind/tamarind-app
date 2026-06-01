@@ -274,6 +274,18 @@ function PageView() {
     };
   }, [pageId, user]);
 
+  // Flush pending save when navigating away / unmounting
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        if (editor) {
+          savePage({ data: { pageId, content: editor.getJSON() } }).catch(() => {});
+        }
+      }
+    };
+  }, [pageId, editor, savePage]);
+
   const handleTitleBlur = () => {
     if (title && title !== data?.title) {
       savePage({ data: { pageId, title } })
@@ -284,10 +296,18 @@ function PageView() {
     }
   };
 
-  const handleVisibilityChange = async (value: "private" | "workspace") => {
+  const applyVisibility = async (value: "private" | "workspace") => {
     await setVis({ data: { pageId, visibility: value } });
     queryClient.invalidateQueries({ queryKey: ["page", pageId] });
     queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+  };
+
+  const handleVisibilityChange = (value: "private" | "workspace") => {
+    if (value === "workspace" && data?.visibility !== "workspace") {
+      setPublishOpen(true);
+      return;
+    }
+    void applyVisibility(value);
   };
 
   if (isLoading) {
