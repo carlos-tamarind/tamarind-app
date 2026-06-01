@@ -393,6 +393,31 @@ function PageView() {
           </div>
         )}
       </div>
+
+      <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish page</DialogTitle>
+            <DialogDescription>
+              Do you want to publish this page? It will be visible for all users
+              inside this workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between">
+            <Button variant="secondary" onClick={() => setPublishOpen(false)}>
+              Keep it private
+            </Button>
+            <Button
+              onClick={async () => {
+                setPublishOpen(false);
+                await applyVisibility("workspace");
+              }}
+            >
+              Publish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
