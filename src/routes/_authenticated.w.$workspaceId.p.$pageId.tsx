@@ -125,6 +125,11 @@ function PageView() {
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Holds the latest unsaved content/title so we can flush on unmount or pageId change.
+  const dirtyContentRef = useRef<any>(null);
+  const dirtyTitleRef = useRef<string | null>(null);
+  const savePageRef = useRef(savePage);
+  savePageRef.current = savePage;
 
   const memberSuggestion = useMemo(
     () =>
