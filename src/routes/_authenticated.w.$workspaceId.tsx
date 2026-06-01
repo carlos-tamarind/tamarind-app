@@ -1,14 +1,27 @@
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen, Settings, LogOut, FileText, Lock, Globe } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  LogOut,
+  FileText,
+  Lock,
+  Globe,
+  MessageSquarePlus,
+  Loader2,
+  MessageSquare,
+} from "lucide-react";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
-import { listMyPages } from "@/lib/pages.functions";
+import { listMyPages, createBlankPage } from "@/lib/pages.functions";
+import { listMyConversations } from "@/lib/conversations.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { NewConversationDialog } from "@/components/new-conversation-dialog";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
   component: WorkspaceShell,
@@ -17,10 +30,15 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [railOpen, setRailOpen] = useState(true);
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
+  const [convDialogOpen, setConvDialogOpen] = useState(false);
+  const [creatingPage, setCreatingPage] = useState(false);
 
   const fetchPages = useServerFn(listMyPages);
+  const fetchConvs = useServerFn(listMyConversations);
+  const newPage = useServerFn(createBlankPage);
 
   const { data: workspaces } = useQuery({
     queryKey: ["my-workspaces"],
@@ -32,7 +50,47 @@ function WorkspaceShell() {
     queryFn: () => fetchPages({ data: { workspaceId } }),
   });
 
+  const { data: conversations } = useQuery({
+    queryKey: ["conversations-list", workspaceId],
+    queryFn: () => fetchConvs({ data: { workspaceId } }),
+  });
+
+  const sortedPages = useMemo(
+    () =>
+      [...(pages ?? [])].sort((a, b) =>
+        (a.title || "Untitled").localeCompare(b.title || "Untitled", undefined, {
+          sensitivity: "base",
+        }),
+      ),
+    [pages],
+  );
+
+  const sortedConversations = useMemo(
+    () =>
+      [...(conversations ?? [])].sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+      ),
+    [conversations],
+  );
+
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
+
+  const handleNewPage = async () => {
+    if (creatingPage) return;
+    setCreatingPage(true);
+    try {
+      const { pageId } = await newPage({ data: { workspaceId } });
+      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      navigate({
+        to: "/w/$workspaceId/p/$pageId",
+        params: { workspaceId, pageId },
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCreatingPage(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen bg-background text-foreground">
@@ -84,7 +142,7 @@ function WorkspaceShell() {
         <Tabs
           value={tab}
           onValueChange={(v) => setTab(v as "conversations" | "pages")}
-          className="flex flex-1 flex-col"
+          className="flex flex-1 flex-col overflow-hidden"
         >
           <TabsList className="mx-3 mt-3 grid grid-cols-2">
             <TabsTrigger value="conversations">Conversations</TabsTrigger>
@@ -92,12 +150,30 @@ function WorkspaceShell() {
           </TabsList>
           <div className="flex-1 overflow-y-auto p-2 text-sm">
             {tab === "conversations" ? (
-              <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
-            ) : (pages?.length ?? 0) === 0 ? (
+              sortedConversations.length === 0 ? (
+                <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {sortedConversations.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        to="/w/$workspaceId/c/$conversationId"
+                        params={{ workspaceId, conversationId: c.id }}
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                        activeProps={{ className: "bg-accent" }}
+                      >
+                        <MessageSquare className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{c.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : sortedPages.length === 0 ? (
               <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
             ) : (
               <ul className="space-y-0.5">
-                {pages!.map((p) => (
+                {sortedPages.map((p) => (
                   <li key={p.id}>
                     <Link
                       to="/w/$workspaceId/p/$pageId"
@@ -116,6 +192,36 @@ function WorkspaceShell() {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          {/* Context-aware create button */}
+          <div className="flex justify-center px-3 pb-3">
+            {tab === "conversations" ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setConvDialogOpen(true)}
+                className="w-full"
+              >
+                <MessageSquarePlus className="size-4" />
+                New conversation
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleNewPage}
+                disabled={creatingPage}
+                className="w-full"
+              >
+                {creatingPage ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <FileText className="size-4" />
+                )}
+                New page
+              </Button>
             )}
           </div>
         </Tabs>
@@ -140,10 +246,16 @@ function WorkspaceShell() {
         </div>
       </aside>
 
-      {/* Central panel — takes the rest (80% when rail hidden, 70% when shown) */}
+      {/* Central panel */}
       <main className="h-full flex-1 overflow-hidden">
         <Outlet />
       </main>
+
+      <NewConversationDialog
+        workspaceId={workspaceId}
+        open={convDialogOpen}
+        onOpenChange={setConvDialogOpen}
+      />
     </div>
   );
 }
