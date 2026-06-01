@@ -283,21 +283,47 @@ function PageView() {
     };
   }, [pageId, user]);
 
-  // Flush pending save when navigating away / unmounting
+  // Flush pending edits when pageId changes or component unmounts.
+  // Captures the current pageId in closure so the save targets the page that was being edited.
   useEffect(() => {
+    const flushingPageId = pageId;
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
-        if (editor) {
-          savePage({ data: { pageId, content: editor.getJSON() } }).catch(() => {});
-        }
+        saveTimer.current = null;
+      }
+      const patch: { pageId: string; title?: string; content?: any } = {
+        pageId: flushingPageId,
+      };
+      if (dirtyContentRef.current !== null) {
+        patch.content = dirtyContentRef.current;
+        dirtyContentRef.current = null;
+      }
+      if (dirtyTitleRef.current !== null) {
+        patch.title = dirtyTitleRef.current;
+        dirtyTitleRef.current = null;
+      }
+      if (patch.content !== undefined || patch.title !== undefined) {
+        savePageRef
+          .current({ data: patch })
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+          })
+          .catch(() => {});
       }
     };
-  }, [pageId, editor, savePage]);
+  }, [pageId, workspaceId, queryClient]);
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    dirtyTitleRef.current = value;
+  };
 
   const handleTitleBlur = () => {
     if (title && title !== data?.title) {
-      savePage({ data: { pageId, title } })
+      dirtyTitleRef.current = null;
+      savePageRef
+        .current({ data: { pageId, title } })
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
         })
