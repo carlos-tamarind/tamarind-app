@@ -228,10 +228,14 @@ function PageView() {
       },
     },
     onUpdate: ({ editor: ed }) => {
+      const json = ed.getJSON();
+      dirtyContentRef.current = json;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
-        savePage({ data: { pageId, content: ed.getJSON() } })
+        savePageRef
+          .current({ data: { pageId, content: json } })
           .then(() => {
+            dirtyContentRef.current = null;
             queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
             queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
           })
