@@ -123,6 +123,7 @@ function PageView() {
 
   const [title, setTitle] = useState("");
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
+  const [publishOpen, setPublishOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const memberSuggestion = useMemo(
