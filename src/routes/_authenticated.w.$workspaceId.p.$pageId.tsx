@@ -400,7 +400,7 @@ function PageView() {
 
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           onBlur={handleTitleBlur}
           placeholder="Untitled"
           className="mb-6 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-muted-foreground"
