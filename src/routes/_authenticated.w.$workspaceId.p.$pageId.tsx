@@ -27,6 +27,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId/p/$pageId")({
   component: PageView,
@@ -114,6 +123,7 @@ function PageView() {
 
   const [title, setTitle] = useState("");
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
+  const [publishOpen, setPublishOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const memberSuggestion = useMemo(
@@ -264,6 +274,18 @@ function PageView() {
     };
   }, [pageId, user]);
 
+  // Flush pending save when navigating away / unmounting
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        if (editor) {
+          savePage({ data: { pageId, content: editor.getJSON() } }).catch(() => {});
+        }
+      }
+    };
+  }, [pageId, editor, savePage]);
+
   const handleTitleBlur = () => {
     if (title && title !== data?.title) {
       savePage({ data: { pageId, title } })
@@ -274,10 +296,18 @@ function PageView() {
     }
   };
 
-  const handleVisibilityChange = async (value: "private" | "workspace") => {
+  const applyVisibility = async (value: "private" | "workspace") => {
     await setVis({ data: { pageId, visibility: value } });
     queryClient.invalidateQueries({ queryKey: ["page", pageId] });
     queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+  };
+
+  const handleVisibilityChange = (value: "private" | "workspace") => {
+    if (value === "workspace" && data?.visibility !== "workspace") {
+      setPublishOpen(true);
+      return;
+    }
+    void applyVisibility(value);
   };
 
   if (isLoading) {
@@ -363,6 +393,31 @@ function PageView() {
           </div>
         )}
       </div>
+
+      <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish page</DialogTitle>
+            <DialogDescription>
+              Do you want to publish this page? It will be visible for all users
+              inside this workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between">
+            <Button variant="secondary" onClick={() => setPublishOpen(false)}>
+              Keep it private
+            </Button>
+            <Button
+              onClick={async () => {
+                setPublishOpen(false);
+                await applyVisibility("workspace");
+              }}
+            >
+              Publish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
