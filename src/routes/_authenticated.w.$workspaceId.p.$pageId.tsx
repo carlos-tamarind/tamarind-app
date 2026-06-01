@@ -125,6 +125,11 @@ function PageView() {
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Holds the latest unsaved content/title so we can flush on unmount or pageId change.
+  const dirtyContentRef = useRef<any>(null);
+  const dirtyTitleRef = useRef<string | null>(null);
+  const savePageRef = useRef(savePage);
+  savePageRef.current = savePage;
 
   const memberSuggestion = useMemo(
     () =>
@@ -223,10 +228,14 @@ function PageView() {
       },
     },
     onUpdate: ({ editor: ed }) => {
+      const json = ed.getJSON();
+      dirtyContentRef.current = json;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
-        savePage({ data: { pageId, content: ed.getJSON() } })
+        savePageRef
+          .current({ data: { pageId, content: json } })
           .then(() => {
+            dirtyContentRef.current = null;
             queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
             queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
           })
@@ -274,21 +283,47 @@ function PageView() {
     };
   }, [pageId, user]);
 
-  // Flush pending save when navigating away / unmounting
+  // Flush pending edits when pageId changes or component unmounts.
+  // Captures the current pageId in closure so the save targets the page that was being edited.
   useEffect(() => {
+    const flushingPageId = pageId;
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
-        if (editor) {
-          savePage({ data: { pageId, content: editor.getJSON() } }).catch(() => {});
-        }
+        saveTimer.current = null;
+      }
+      const patch: { pageId: string; title?: string; content?: any } = {
+        pageId: flushingPageId,
+      };
+      if (dirtyContentRef.current !== null) {
+        patch.content = dirtyContentRef.current;
+        dirtyContentRef.current = null;
+      }
+      if (dirtyTitleRef.current !== null) {
+        patch.title = dirtyTitleRef.current;
+        dirtyTitleRef.current = null;
+      }
+      if (patch.content !== undefined || patch.title !== undefined) {
+        savePageRef
+          .current({ data: patch })
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+          })
+          .catch(() => {});
       }
     };
-  }, [pageId, editor, savePage]);
+  }, [pageId, workspaceId, queryClient]);
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    dirtyTitleRef.current = value;
+  };
 
   const handleTitleBlur = () => {
     if (title && title !== data?.title) {
-      savePage({ data: { pageId, title } })
+      dirtyTitleRef.current = null;
+      savePageRef
+        .current({ data: { pageId, title } })
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
         })
@@ -365,7 +400,7 @@ function PageView() {
 
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           onBlur={handleTitleBlur}
           placeholder="Untitled"
           className="mb-6 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-muted-foreground"
