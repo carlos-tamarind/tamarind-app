@@ -1,13 +1,21 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
-import { acceptInvite, getInviteByToken } from "@/lib/invites.functions";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  acceptInvite,
+  acceptInviteWithSignup,
+  getInviteByToken,
+} from "@/lib/invites.functions";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const searchSchema = z.object({ token: z.string().min(8).max(128) });
 
@@ -16,12 +24,17 @@ export const Route = createFileRoute("/accept-invite")({
   component: AcceptInvitePage,
 });
 
+type Step = "welcome" | "signup";
+
 function AcceptInvitePage() {
   const { token } = Route.useSearch();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const fetchInvite = useServerFn(getInviteByToken);
   const acceptFn = useServerFn(acceptInvite);
+  const acceptSignupFn = useServerFn(acceptInviteWithSignup);
+
+  const [step, setStep] = useState<Step>("welcome");
 
   const { data, isLoading } = useQuery({
     queryKey: ["invite", token],
@@ -50,46 +63,22 @@ function AcceptInvitePage() {
     }
   }, [data, user, accept]);
 
-  if (isLoading || authLoading) {
-    return <Centered>Loading invite…</Centered>;
-  }
-
-  if (!data || data.status === "not_found") {
+  if (isLoading || authLoading) return <Centered>Loading invite…</Centered>;
+  if (!data || data.status === "not_found")
     return <Centered>This invite link is invalid.</Centered>;
-  }
-  if (data.status === "expired") {
+  if (data.status === "expired")
     return <Centered>This invite has expired. Ask an admin for a new link.</Centered>;
-  }
-  if (data.status === "accepted") {
+  if (data.status === "accepted")
     return <Centered>This invite has already been used.</Centered>;
-  }
 
-  // Valid invite
-  if (!user) {
-    const redirect = `/accept-invite?token=${encodeURIComponent(token)}`;
-    return (
-      <Centered>
-        <div className="space-y-4 text-center">
-          <h1 className="text-xl font-semibold">Join {data.workspaceName}</h1>
-          <p className="text-sm text-muted-foreground">
-            You were invited as <strong>{data.email}</strong> ({data.roleKey}). Sign in with
-            that email to accept.
-          </p>
-          <Link to="/login" search={{ redirect } as any}>
-            <Button>Sign in to accept</Button>
-          </Link>
-        </div>
-      </Centered>
-    );
-  }
-
-  if (user.email?.toLowerCase() !== data.email.toLowerCase()) {
+  // Signed-in mismatch
+  if (user && user.email?.toLowerCase() !== data.email.toLowerCase()) {
     return (
       <Centered>
         <div className="space-y-3 text-center">
           <p className="text-sm">
-            This invite is for <strong>{data.email}</strong>, but you are signed in as{" "}
-            <strong>{user.email}</strong>.
+            This invite is for <strong>{data.email}</strong>, but you are signed in
+            as <strong>{user.email}</strong>.
           </p>
           <p className="text-xs text-muted-foreground">
             Sign out and sign in with the invited email to accept.
@@ -99,13 +88,156 @@ function AcceptInvitePage() {
     );
   }
 
-  return <Centered>Accepting invite…</Centered>;
+  if (user) return <Centered>Accepting invite…</Centered>;
+
+  // Not signed in → welcome → signup
+  if (step === "welcome") {
+    return (
+      <Centered>
+        <div className="space-y-4 text-center">
+          <h1 className="text-xl font-semibold">Join {data.workspaceName}</h1>
+          <p className="text-sm text-muted-foreground">
+            You were invited as <strong>{data.email}</strong> ({data.roleKey}).
+            Create your account to accept.
+          </p>
+          <Button onClick={() => setStep("signup")}>Continue</Button>
+        </div>
+      </Centered>
+    );
+  }
+
+  return (
+    <SignupForm
+      email={data.email}
+      onSubmit={async (password) => {
+        try {
+          const res = await acceptSignupFn({ data: { token, password } });
+          // Sign the new user in
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: res.email,
+            password,
+          });
+          if (signInErr) throw signInErr;
+          toast.success("Account created");
+          navigate({
+            to: "/w/$workspaceId",
+            params: { workspaceId: res.workspaceId },
+          });
+        } catch (e: any) {
+          toast.error(e?.message ?? "Failed to create account");
+        }
+      }}
+    />
+  );
+}
+
+function SignupForm({
+  email,
+  onSubmit,
+}: {
+  email: string;
+  onSubmit: (password: string) => Promise<void>;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setBusy(true);
+    await onSubmit(password);
+    setBusy(false);
+  };
+
+  return (
+    <Centered>
+      <form onSubmit={handleSubmit} className="w-full space-y-4">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold">Create your account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Set a password to finish joining the workspace.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" value={email} disabled />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="password">Password</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={show ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              required
+              className="pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShow((s) => !s)}
+              className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
+              tabIndex={-1}
+              aria-label={show ? "Hide password" : "Show password"}
+            >
+              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm">Confirm password</Label>
+          <div className="relative">
+            <Input
+              id="confirm"
+              type={showConfirm ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              minLength={8}
+              required
+              className="pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((s) => !s)}
+              className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
+              tabIndex={-1}
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? "Creating account…" : "Create account"}
+        </Button>
+      </form>
+    </Centered>
+  );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md text-center text-sm">{children}</div>
+      <div className="w-full max-w-md text-sm">{children}</div>
     </div>
   );
 }
