@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireFeature } from "./workspaces.functions";
 
-const INVITE_TTL_DAYS = 7;
+const INVITE_TTL_HOURS = 24;
 const ROLE_KEYS = ["admin", "member", "viewer"] as const;
 
 async function assertWorkspaceAdmin(workspaceId: string, userId: string) {
