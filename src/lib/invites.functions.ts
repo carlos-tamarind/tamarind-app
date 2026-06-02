@@ -84,7 +84,7 @@ export const createInvite = createServerFn({ method: "POST" })
     if (existing) throw new Error("An active invite already exists for this email");
 
     const token = randomBytes(24).toString("base64url");
-    const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + INVITE_TTL_HOURS * 60 * 60 * 1000);
 
     const { data: row, error } = await supabaseAdmin
       .from("workspace_invites")
