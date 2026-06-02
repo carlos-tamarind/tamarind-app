@@ -197,3 +197,66 @@ export const acceptInvite = createServerFn({ method: "POST" })
 
     return { workspaceId: invite.workspace_id as string };
   });
+
+// Public — used by /accept-invite to create a new account for the invited email
+// and add the user to the workspace in a single step. No auth middleware: the
+// invite token itself is the proof of authorization.
+export const acceptInviteWithSignup = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        token: z.string().min(8).max(128),
+        password: z.string().min(8).max(128),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { data: invite, error } = await supabaseAdmin
+      .from("workspace_invites")
+      .select("id, workspace_id, email, role_id, expires_at, accepted_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!invite) throw new Error("Invite not found");
+    if (invite.accepted_at) throw new Error("Invite already used");
+    if (new Date(invite.expires_at as string) < new Date())
+      throw new Error("Invite expired");
+
+    const email = (invite.email as string).toLowerCase();
+
+    // Try to create the user; if they already exist, fail with a clear message
+    // (they should use the existing /login flow + auto-accept).
+    const { data: created, error: createErr } =
+      await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: data.password,
+        email_confirm: true,
+      });
+    if (createErr || !created.user) {
+      const msg = createErr?.message ?? "Failed to create account";
+      if (/registered|exists/i.test(msg)) {
+        throw new Error(
+          "An account with this email already exists. Please sign in to accept the invite.",
+        );
+      }
+      throw new Error(msg);
+    }
+
+    const userId = created.user.id;
+
+    const { error: insErr } = await supabaseAdmin.from("workspace_users").insert({
+      workspace_id: invite.workspace_id,
+      user_id: userId,
+      role_id: invite.role_id,
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    const { error: updErr } = await supabaseAdmin
+      .from("workspace_invites")
+      .update({ accepted_at: new Date().toISOString() })
+      .eq("id", invite.id);
+    if (updErr) throw new Error(updErr.message);
+
+    return { workspaceId: invite.workspace_id as string, email };
+  });
+
