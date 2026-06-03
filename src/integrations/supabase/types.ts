@@ -55,24 +55,30 @@ export type Database = {
           created_at: string
           created_by_workspace_user_id: string | null
           id: string
+          image_url: string | null
           last_modified_at: string
           title: string | null
+          type: Database["public"]["Enums"]["conversation_type"]
           workspace_id: string
         }
         Insert: {
           created_at?: string
           created_by_workspace_user_id?: string | null
           id?: string
+          image_url?: string | null
           last_modified_at?: string
           title?: string | null
+          type?: Database["public"]["Enums"]["conversation_type"]
           workspace_id: string
         }
         Update: {
           created_at?: string
           created_by_workspace_user_id?: string | null
           id?: string
+          image_url?: string | null
           last_modified_at?: string
           title?: string | null
+          type?: Database["public"]["Enums"]["conversation_type"]
           workspace_id?: string
         }
         Relationships: [
@@ -701,6 +707,7 @@ export type Database = {
         | "inline_page_match"
         | "semantic_hint"
       conversation_role: "admin" | "member" | "viewer"
+      conversation_type: "direct" | "group" | "channel"
       page_origin: "user" | "conversation" | "import" | "ai"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
@@ -848,6 +855,7 @@ export const Constants = {
         "semantic_hint",
       ],
       conversation_role: ["admin", "member", "viewer"],
+      conversation_type: ["direct", "group", "channel"],
       page_origin: ["user", "conversation", "import", "ai"],
       page_type: ["standard", "template", "generated", "imported"],
       page_visibility: ["private", "conversation", "workspace", "external"],
