@@ -14,7 +14,8 @@ import {
   Globe,
   MessageSquarePlus,
   Loader2,
-  MessageSquare,
+  User,
+  Users,
 } from "lucide-react";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
@@ -72,6 +73,8 @@ function WorkspaceShell() {
       ),
     [conversations],
   );
+  const directConversations = sortedConversations.filter((c) => c.type === "direct");
+  const groupConversations = sortedConversations.filter((c) => c.type === "group");
 
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
 
@@ -153,21 +156,56 @@ function WorkspaceShell() {
               sortedConversations.length === 0 ? (
                 <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
               ) : (
-                <ul className="space-y-0.5">
-                  {sortedConversations.map((c) => (
-                    <li key={c.id}>
-                      <Link
-                        to="/w/$workspaceId/c/$conversationId"
-                        params={{ workspaceId, conversationId: c.id }}
-                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                        activeProps={{ className: "bg-accent" }}
-                      >
-                        <MessageSquare className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{c.title}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-3">
+                  <section>
+                    <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Direct messages
+                    </h3>
+                    {directConversations.length === 0 ? (
+                      <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {directConversations.map((c) => (
+                          <li key={c.id}>
+                            <Link
+                              to="/w/$workspaceId/c/$conversationId"
+                              params={{ workspaceId, conversationId: c.id }}
+                              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                              activeProps={{ className: "bg-accent" }}
+                            >
+                              <User className="size-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate">{c.title}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                  <section>
+                    <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Groups
+                    </h3>
+                    {groupConversations.length === 0 ? (
+                      <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {groupConversations.map((c) => (
+                          <li key={c.id}>
+                            <Link
+                              to="/w/$workspaceId/c/$conversationId"
+                              params={{ workspaceId, conversationId: c.id }}
+                              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                              activeProps={{ className: "bg-accent" }}
+                            >
+                              <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate">{c.title}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                </div>
               )
             ) : sortedPages.length === 0 ? (
               <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
