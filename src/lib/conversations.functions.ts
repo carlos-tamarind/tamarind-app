@@ -16,6 +16,24 @@ async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   return data.id as string;
 }
 
+async function assertParticipant(conversationId: string, userId: string) {
+  const { data: conv, error: cErr } = await supabaseAdmin
+    .from("conversations")
+    .select("id, workspace_id")
+    .eq("id", conversationId)
+    .single();
+  if (cErr || !conv) throw new Error("Conversation not found");
+  const meWuId = await getCurrentWorkspaceUser(conv.workspace_id as string, userId);
+  const { data: part } = await supabaseAdmin
+    .from("conversation_participants")
+    .select("workspace_user_id")
+    .eq("conversation_id", conversationId)
+    .eq("workspace_user_id", meWuId)
+    .maybeSingle();
+  if (!part) throw new Error("Not a participant of this conversation");
+  return { meWuId, workspaceId: conv.workspace_id as string };
+}
+
 export const listWorkspaceMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -51,7 +69,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
     const { data: parts, error } = await supabaseAdmin
       .from("conversation_participants")
       .select(
-        "conversation_id, conversations!inner(id, title, workspace_id, last_modified_at)",
+        "conversation_id, conversations!inner(id, title, type, workspace_id, last_modified_at)",
       )
       .eq("workspace_user_id", meWuId);
     if (error) throw new Error(error.message);
@@ -60,9 +78,8 @@ export const listMyConversations = createServerFn({ method: "GET" })
       .map((p: any) => p.conversations)
       .filter((c: any) => c && c.workspace_id === data.workspaceId);
 
-    // Fetch participant display names for untitled conversations
     const convIds = convs.map((c: any) => c.id as string);
-    let labelByConv = new Map<string, string>();
+    const labelByConv = new Map<string, string>();
     if (convIds.length > 0) {
       const { data: allParts } = await supabaseAdmin
         .from("conversation_participants")
@@ -90,6 +107,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
         (c.title as string | null) ??
         labelByConv.get(c.id as string) ??
         "Conversation",
+      type: (c.type as "direct" | "group" | "channel") ?? "direct",
       lastModifiedAt: c.last_modified_at as string,
     }));
   });
@@ -157,11 +175,14 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
       throw new Error("Some participants are not members of this workspace");
     }
 
+    const convType = targetSet.length <= 2 ? "direct" : "group";
+
     const { data: conv, error: cErr } = await supabaseAdmin
       .from("conversations")
       .insert({
         workspace_id: data.workspaceId,
         created_by_workspace_user_id: meWuId,
+        type: convType,
       })
       .select("id")
       .single();
@@ -178,4 +199,215 @@ export const findOrCreateConversation = createServerFn({ method: "POST" })
     if (ppErr) throw new Error(ppErr.message);
 
     return { conversationId: conv.id as string, created: true };
+  });
+
+export const getConversation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ conversationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId } = await assertParticipant(data.conversationId, context.userId);
+
+    const { data: conv, error } = await supabaseAdmin
+      .from("conversations")
+      .select("id, title, type, image_url, workspace_id")
+      .eq("id", data.conversationId)
+      .single();
+    if (error || !conv) throw new Error(error?.message ?? "Not found");
+
+    const { data: parts } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("workspace_users!inner(id, display_name, avatar_url, user_id)")
+      .eq("conversation_id", data.conversationId);
+
+    const participants = (parts ?? []).map((p: any) => ({
+      workspaceUserId: p.workspace_users.id as string,
+      displayName:
+        (p.workspace_users.display_name as string | null) ??
+        (p.workspace_users.user_id as string).slice(0, 6),
+      avatarUrl: (p.workspace_users.avatar_url as string | null) ?? null,
+      isMe: p.workspace_users.id === meWuId,
+    }));
+
+    let title = conv.title as string | null;
+    if (!title) {
+      const others = participants.filter((p) => !p.isMe).map((p) => p.displayName);
+      title = others.slice(0, 3).join(", ") || "Conversation";
+    }
+
+    return {
+      id: conv.id as string,
+      title,
+      type: (conv.type as "direct" | "group" | "channel") ?? "direct",
+      imageUrl: (conv.image_url as string | null) ?? null,
+      workspaceId: conv.workspace_id as string,
+      participants,
+    };
+  });
+
+export const listMessages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        limit: z.number().int().min(1).max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertParticipant(data.conversationId, context.userId);
+    const { data: msgs, error } = await supabaseAdmin
+      .from("messages")
+      .select("id, raw_text, author_workspace_user_id, created_at")
+      .eq("conversation_id", data.conversationId)
+      .order("created_at", { ascending: true })
+      .limit(data.limit ?? 200);
+    if (error) throw new Error(error.message);
+    return (msgs ?? []).map((m) => ({
+      id: m.id as string,
+      rawText: m.raw_text as string,
+      authorWorkspaceUserId: m.author_workspace_user_id as string | null,
+      createdAt: m.created_at as string,
+    }));
+  });
+
+export const sendMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        rawText: z.string().min(1).max(10000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId, workspaceId } = await assertParticipant(
+      data.conversationId,
+      context.userId,
+    );
+    const { data: msg, error } = await supabaseAdmin
+      .from("messages")
+      .insert({
+        conversation_id: data.conversationId,
+        workspace_id: workspaceId,
+        author_workspace_user_id: meWuId,
+        raw_text: data.rawText,
+      })
+      .select("id, created_at")
+      .single();
+    if (error || !msg) throw new Error(error?.message ?? "Send failed");
+
+    await supabaseAdmin
+      .from("conversations")
+      .update({ last_modified_at: new Date().toISOString() })
+      .eq("id", data.conversationId);
+
+    return { id: msg.id as string, createdAt: msg.created_at as string };
+  });
+
+export const addParticipants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        workspaceUserIds: z.array(z.string().uuid()).min(1).max(50),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { workspaceId } = await assertParticipant(
+      data.conversationId,
+      context.userId,
+    );
+
+    const { data: valid } = await supabaseAdmin
+      .from("workspace_users")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .in("id", data.workspaceUserIds);
+    const validIds = (valid ?? []).map((v) => v.id as string);
+    if (validIds.length === 0) return { added: 0 };
+
+    const { data: existing } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("workspace_user_id")
+      .eq("conversation_id", data.conversationId);
+    const existingSet = new Set(
+      (existing ?? []).map((e) => e.workspace_user_id as string),
+    );
+    const newIds = validIds.filter((id) => !existingSet.has(id));
+    if (newIds.length === 0) return { added: 0 };
+
+    const rows = newIds.map((wuId) => ({
+      conversation_id: data.conversationId,
+      workspace_user_id: wuId,
+      role: "member" as const,
+    }));
+    const { error: insErr } = await supabaseAdmin
+      .from("conversation_participants")
+      .insert(rows);
+    if (insErr) throw new Error(insErr.message);
+
+    // Promote to group if needed
+    const totalParticipants = existingSet.size + newIds.length;
+    if (totalParticipants > 2) {
+      await supabaseAdmin
+        .from("conversations")
+        .update({ type: "group" })
+        .eq("id", data.conversationId);
+    }
+
+    return { added: newIds.length };
+  });
+
+export const listConversationPages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ conversationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertParticipant(data.conversationId, context.userId);
+    const { data: pages, error } = await supabaseAdmin
+      .from("pages")
+      .select("id, title, last_modified_at")
+      .eq("conversation_id", data.conversationId)
+      .order("last_modified_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (pages ?? []).map((p) => ({
+      id: p.id as string,
+      title: (p.title as string) ?? "Untitled",
+      lastModifiedAt: p.last_modified_at as string,
+    }));
+  });
+
+export const createConversationPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ conversationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId, workspaceId } = await assertParticipant(
+      data.conversationId,
+      context.userId,
+    );
+    const { data: page, error } = await supabaseAdmin
+      .from("pages")
+      .insert({
+        workspace_id: workspaceId,
+        created_by_workspace_user_id: meWuId,
+        owner_workspace_user_id: meWuId,
+        visibility: "conversation",
+        page_type: "standard",
+        origin_type: "conversation",
+        origin_source_id: data.conversationId,
+        conversation_id: data.conversationId,
+      })
+      .select("id")
+      .single();
+    if (error || !page) throw new Error(error?.message ?? "Create failed");
+    return { pageId: page.id as string };
   });

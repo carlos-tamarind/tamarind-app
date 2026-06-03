@@ -1,0 +1,162 @@
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
+import { FilePlus, Loader2, UserPlus } from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  listConversationPages,
+  createConversationPage,
+} from "@/lib/conversations.functions";
+import { AddParticipantsDialog } from "./add-participants-dialog";
+
+type Participant = {
+  workspaceUserId: string;
+  displayName: string;
+  isMe: boolean;
+};
+
+export function ConversationSettingsDialog({
+  workspaceId,
+  conversationId,
+  title,
+  participants,
+  open,
+  onOpenChange,
+}: {
+  workspaceId: string;
+  conversationId: string;
+  title: string;
+  participants: Participant[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const fetchPages = useServerFn(listConversationPages);
+  const newPage = useServerFn(createConversationPage);
+  const [addOpen, setAddOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const { data: pages } = useQuery({
+    queryKey: ["conversation-pages", conversationId],
+    queryFn: () => fetchPages({ data: { conversationId } }),
+    enabled: open,
+  });
+
+  const initials = title
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const handleNewPage = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const { pageId } = await newPage({ data: { conversationId } });
+      queryClient.invalidateQueries({ queryKey: ["conversation-pages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      onOpenChange(false);
+      navigate({
+        to: "/w/$workspaceId/p/$pageId",
+        params: { workspaceId, pageId },
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conversation settings</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-2 py-2">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">
+              {initials || "C"}
+            </div>
+            <div className="text-base font-medium">{title}</div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Participants</h3>
+              <Button size="sm" variant="ghost" onClick={() => setAddOpen(true)}>
+                <UserPlus className="size-3.5" /> Add
+              </Button>
+            </div>
+            <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
+              {participants.map((p) => (
+                <li key={p.workspaceUserId} className="px-1 py-1">
+                  {p.displayName}
+                  {p.isMe && (
+                    <span className="ml-1 text-xs text-muted-foreground">(you)</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Pages</h3>
+              <Button size="sm" variant="ghost" onClick={handleNewPage} disabled={creating}>
+                {creating ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <FilePlus className="size-3.5" />
+                )}{" "}
+                New page
+              </Button>
+            </div>
+            <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
+              {(pages ?? []).length === 0 ? (
+                <li className="px-1 py-1 text-muted-foreground">No pages yet.</li>
+              ) : (
+                (pages ?? []).map((p) => (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate({
+                          to: "/w/$workspaceId/p/$pageId",
+                          params: { workspaceId, pageId: p.id },
+                        });
+                      }}
+                      className="block w-full truncate rounded px-1 py-1 text-left hover:bg-accent"
+                    >
+                      {p.title || "Untitled"}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AddParticipantsDialog
+        workspaceId={workspaceId}
+        conversationId={conversationId}
+        existingWorkspaceUserIds={participants.map((p) => p.workspaceUserId)}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+      />
+    </>
+  );
+}
