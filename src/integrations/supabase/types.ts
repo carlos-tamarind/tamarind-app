@@ -381,6 +381,42 @@ export type Database = {
           },
         ]
       }
+      page_collaborators: {
+        Row: {
+          first_edited_at: string
+          last_edited_at: string
+          page_id: string
+          workspace_user_id: string
+        }
+        Insert: {
+          first_edited_at?: string
+          last_edited_at?: string
+          page_id: string
+          workspace_user_id: string
+        }
+        Update: {
+          first_edited_at?: string
+          last_edited_at?: string
+          page_id?: string
+          workspace_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_collaborators_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_collaborators_workspace_user_id_fkey"
+            columns: ["workspace_user_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pages: {
         Row: {
           content: Json

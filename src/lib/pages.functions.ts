@@ -73,6 +73,36 @@ export const getPage = createServerFn({ method: "GET" })
       .eq("id", data.pageId)
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
+
+    let ownerDisplayName: string | null = null;
+    if (page.owner_workspace_user_id) {
+      const { data: owner } = await supabaseAdmin
+        .from("workspace_users")
+        .select("display_name, user_id")
+        .eq("id", page.owner_workspace_user_id as string)
+        .maybeSingle();
+      if (owner) {
+        ownerDisplayName =
+          (owner.display_name as string | null) ??
+          (owner.user_id as string).slice(0, 6);
+      }
+    }
+
+    const { data: collabs } = await supabaseAdmin
+      .from("page_collaborators")
+      .select(
+        "workspace_user_id, last_edited_at, workspace_users!inner(display_name, user_id)",
+      )
+      .eq("page_id", data.pageId)
+      .order("last_edited_at", { ascending: false });
+    const collaborators = (collabs ?? []).map((c: any) => ({
+      workspaceUserId: c.workspace_user_id as string,
+      displayName:
+        (c.workspace_users.display_name as string | null) ??
+        (c.workspace_users.user_id as string).slice(0, 6),
+      lastEditedAt: c.last_edited_at as string,
+    }));
+
     return {
       id: page.id as string,
       title: page.title as string,
@@ -80,6 +110,8 @@ export const getPage = createServerFn({ method: "GET" })
       workspaceId: page.workspace_id as string,
       visibility: page.visibility as "private" | "workspace" | "conversation" | "external",
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
+      ownerDisplayName,
+      collaborators,
     };
   });
 
@@ -95,7 +127,7 @@ export const updatePage = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const patch: { title?: string; content?: any; last_modified_at: string } = {
       last_modified_at: new Date().toISOString(),
     };
@@ -103,6 +135,34 @@ export const updatePage = createServerFn({ method: "POST" })
     if (data.content !== undefined) patch.content = data.content;
     const { error } = await supabase.from("pages").update(patch).eq("id", data.pageId);
     if (error) throw new Error(error.message);
+
+    // Record collaborator (best-effort)
+    try {
+      const { data: pageRow } = await supabaseAdmin
+        .from("pages")
+        .select("workspace_id")
+        .eq("id", data.pageId)
+        .maybeSingle();
+      if (pageRow?.workspace_id) {
+        const meWuId = await getCurrentWorkspaceUser(
+          pageRow.workspace_id as string,
+          userId,
+        );
+        await supabaseAdmin
+          .from("page_collaborators")
+          .upsert(
+            {
+              page_id: data.pageId,
+              workspace_user_id: meWuId,
+              last_edited_at: new Date().toISOString(),
+            },
+            { onConflict: "page_id,workspace_user_id" },
+          );
+      }
+    } catch {
+      // ignore
+    }
+
     return { ok: true };
   });
 

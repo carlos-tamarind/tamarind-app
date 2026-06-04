@@ -1,9 +1,15 @@
-import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useParams,
+  useSearch,
+} from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -12,24 +18,42 @@ import {
   FileText,
   Lock,
   Globe,
+  MessageSquare,
   MessageSquarePlus,
   Loader2,
   User,
   Users,
 } from "lucide-react";
+import { z } from "zod";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { listMyPages, createBlankPage } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import { ConversationWindow } from "@/components/conversation/conversation-window";
+import { PageWindow } from "@/components/page/page-window";
+
+const workspaceSearchSchema = z.object({
+  c: z.string().uuid().optional(),
+  p: z.string().uuid().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
+  validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: WorkspaceShell,
 });
 
+const COLLAPSE_THRESHOLD = 20;
+
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
+  const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [railOpen, setRailOpen] = useState(true);
@@ -85,8 +109,9 @@ function WorkspaceShell() {
       const { pageId } = await newPage({ data: { workspaceId } });
       queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
       navigate({
-        to: "/w/$workspaceId/p/$pageId",
-        params: { workspaceId, pageId },
+        to: "/w/$workspaceId",
+        params: { workspaceId },
+        search: (prev: any) => ({ ...prev, p: pageId }),
       });
     } catch (e) {
       console.error(e);
@@ -95,9 +120,45 @@ function WorkspaceShell() {
     }
   };
 
+  const conversationId = search.c;
+  const pageId = search.p;
+  const hasConversation = !!conversationId;
+  const hasPage = !!pageId;
+  const bothOpen = hasConversation && hasPage;
+
+  // Track if user has been dragging (so collapse only happens on user action,
+  // not on initial mount).
+  const layoutInteracted = useRef(false);
+
+  const handleLayout = useCallback(
+    (sizes: number[]) => {
+      if (!bothOpen) return;
+      if (!layoutInteracted.current) {
+        layoutInteracted.current = true;
+        return;
+      }
+      const [convSize, pageSize] = sizes;
+      if (convSize < COLLAPSE_THRESHOLD) {
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev: any) => ({ ...prev, c: undefined }),
+          replace: true,
+        });
+      } else if (pageSize < COLLAPSE_THRESHOLD) {
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev: any) => ({ ...prev, p: undefined }),
+          replace: true,
+        });
+      }
+    },
+    [bothOpen, navigate, workspaceId],
+  );
+
   return (
     <div className="flex h-screen w-screen bg-background text-foreground">
-      {/* Workspace rail — 10% when open */}
       {railOpen && (
         <div className="flex h-full w-[10%] min-w-[64px] flex-col items-center gap-2 border-r bg-muted/30 py-3">
           <button
@@ -112,7 +173,10 @@ function WorkspaceShell() {
               <button
                 key={w.workspaceId}
                 onClick={() =>
-                  navigate({ to: "/w/$workspaceId", params: { workspaceId: w.workspaceId } })
+                  navigate({
+                    to: "/w/$workspaceId",
+                    params: { workspaceId: w.workspaceId },
+                  })
                 }
                 className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
                   w.workspaceId === workspaceId
@@ -128,7 +192,6 @@ function WorkspaceShell() {
         </div>
       )}
 
-      {/* Navigation panel — always 20% of viewport */}
       <aside className="flex h-full w-[20vw] min-w-[200px] flex-col border-r">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <div className="truncate text-sm font-semibold">{current?.name ?? "Workspace"}</div>
@@ -165,19 +228,24 @@ function WorkspaceShell() {
                       <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
                     ) : (
                       <ul className="space-y-0.5">
-                        {directConversations.map((c) => (
-                          <li key={c.id}>
-                            <Link
-                              to="/w/$workspaceId/c/$conversationId"
-                              params={{ workspaceId, conversationId: c.id }}
-                              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                              activeProps={{ className: "bg-accent" }}
-                            >
-                              <User className="size-3.5 shrink-0 text-muted-foreground" />
-                              <span className="truncate">{c.title}</span>
-                            </Link>
-                          </li>
-                        ))}
+                        {directConversations.map((c) => {
+                          const isActive = conversationId === c.id;
+                          return (
+                            <li key={c.id}>
+                              <Link
+                                to="/w/$workspaceId"
+                                params={{ workspaceId }}
+                                search={(prev: any) => ({ ...prev, c: c.id })}
+                                className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                                  isActive ? "bg-accent" : ""
+                                }`}
+                              >
+                                <User className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{c.title}</span>
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
@@ -189,19 +257,24 @@ function WorkspaceShell() {
                       <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
                     ) : (
                       <ul className="space-y-0.5">
-                        {groupConversations.map((c) => (
-                          <li key={c.id}>
-                            <Link
-                              to="/w/$workspaceId/c/$conversationId"
-                              params={{ workspaceId, conversationId: c.id }}
-                              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                              activeProps={{ className: "bg-accent" }}
-                            >
-                              <Users className="size-3.5 shrink-0 text-muted-foreground" />
-                              <span className="truncate">{c.title}</span>
-                            </Link>
-                          </li>
-                        ))}
+                        {groupConversations.map((c) => {
+                          const isActive = conversationId === c.id;
+                          return (
+                            <li key={c.id}>
+                              <Link
+                                to="/w/$workspaceId"
+                                params={{ workspaceId }}
+                                search={(prev: any) => ({ ...prev, c: c.id })}
+                                className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                                  isActive ? "bg-accent" : ""
+                                }`}
+                              >
+                                <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{c.title}</span>
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
@@ -211,29 +284,35 @@ function WorkspaceShell() {
               <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
             ) : (
               <ul className="space-y-0.5">
-                {sortedPages.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      to="/w/$workspaceId/p/$pageId"
-                      params={{ workspaceId, pageId: p.id }}
-                      className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                      activeProps={{ className: "bg-accent" }}
-                    >
-                      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{p.title || "Untitled"}</span>
-                      {p.visibility === "private" ? (
-                        <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                      ) : p.visibility === "workspace" ? (
-                        <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                      ) : null}
-                    </Link>
-                  </li>
-                ))}
+                {sortedPages.map((p) => {
+                  const isActive = pageId === p.id;
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        to="/w/$workspaceId"
+                        params={{ workspaceId }}
+                        search={(prev: any) => ({ ...prev, p: p.id })}
+                        className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                          isActive ? "bg-accent" : ""
+                        }`}
+                      >
+                        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{p.title || "Untitled"}</span>
+                        {p.visibility === "private" ? (
+                          <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                        ) : p.visibility === "workspace" ? (
+                          <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                        ) : p.visibility === "conversation" ? (
+                          <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                        ) : null}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
 
-          {/* Context-aware create button */}
           <div className="flex justify-center px-3 pb-3">
             {tab === "conversations" ? (
               <Button
@@ -284,9 +363,51 @@ function WorkspaceShell() {
         </div>
       </aside>
 
-      {/* Central panel */}
+      {/* Central split panel */}
       <main className="h-full flex-1 overflow-hidden">
-        <Outlet />
+        {!hasConversation && !hasPage ? (
+          <EmptyState
+            workspaceId={workspaceId}
+            onNewConversation={() => setConvDialogOpen(true)}
+            onNewPage={handleNewPage}
+            creatingPage={creatingPage}
+          />
+        ) : bothOpen ? (
+          <ResizablePanelGroup
+            direction="horizontal"
+            onLayout={handleLayout}
+            // Key forces a fresh group when both panels first appear so default sizes apply.
+            key={`split-${conversationId}-${pageId}`}
+          >
+            <ResizablePanel defaultSize={50} minSize={10}>
+              <ConversationWindow
+                key={conversationId}
+                workspaceId={workspaceId}
+                conversationId={conversationId!}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={50} minSize={10}>
+              <PageWindow
+                key={pageId}
+                workspaceId={workspaceId}
+                pageId={pageId!}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : hasConversation ? (
+          <ConversationWindow
+            key={conversationId}
+            workspaceId={workspaceId}
+            conversationId={conversationId!}
+          />
+        ) : (
+          <PageWindow
+            key={pageId}
+            workspaceId={workspaceId}
+            pageId={pageId!}
+          />
+        )}
       </main>
 
       <NewConversationDialog
@@ -294,6 +415,40 @@ function WorkspaceShell() {
         open={convDialogOpen}
         onOpenChange={setConvDialogOpen}
       />
+    </div>
+  );
+}
+
+function EmptyState({
+  onNewConversation,
+  onNewPage,
+  creatingPage,
+}: {
+  workspaceId: string;
+  onNewConversation: () => void;
+  onNewPage: () => void;
+  creatingPage: boolean;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+      <p className="max-w-md text-base text-muted-foreground">
+        Pick a conversation or page from the sidebar to get started, or create a
+        new one:
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Button variant="secondary" onClick={onNewConversation}>
+          <MessageSquarePlus className="size-4" />
+          New conversation
+        </Button>
+        <Button variant="secondary" onClick={onNewPage} disabled={creatingPage}>
+          {creatingPage ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileText className="size-4" />
+          )}
+          New page
+        </Button>
+      </div>
     </div>
   );
 }
