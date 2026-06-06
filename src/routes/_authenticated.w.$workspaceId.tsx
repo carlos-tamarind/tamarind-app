@@ -1,6 +1,7 @@
 import {
   createFileRoute,
   Link,
+  Outlet,
   useNavigate,
   useParams,
   useSearch,
@@ -9,7 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -126,26 +127,19 @@ function WorkspaceShell() {
   const hasPage = !!pageId;
   const bothOpen = hasConversation && hasPage;
 
-  // Track if user has been dragging (so collapse only happens on user action,
-  // not on initial mount).
-  const layoutInteracted = useRef(false);
-
   const handleLayout = useCallback(
-    (sizes: number[]) => {
+    (layout: Record<string, number>) => {
       if (!bothOpen) return;
-      if (!layoutInteracted.current) {
-        layoutInteracted.current = true;
-        return;
-      }
-      const [convSize, pageSize] = sizes;
-      if (convSize < COLLAPSE_THRESHOLD) {
+      const convSize = layout.conv;
+      const pageSize = layout.page;
+      if (convSize !== undefined && convSize < COLLAPSE_THRESHOLD) {
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
           search: (prev: any) => ({ ...prev, c: undefined }),
           replace: true,
         });
-      } else if (pageSize < COLLAPSE_THRESHOLD) {
+      } else if (pageSize !== undefined && pageSize < COLLAPSE_THRESHOLD) {
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
@@ -374,12 +368,12 @@ function WorkspaceShell() {
           />
         ) : bothOpen ? (
           <ResizablePanelGroup
-            direction="horizontal"
-            onLayout={handleLayout}
+            orientation="horizontal"
+            onLayoutChanged={handleLayout}
             // Key forces a fresh group when both panels first appear so default sizes apply.
             key={`split-${conversationId}-${pageId}`}
           >
-            <ResizablePanel defaultSize={50} minSize={10}>
+            <ResizablePanel id="conv" defaultSize={50} minSize={10}>
               <ConversationWindow
                 key={conversationId}
                 workspaceId={workspaceId}
@@ -387,7 +381,7 @@ function WorkspaceShell() {
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={50} minSize={10}>
+            <ResizablePanel id="page" defaultSize={50} minSize={10}>
               <PageWindow
                 key={pageId}
                 workspaceId={workspaceId}
@@ -415,6 +409,8 @@ function WorkspaceShell() {
         open={convDialogOpen}
         onOpenChange={setConvDialogOpen}
       />
+
+      <Outlet />
     </div>
   );
 }
