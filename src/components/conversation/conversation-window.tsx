@@ -47,6 +47,39 @@ function formatTimestamp(iso: string) {
   )}-${d.getFullYear()}`;
 }
 
+const ALLOWED_MESSAGE_TAGS = new Set([
+  "P",
+  "STRONG",
+  "B",
+  "EM",
+  "I",
+  "CODE",
+  "BR",
+]);
+
+function sanitizeMessageHtml(html: string): string {
+  if (typeof window === "undefined") return "";
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html;
+  const walk = (node: Node) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const el = child as Element;
+        if (!ALLOWED_MESSAGE_TAGS.has(el.tagName)) {
+          el.replaceWith(document.createTextNode(el.textContent ?? ""));
+          continue;
+        }
+        for (const attr of Array.from(el.attributes)) {
+          el.removeAttribute(attr.name);
+        }
+        walk(el);
+      }
+    }
+  };
+  walk(tpl.content);
+  return tpl.innerHTML;
+}
+
 export function ConversationWindow({
   workspaceId,
   conversationId,
@@ -66,6 +99,7 @@ export function ConversationWindow({
   const [addOpen, setAddOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [creatingPage, setCreatingPage] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -164,16 +198,20 @@ export function ConversationWindow({
         return false;
       },
     },
+    onCreate: ({ editor }) => setIsEmpty(editor.isEmpty),
+    onUpdate: ({ editor }) => setIsEmpty(editor.isEmpty),
   });
 
   const handleSend = async () => {
     if (!editor || sending) return;
-    const text = editor.getText().trim();
-    if (!text) return;
+    const plain = editor.getText().trim();
+    if (!plain) return;
+    const html = editor.getHTML();
     setSending(true);
     try {
-      await sendMsg({ data: { conversationId, rawText: text } });
+      await sendMsg({ data: { conversationId, rawText: html } });
       editor.commands.clearContent();
+      setIsEmpty(true);
     } catch (e) {
       console.error(e);
     } finally {
@@ -212,7 +250,6 @@ export function ConversationWindow({
 
   const isGroup = conv.type === "group";
   const TypeIcon = isGroup ? Users : User;
-  const isEmpty = !editor || editor.isEmpty;
 
   return (
     <div className="flex h-full flex-col">
@@ -300,14 +337,15 @@ export function ConversationWindow({
                     </span>
                   )}
                   <div
-                    className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${
+                    className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
                       isMe
-                        ? "bg-primary text-primary-foreground"
+                        ? "prose-invert bg-primary text-primary-foreground"
                         : "bg-muted text-foreground"
                     }`}
-                  >
-                    {m.rawText}
-                  </div>
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeMessageHtml(m.rawText),
+                    }}
+                  />
                   <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
                     {formatTimestamp(m.createdAt)}
                   </span>
