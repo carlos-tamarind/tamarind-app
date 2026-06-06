@@ -1,65 +1,89 @@
-## Goal
+## Bugs
 
-Get the workspace shell building cleanly on react-resizable-panels v4, convert the legacy `/c/$id` and `/p/$id` URLs into redirects to the search-param model, and clean up the index/parent route conflict so all routes mount correctly.
+**a) Send button never enables.** The composer's `isEmpty` check reads `editor.isEmpty` directly during render. In current `@tiptap/react`, `useEditor` does not re-render the host component on transactions — so `isEmpty` stays `true` (its mount value), and the Send button stays `disabled`. Pressing Enter works because `handleSend` runs from the editor's own keydown handler, which bypasses the disabled check.
 
-## 1. Resizable-panels v4 API migration
+**b) Sent messages render as plain text.** The composer sends `editor.getText().trim()`, which strips bold/italic/code marks. The server stores plain text into `messages.raw_text`, and the bubble renders it as a string. So formatting is lost end-to-end on send, not on display.
 
-File: `src/routes/_authenticated.w.$workspaceId.tsx`
+## Fix
 
-- Replace `direction="horizontal"` with `orientation="horizontal"` on `<ResizablePanelGroup>`.
-- Replace the `onLayout={handleLayout}` prop with `onLayoutChanged={handleLayout}` (v4 fires this on pointer release rather than every drag tick, which is what we want for the collapse-threshold behavior).
-- Give each `<ResizablePanel>` an `id` (`"conv"` and `"page"`) — v4's layout callback returns a `{ [panelId]: number }` map, so panels need stable ids.
-- Rewrite `handleLayout` to accept `layout: Record<string, number>` and read `layout.conv` / `layout.page` instead of destructuring an array. Same 20% collapse-threshold logic, same `navigate({ search: prev => ({ ...prev, c|p: undefined }) })` behavior.
-- Drop the `layoutInteracted` ref — `onLayoutChanged` only fires after user interaction in v4, so the initial-mount guard is no longer needed.
+File: `src/components/conversation/conversation-window.tsx`
 
-No changes needed to `src/components/ui/resizable.tsx` (it already re-exports v4's `Group`/`Panel`/`Separator` and forwards props).
+### a) Reactive empty-state
 
-## 2. Redirect routes for legacy `/c/$id` and `/p/$id` URLs
-
-Files: `src/routes/_authenticated.w.$workspaceId.c.$conversationId.tsx`, `src/routes/_authenticated.w.$workspaceId.p.$pageId.tsx`
-
-Replace the current full-page `ConversationView` / `PageView` implementations with a thin redirect:
+Track empty state via the editor's `onUpdate` callback into local React state:
 
 ```ts
-export const Route = createFileRoute("/_authenticated/w/$workspaceId/c/$conversationId")({
-  beforeLoad: ({ params }) =>
-    redirect({
-      to: "/w/$workspaceId",
-      params: { workspaceId: params.workspaceId },
-      search: { c: params.conversationId },
-      replace: true,
-    }),
+const [isEmpty, setIsEmpty] = useState(true);
+
+const editor = useEditor({
+  ...,
+  onUpdate: ({ editor }) => setIsEmpty(editor.isEmpty),
+  onCreate:  ({ editor }) => setIsEmpty(editor.isEmpty),
 });
 ```
 
-Same shape for `/p/$pageId` with `search: { p: params.pageId }`.
+Drop the derived `const isEmpty = !editor || editor.isEmpty` line. The Send button's `disabled={isEmpty || sending}` then reflects every keystroke. Also reset `setIsEmpty(true)` right after `editor.commands.clearContent()` in `handleSend` so the button disables again after a successful send.
 
-This keeps existing in-app links like `navigate({ to: "/w/$workspaceId/p/$pageId", ... })` working (the conversation composer's "new page" CTA, page mentions, backlinks) while consolidating the actual rendering in the parent shell. We'll leave those call sites alone in this pass; the redirect handles them.
+### b) Send HTML, render formatted
 
-The full implementations of the conversation and page views already live in `src/components/conversation/conversation-window.tsx` and `src/components/page/page-window.tsx`, so deleting the route bodies loses no functionality.
+1. In `handleSend`, send the HTML payload instead of plain text:
+   ```ts
+   const html = editor.getHTML();
+   const plain = editor.getText().trim();
+   if (!plain) return;            // still gate on visible text
+   await sendMsg({ data: { conversationId, rawText: html } });
+   ```
+   No server change needed — `raw_text` is plain `text` and accepts the HTML string. The schema allows up to 10k chars, and the StarterKit-only marks (bold/italic/code, plus paragraph/hard-break) keep the markup small.
 
-## 3. Index route + Outlet cleanup
+2. Render messages with the formatting preserved. Replace `{m.rawText}` with a sanitized HTML render. The composer is locked to a tiny mark set (bold, italic, code, paragraph, hard-break) so we can sanitize inline without adding a dependency:
 
-Currently `_authenticated.w.$workspaceId.tsx` renders the full shell (sidebar + split panel) but never renders `<Outlet />`, so the `/settings` modal route and the `/` index route silently fail to mount.
+   ```ts
+   const ALLOWED_TAGS = new Set(["P", "STRONG", "B", "EM", "I", "CODE", "BR"]);
 
-- Add `<Outlet />` to the shell, rendered after the `<NewConversationDialog>` so child routes (currently `_authenticated.w.$workspaceId.settings.tsx`, which renders as a portal `<Dialog>`) overlay the shell correctly.
-- Delete `src/routes/_authenticated.w.$workspaceId.index.tsx` entirely. The empty-state UI is already rendered inline by the parent shell when both `c` and `p` search params are absent, so the index leaf is now dead code and would re-render its own empty state on top of the shell's.
+   function sanitizeMessageHtml(html: string): string {
+     if (typeof window === "undefined") return ""; // SSR guard
+     const tpl = document.createElement("template");
+     tpl.innerHTML = html;
+     const walk = (node: Node) => {
+       for (const child of Array.from(node.childNodes)) {
+         if (child.nodeType === Node.ELEMENT_NODE) {
+           const el = child as Element;
+           if (!ALLOWED_TAGS.has(el.tagName)) {
+             // Replace disallowed element with its text content
+             el.replaceWith(document.createTextNode(el.textContent ?? ""));
+             continue;
+           }
+           // Strip every attribute (href, onclick, style, etc.)
+           for (const attr of Array.from(el.attributes)) el.removeAttribute(attr.name);
+           walk(el);
+         }
+       }
+     };
+     walk(tpl.content);
+     return tpl.innerHTML;
+   }
+   ```
 
-## Technical Notes
+   Memoize per message and render with `dangerouslySetInnerHTML`:
 
-- v4 `Layout` type: `{ [panelId: string]: number }` (percentages 0..100). With panel ids `conv` and `page`, we read `layout.conv` and `layout.page` directly.
-- `redirect()` from `@tanstack/react-router` thrown in `beforeLoad` is the canonical pattern; no `component` is needed on the redirect routes.
-- `routeTree.gen.ts` regenerates automatically — no manual edits needed after deleting the index route file.
+   ```tsx
+   <div className="... prose prose-sm max-w-none ..."
+        dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(m.rawText) }} />
+   ```
+
+   Add `prose-invert` styling-wise it's not needed; the existing bubble classes plus `prose-sm` will style `<strong>`, `<em>`, `<code>` correctly. For the "me" bubble (primary background), add `prose-invert` so inline `<code>` reads correctly against the dark background.
+
+### Backward compatibility
+
+Existing messages stored as plain text without tags pass through the sanitizer unchanged (no elements to strip) and render correctly as a single text node. No migration needed.
 
 ## Out of scope
 
-- Refactoring `conversation-window.tsx` / `page-window.tsx` internals.
-- Persisting split sizes across navigation.
-- Mobile responsive treatment of the split.
+- Adding a dedicated `html_text` column or a separate `messages.format` field.
+- Markdown shortcuts (e.g. `**bold**`) in the composer.
+- Mentions / links inside messages.
+- Server-side sanitization (client sanitizes on render; the row remains as authored).
 
 ## Files touched
 
-- Edit `src/routes/_authenticated.w.$workspaceId.tsx` (panels API + Outlet).
-- Rewrite `src/routes/_authenticated.w.$workspaceId.c.$conversationId.tsx` as a redirect.
-- Rewrite `src/routes/_authenticated.w.$workspaceId.p.$pageId.tsx` as a redirect.
-- Delete `src/routes/_authenticated.w.$workspaceId.index.tsx`.
+- Edit `src/components/conversation/conversation-window.tsx`.
