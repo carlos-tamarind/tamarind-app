@@ -17,7 +17,6 @@ import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
-import { Route as AuthenticatedWWorkspaceIdIndexRouteImport } from './routes/_authenticated.w.$workspaceId.index'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
@@ -62,12 +61,6 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedWWorkspaceIdIndexRoute =
-  AuthenticatedWWorkspaceIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
-  } as any)
 const AuthenticatedWWorkspaceIdSettingsRoute =
   AuthenticatedWWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
@@ -96,7 +89,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
-  '/w/$workspaceId/': typeof AuthenticatedWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -107,8 +99,8 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
-  '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -123,7 +115,6 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
-  '/_authenticated/w/$workspaceId/': typeof AuthenticatedWWorkspaceIdIndexRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -138,7 +129,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/w/$workspaceId'
     | '/w/$workspaceId/settings'
-    | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -149,8 +139,8 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/w/$workspaceId/settings'
     | '/w/$workspaceId'
+    | '/w/$workspaceId/settings'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -164,7 +154,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/w/$workspaceId'
     | '/_authenticated/w/$workspaceId/settings'
-    | '/_authenticated/w/$workspaceId/'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -237,13 +226,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/w/$workspaceId/': {
-      id: '/_authenticated/w/$workspaceId/'
-      path: '/'
-      fullPath: '/w/$workspaceId/'
-      preLoaderRoute: typeof AuthenticatedWWorkspaceIdIndexRouteImport
-      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
-    }
     '/_authenticated/w/$workspaceId/settings': {
       id: '/_authenticated/w/$workspaceId/settings'
       path: '/settings'
@@ -270,7 +252,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedWWorkspaceIdRouteChildren {
   AuthenticatedWWorkspaceIdSettingsRoute: typeof AuthenticatedWWorkspaceIdSettingsRoute
-  AuthenticatedWWorkspaceIdIndexRoute: typeof AuthenticatedWWorkspaceIdIndexRoute
   AuthenticatedWWorkspaceIdCConversationIdRoute: typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   AuthenticatedWWorkspaceIdPPageIdRoute: typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -279,7 +260,6 @@ const AuthenticatedWWorkspaceIdRouteChildren: AuthenticatedWWorkspaceIdRouteChil
   {
     AuthenticatedWWorkspaceIdSettingsRoute:
       AuthenticatedWWorkspaceIdSettingsRoute,
-    AuthenticatedWWorkspaceIdIndexRoute: AuthenticatedWWorkspaceIdIndexRoute,
     AuthenticatedWWorkspaceIdCConversationIdRoute:
       AuthenticatedWWorkspaceIdCConversationIdRoute,
     AuthenticatedWWorkspaceIdPPageIdRoute:
@@ -315,3 +295,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
