@@ -1,89 +1,66 @@
-## Bugs
+## Goal
 
-**a) Send button never enables.** The composer's `isEmpty` check reads `editor.isEmpty` directly during render. In current `@tiptap/react`, `useEditor` does not re-render the host component on transactions — so `isEmpty` stays `true` (its mount value), and the Send button stays `disabled`. Pressing Enter works because `handleSend` runs from the editor's own keydown handler, which bypasses the disabled check.
+Restructure the left side of the workspace shell so the workspace rail is collapsible (resizable), relocate workspace settings, and introduce a per-user profile button + modal at the bottom of the navigation panel.
 
-**b) Sent messages render as plain text.** The composer sends `editor.getText().trim()`, which strips bold/italic/code marks. The server stores plain text into `messages.raw_text`, and the bubble renders it as a string. So formatting is lost end-to-end on send, not on display.
+## Changes
 
-## Fix
+### 1. Workspace rail (the narrow column with workspace tiles)
 
-File: `src/components/conversation/conversation-window.tsx`
+- **Hidden by default.** On mount, `railOpen` starts `false`.
+- **Resizable, not fixed-width.** Replace the current `w-[10%] min-w-[64px]` rail + adjacent `w-[20vw]` aside with a `ResizablePanelGroup` containing:
+  - Panel `rail` — visible only when `railOpen`, `defaultSize` ≈ 6, `minSize` 4, `maxSize` 8 (percent of viewport — matches the "8% max" requirement when sliding right).
+  - `ResizableHandle` between rail and nav.
+  - Panel `nav` — the navigation aside, `defaultSize` ≈ 20, `minSize` 14.
+- **Slide-to-close.** `onLayoutChanged` watches the rail size: if it drops below ~3% the user has "slid the divider to the left" → set `railOpen=false` (collapses the rail).
+- Keep the central main area (`<main>`) outside this group so the existing conv/page split keeps working unchanged.
 
-### a) Reactive empty-state
+### 2. Navigation panel header
 
-Track empty state via the editor's `onUpdate` callback into local React state:
+- Swap the order: **"Open workspaces panel" button on the left**, workspace name label on the right of the header row.
+- The button toggles `railOpen`. Wrap it in `<Tooltip>` with content `"Open workspaces panel"` (uses existing `@/components/ui/tooltip`). Same icon swap as today (`PanelLeftOpen` / `PanelLeftClose`).
 
-```ts
-const [isEmpty, setIsEmpty] = useState(true);
+### 3. Workspace settings relocation
 
-const editor = useEditor({
-  ...,
-  onUpdate: ({ editor }) => setIsEmpty(editor.isEmpty),
-  onCreate:  ({ editor }) => setIsEmpty(editor.isEmpty),
-});
+- Remove the current bottom strip of the nav aside that holds the **Settings** link and Logout button.
+- Move the **Settings** link to the **bottom of the rail panel**, separated from the workspace tiles by a top border (`border-t`). Same `Link to="/w/$workspaceId/settings"` target — modal behavior unchanged.
+- The rail becomes: tiles list (scrollable, `flex-1`) → divider → Settings button.
+
+### 4. Profile button (replaces the old settings/logout strip at the bottom of the nav)
+
+New bottom row in the nav aside (with `border-t`):
+
+```
+[ avatar ]  Display name                    [ logout icon ]
 ```
 
-Drop the derived `const isEmpty = !editor || editor.isEmpty` line. The Send button's `disabled={isEmpty || sending}` then reflects every keystroke. Also reset `setIsEmpty(true)` right after `editor.commands.clearContent()` in `handleSend` so the button disables again after a successful send.
+- **Avatar**: round, size 8/9. Uses `workspace_users.avatar_url` for the current user if present; otherwise `<Avatar><AvatarFallback><User className="size-4"/></AvatarFallback></Avatar>` (generic persona icon, matches the spec's "generic persona icon by default").
+- **Name**: `workspace_users.display_name` for the current `workspaceUserId`, falling back to `auth.user.email`.
+- Clicking the avatar+name area opens the profile modal (local `profileOpen` state).
+- **Logout button**: existing icon button, now wrapped in `<Tooltip>` content `"Logout"`. Same `supabase.auth.signOut()` + redirect.
 
-### b) Send HTML, render formatted
+Data source: add a tiny server fn `getMyWorkspaceProfile({ workspaceId })` in a new `src/lib/profile.functions.ts` that returns `{ workspaceUserId, displayName, avatarUrl, email }` (joins `workspace_users` row for `auth.uid()` with `auth.users.email`). Mutation `updateMyDisplayName({ workspaceId, displayName })` updates `workspace_users.display_name` for the caller. Both use `requireSupabaseAuth`; the update uses the auth-scoped supabase client so RLS enforces ownership.
 
-1. In `handleSend`, send the HTML payload instead of plain text:
-   ```ts
-   const html = editor.getHTML();
-   const plain = editor.getText().trim();
-   if (!plain) return;            // still gate on visible text
-   await sendMsg({ data: { conversationId, rawText: html } });
-   ```
-   No server change needed — `raw_text` is plain `text` and accepts the HTML string. The schema allows up to 10k chars, and the StarterKit-only marks (bold/italic/code, plus paragraph/hard-break) keep the markup small.
+### 5. Profile modal (`src/components/profile/profile-dialog.tsx`)
 
-2. Render messages with the formatting preserved. Replace `{m.rawText}` with a sanitized HTML render. The composer is locked to a tiny mark set (bold, italic, code, paragraph, hard-break) so we can sanitize inline without adding a dependency:
+- Rendered inside the workspace shell as a `<Dialog>` (shadcn dialog already dims the background and provides the X close button + outside-click close — matches the spec).
+- Content (disposition at our discretion, kept minimal):
+  - Centered profile picture (large `Avatar`, generic persona fallback). No upload UI yet.
+  - Read-only full name line.
+  - **Rename row**: `Input` bound to local state, plus **Cancel** (resets to original) and **Confirm** (calls `updateMyDisplayName`, on success invalidates `["my-profile", workspaceId]` + `["my-workspaces"]`, toast). Change persists only on Confirm.
+  - **Bottom-center Logout** primary `Button` labeled `"Logout"`, full-width-ish, calls `supabase.auth.signOut()` then `navigate({ to: "/login" })`.
+- Modal closes via outside-click and X (default `DialogContent` behavior — no extra work needed).
 
-   ```ts
-   const ALLOWED_TAGS = new Set(["P", "STRONG", "B", "EM", "I", "CODE", "BR"]);
+### 6. Out of scope (explicitly)
 
-   function sanitizeMessageHtml(html: string): string {
-     if (typeof window === "undefined") return ""; // SSR guard
-     const tpl = document.createElement("template");
-     tpl.innerHTML = html;
-     const walk = (node: Node) => {
-       for (const child of Array.from(node.childNodes)) {
-         if (child.nodeType === Node.ELEMENT_NODE) {
-           const el = child as Element;
-           if (!ALLOWED_TAGS.has(el.tagName)) {
-             // Replace disallowed element with its text content
-             el.replaceWith(document.createTextNode(el.textContent ?? ""));
-             continue;
-           }
-           // Strip every attribute (href, onclick, style, etc.)
-           for (const attr of Array.from(el.attributes)) el.removeAttribute(attr.name);
-           walk(el);
-         }
-       }
-     };
-     walk(tpl.content);
-     return tpl.innerHTML;
-   }
-   ```
+- Avatar upload / image picking.
+- Editing email, password, or any auth fields.
+- Profile fields beyond display name.
+- Any DB schema changes (the `workspace_users.display_name` and `avatar_url` columns already exist).
 
-   Memoize per message and render with `dangerouslySetInnerHTML`:
+## Files
 
-   ```tsx
-   <div className="... prose prose-sm max-w-none ..."
-        dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(m.rawText) }} />
-   ```
+- `src/routes/_authenticated.w.$workspaceId.tsx` — rail → resizable panel, header swap + tooltip, relocate settings into rail footer, replace bottom strip with profile button + tooltipped logout.
+- `src/components/profile/profile-dialog.tsx` — new.
+- `src/lib/profile.functions.ts` — new (`getMyWorkspaceProfile`, `updateMyDisplayName`).
 
-   Add `prose-invert` styling-wise it's not needed; the existing bubble classes plus `prose-sm` will style `<strong>`, `<em>`, `<code>` correctly. For the "me" bubble (primary background), add `prose-invert` so inline `<code>` reads correctly against the dark background.
-
-### Backward compatibility
-
-Existing messages stored as plain text without tags pass through the sanitizer unchanged (no elements to strip) and render correctly as a single text node. No migration needed.
-
-## Out of scope
-
-- Adding a dedicated `html_text` column or a separate `messages.format` field.
-- Markdown shortcuts (e.g. `**bold**`) in the composer.
-- Mentions / links inside messages.
-- Server-side sanitization (client sanitizes on render; the row remains as authored).
-
-## Files touched
-
-- Edit `src/components/conversation/conversation-window.tsx`.
+No migrations, no changes to the central conv/page split logic, no changes to existing routes.
