@@ -10,9 +10,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useCallback, useMemo, useState } from "react";
 import {
-  PanelLeftClose,
   PanelLeftOpen,
   Settings,
   LogOut,
@@ -22,7 +28,7 @@ import {
   MessageSquare,
   MessageSquarePlus,
   Loader2,
-  User,
+  User as UserIcon,
   Users,
 } from "lucide-react";
 import { z } from "zod";
@@ -30,8 +36,10 @@ import { z } from "zod";
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { listMyPages, createBlankPage } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
+import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
+import { ProfileDialog } from "@/components/profile/profile-dialog";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -51,19 +59,22 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 });
 
 const COLLAPSE_THRESHOLD = 20;
+const RAIL_AUTO_CLOSE = 3;
 
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [railOpen, setRailOpen] = useState(true);
+  const [railOpen, setRailOpen] = useState(false);
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
   const [convDialogOpen, setConvDialogOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [creatingPage, setCreatingPage] = useState(false);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
+  const fetchProfile = useServerFn(getMyWorkspaceProfile);
   const newPage = useServerFn(createBlankPage);
 
   const { data: workspaces } = useQuery({
@@ -79,6 +90,11 @@ function WorkspaceShell() {
   const { data: conversations } = useQuery({
     queryKey: ["conversations-list", workspaceId],
     queryFn: () => fetchConvs({ data: { workspaceId } }),
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile", workspaceId],
+    queryFn: () => fetchProfile({ data: { workspaceId } }),
   });
 
   const sortedPages = useMemo(
@@ -102,6 +118,7 @@ function WorkspaceShell() {
   const groupConversations = sortedConversations.filter((c) => c.type === "group");
 
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
+  const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
   const handleNewPage = async () => {
     if (creatingPage) return;
@@ -127,7 +144,7 @@ function WorkspaceShell() {
   const hasPage = !!pageId;
   const bothOpen = hasConversation && hasPage;
 
-  const handleLayout = useCallback(
+  const handleMainLayout = useCallback(
     (layout: Record<string, number>) => {
       if (!bothOpen) return;
       const convSize = layout.conv;
@@ -151,267 +168,334 @@ function WorkspaceShell() {
     [bothOpen, navigate, workspaceId],
   );
 
+  const handleShellLayout = useCallback(
+    (layout: Record<string, number>) => {
+      const rail = layout.rail;
+      if (rail !== undefined && rail < RAIL_AUTO_CLOSE) {
+        setRailOpen(false);
+      }
+    },
+    [],
+  );
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/login" });
+  };
+
   return (
-    <div className="flex h-screen w-screen bg-background text-foreground">
-      {railOpen && (
-        <div className="flex h-full w-[10%] min-w-[64px] flex-col items-center gap-2 border-r bg-muted/30 py-3">
-          <button
-            onClick={() => setRailOpen(false)}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent"
-            aria-label="Hide workspace rail"
-          >
-            <PanelLeftClose className="size-4" />
-          </button>
-          <div className="mt-2 flex flex-col gap-2">
-            {(workspaces ?? []).map((w) => (
-              <button
-                key={w.workspaceId}
-                onClick={() =>
-                  navigate({
-                    to: "/w/$workspaceId",
-                    params: { workspaceId: w.workspaceId },
-                  })
-                }
-                className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
-                  w.workspaceId === workspaceId
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background hover:bg-accent"
-                }`}
-                title={w.name}
-              >
-                {w.name.slice(0, 2).toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <aside className="flex h-full w-[20vw] min-w-[200px] flex-col border-r">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <div className="truncate text-sm font-semibold">{current?.name ?? "Workspace"}</div>
-          {!railOpen && (
-            <button
-              onClick={() => setRailOpen(true)}
-              className="rounded p-1 text-muted-foreground hover:bg-accent"
-              aria-label="Show workspace rail"
-            >
-              <PanelLeftOpen className="size-4" />
-            </button>
-          )}
-        </div>
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as "conversations" | "pages")}
-          className="flex flex-1 flex-col overflow-hidden"
+    <TooltipProvider delayDuration={200}>
+      <div className="flex h-screen w-screen bg-background text-foreground">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          onLayoutChanged={handleShellLayout}
+          key={`shell-${railOpen ? "rail" : "norail"}`}
+          className="h-full flex-1"
         >
-          <TabsList className="mx-3 mt-3 grid grid-cols-2">
-            <TabsTrigger value="conversations">Conversations</TabsTrigger>
-            <TabsTrigger value="pages">Pages</TabsTrigger>
-          </TabsList>
-          <div className="flex-1 overflow-y-auto p-2 text-sm">
-            {tab === "conversations" ? (
-              sortedConversations.length === 0 ? (
-                <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  <section>
-                    <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Direct messages
-                    </h3>
-                    {directConversations.length === 0 ? (
-                      <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
-                    ) : (
-                      <ul className="space-y-0.5">
-                        {directConversations.map((c) => {
-                          const isActive = conversationId === c.id;
-                          return (
-                            <li key={c.id}>
-                              <Link
-                                to="/w/$workspaceId"
-                                params={{ workspaceId }}
-                                search={(prev: any) => ({ ...prev, c: c.id })}
-                                className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                                  isActive ? "bg-accent" : ""
-                                }`}
-                              >
-                                <User className="size-3.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{c.title}</span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </section>
-                  <section>
-                    <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Groups
-                    </h3>
-                    {groupConversations.length === 0 ? (
-                      <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
-                    ) : (
-                      <ul className="space-y-0.5">
-                        {groupConversations.map((c) => {
-                          const isActive = conversationId === c.id;
-                          return (
-                            <li key={c.id}>
-                              <Link
-                                to="/w/$workspaceId"
-                                params={{ workspaceId }}
-                                search={(prev: any) => ({ ...prev, c: c.id })}
-                                className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                                  isActive ? "bg-accent" : ""
-                                }`}
-                              >
-                                <Users className="size-3.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{c.title}</span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </section>
-                </div>
-              )
-            ) : sortedPages.length === 0 ? (
-              <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
-            ) : (
-              <ul className="space-y-0.5">
-                {sortedPages.map((p) => {
-                  const isActive = pageId === p.id;
-                  return (
-                    <li key={p.id}>
-                      <Link
-                        to="/w/$workspaceId"
-                        params={{ workspaceId }}
-                        search={(prev: any) => ({ ...prev, p: p.id })}
-                        className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                          isActive ? "bg-accent" : ""
+          {railOpen && (
+            <>
+              <ResizablePanel id="rail" defaultSize={6} minSize={4} maxSize={8}>
+                <div className="flex h-full flex-col border-r bg-muted/30">
+                  <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
+                    {(workspaces ?? []).map((w) => (
+                      <button
+                        key={w.workspaceId}
+                        onClick={() =>
+                          navigate({
+                            to: "/w/$workspaceId",
+                            params: { workspaceId: w.workspaceId },
+                          })
+                        }
+                        className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
+                          w.workspaceId === workspaceId
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background hover:bg-accent"
                         }`}
+                        title={w.name}
                       >
-                        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{p.title || "Untitled"}</span>
-                        {p.visibility === "private" ? (
-                          <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                        ) : p.visibility === "workspace" ? (
-                          <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                        ) : p.visibility === "conversation" ? (
-                          <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+                        {w.name.slice(0, 2).toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-center border-t py-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to="/w/$workspaceId/settings"
+                          params={{ workspaceId }}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                          aria-label="Workspace settings"
+                        >
+                          <Settings className="size-4" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Workspace settings</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+            </>
+          )}
 
-          <div className="flex justify-center px-3 pb-3">
-            {tab === "conversations" ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setConvDialogOpen(true)}
-                className="w-full"
-              >
-                <MessageSquarePlus className="size-4" />
-                New conversation
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleNewPage}
-                disabled={creatingPage}
-                className="w-full"
-              >
-                {creatingPage ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <FileText className="size-4" />
+          <ResizablePanel id="nav" defaultSize={railOpen ? 20 : 22} minSize={14}>
+            <aside className="flex h-full w-full flex-col border-r">
+              <div className="flex items-center gap-2 border-b px-3 py-2">
+                {!railOpen && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setRailOpen(true)}
+                        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        aria-label="Open workspaces panel"
+                      >
+                        <PanelLeftOpen className="size-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Open workspaces panel</TooltipContent>
+                  </Tooltip>
                 )}
-                New page
-              </Button>
-            )}
-          </div>
-        </Tabs>
-        <div className="flex items-center justify-between border-t px-3 py-2">
-          <Link
-            to="/w/$workspaceId/settings"
-            params={{ workspaceId }}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="size-3.5" /> Settings
-          </Link>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate({ to: "/login" });
-            }}
-          >
-            <LogOut className="size-3.5" />
-          </Button>
-        </div>
-      </aside>
+                <div className="ml-auto truncate text-sm font-semibold">
+                  {current?.name ?? "Workspace"}
+                </div>
+              </div>
 
-      {/* Central split panel */}
-      <main className="h-full flex-1 overflow-hidden">
-        {!hasConversation && !hasPage ? (
-          <EmptyState
-            workspaceId={workspaceId}
-            onNewConversation={() => setConvDialogOpen(true)}
-            onNewPage={handleNewPage}
-            creatingPage={creatingPage}
-          />
-        ) : bothOpen ? (
-          <ResizablePanelGroup
-            orientation="horizontal"
-            onLayoutChanged={handleLayout}
-            // Key forces a fresh group when both panels first appear so default sizes apply.
-            key={`split-${conversationId}-${pageId}`}
-          >
-            <ResizablePanel id="conv" defaultSize={50} minSize={10}>
-              <ConversationWindow
-                key={conversationId}
-                workspaceId={workspaceId}
-                conversationId={conversationId!}
-              />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel id="page" defaultSize={50} minSize={10}>
-              <PageWindow
-                key={pageId}
-                workspaceId={workspaceId}
-                pageId={pageId!}
-              />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : hasConversation ? (
-          <ConversationWindow
-            key={conversationId}
-            workspaceId={workspaceId}
-            conversationId={conversationId!}
-          />
-        ) : (
-          <PageWindow
-            key={pageId}
-            workspaceId={workspaceId}
-            pageId={pageId!}
-          />
-        )}
-      </main>
+              <Tabs
+                value={tab}
+                onValueChange={(v) => setTab(v as "conversations" | "pages")}
+                className="flex flex-1 flex-col overflow-hidden"
+              >
+                <TabsList className="mx-3 mt-3 grid grid-cols-2">
+                  <TabsTrigger value="conversations">Conversations</TabsTrigger>
+                  <TabsTrigger value="pages">Pages</TabsTrigger>
+                </TabsList>
+                <div className="flex-1 overflow-y-auto p-2 text-sm">
+                  {tab === "conversations" ? (
+                    sortedConversations.length === 0 ? (
+                      <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        <section>
+                          <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Direct messages
+                          </h3>
+                          {directConversations.length === 0 ? (
+                            <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
+                          ) : (
+                            <ul className="space-y-0.5">
+                              {directConversations.map((c) => {
+                                const isActive = conversationId === c.id;
+                                return (
+                                  <li key={c.id}>
+                                    <Link
+                                      to="/w/$workspaceId"
+                                      params={{ workspaceId }}
+                                      search={(prev: any) => ({ ...prev, c: c.id })}
+                                      className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                                        isActive ? "bg-accent" : ""
+                                      }`}
+                                    >
+                                      <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                                      <span className="truncate">{c.title}</span>
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </section>
+                        <section>
+                          <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Groups
+                          </h3>
+                          {groupConversations.length === 0 ? (
+                            <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
+                          ) : (
+                            <ul className="space-y-0.5">
+                              {groupConversations.map((c) => {
+                                const isActive = conversationId === c.id;
+                                return (
+                                  <li key={c.id}>
+                                    <Link
+                                      to="/w/$workspaceId"
+                                      params={{ workspaceId }}
+                                      search={(prev: any) => ({ ...prev, c: c.id })}
+                                      className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                                        isActive ? "bg-accent" : ""
+                                      }`}
+                                    >
+                                      <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                                      <span className="truncate">{c.title}</span>
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </section>
+                      </div>
+                    )
+                  ) : sortedPages.length === 0 ? (
+                    <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {sortedPages.map((p) => {
+                        const isActive = pageId === p.id;
+                        return (
+                          <li key={p.id}>
+                            <Link
+                              to="/w/$workspaceId"
+                              params={{ workspaceId }}
+                              search={(prev: any) => ({ ...prev, p: p.id })}
+                              className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                                isActive ? "bg-accent" : ""
+                              }`}
+                            >
+                              <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate">{p.title || "Untitled"}</span>
+                              {p.visibility === "private" ? (
+                                <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                              ) : p.visibility === "workspace" ? (
+                                <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                              ) : p.visibility === "conversation" ? (
+                                <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
 
-      <NewConversationDialog
-        workspaceId={workspaceId}
-        open={convDialogOpen}
-        onOpenChange={setConvDialogOpen}
-      />
+                <div className="flex justify-center px-3 pb-3">
+                  {tab === "conversations" ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setConvDialogOpen(true)}
+                      className="w-full"
+                    >
+                      <MessageSquarePlus className="size-4" />
+                      New conversation
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleNewPage}
+                      disabled={creatingPage}
+                      className="w-full"
+                    >
+                      {creatingPage ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <FileText className="size-4" />
+                      )}
+                      New page
+                    </Button>
+                  )}
+                </div>
+              </Tabs>
 
-      <Outlet />
-    </div>
+              <div className="flex items-center gap-2 border-t px-2 py-2">
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="flex flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-accent"
+                  aria-label="Open profile"
+                >
+                  <Avatar className="size-7">
+                    {profile?.avatarUrl ? (
+                      <AvatarImage src={profile.avatarUrl} />
+                    ) : null}
+                    <AvatarFallback>
+                      <UserIcon className="size-3.5 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-sm">{profileName}</span>
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleLogout}
+                      aria-label="Logout"
+                    >
+                      <LogOut className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Logout</TooltipContent>
+                </Tooltip>
+              </div>
+            </aside>
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          <ResizablePanel id="main" defaultSize={railOpen ? 74 : 78} minSize={30}>
+            <main className="h-full overflow-hidden">
+              {!hasConversation && !hasPage ? (
+                <EmptyState
+                  workspaceId={workspaceId}
+                  onNewConversation={() => setConvDialogOpen(true)}
+                  onNewPage={handleNewPage}
+                  creatingPage={creatingPage}
+                />
+              ) : bothOpen ? (
+                <ResizablePanelGroup
+                  orientation="horizontal"
+                  onLayoutChanged={handleMainLayout}
+                  key={`split-${conversationId}-${pageId}`}
+                >
+                  <ResizablePanel id="conv" defaultSize={50} minSize={10}>
+                    <ConversationWindow
+                      key={conversationId}
+                      workspaceId={workspaceId}
+                      conversationId={conversationId!}
+                    />
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel id="page" defaultSize={50} minSize={10}>
+                    <PageWindow
+                      key={pageId}
+                      workspaceId={workspaceId}
+                      pageId={pageId!}
+                    />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              ) : hasConversation ? (
+                <ConversationWindow
+                  key={conversationId}
+                  workspaceId={workspaceId}
+                  conversationId={conversationId!}
+                />
+              ) : (
+                <PageWindow
+                  key={pageId}
+                  workspaceId={workspaceId}
+                  pageId={pageId!}
+                />
+              )}
+            </main>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+
+        <NewConversationDialog
+          workspaceId={workspaceId}
+          open={convDialogOpen}
+          onOpenChange={setConvDialogOpen}
+        />
+
+        <ProfileDialog
+          workspaceId={workspaceId}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+
+        <Outlet />
+      </div>
+    </TooltipProvider>
   );
 }
 
