@@ -221,14 +221,34 @@ export const getConversation = createServerFn({ method: "GET" })
       .select("workspace_users!inner(id, display_name, avatar_url, user_id)")
       .eq("conversation_id", data.conversationId);
 
-    const participants = (parts ?? []).map((p: any) => ({
-      workspaceUserId: p.workspace_users.id as string,
+    const rawParts = (parts ?? []).map((p: any) => p.workspace_users);
+    const missingNameUserIds = Array.from(
+      new Set(
+        rawParts
+          .filter((wu: any) => !wu.display_name)
+          .map((wu: any) => wu.user_id as string),
+      ),
+    );
+    const emailByUserId = new Map<string, string>();
+    await Promise.all(
+      missingNameUserIds.map(async (uid) => {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+          if (u?.user?.email) emailByUserId.set(uid, u.user.email);
+        } catch {}
+      }),
+    );
+
+    const participants = rawParts.map((wu: any) => ({
+      workspaceUserId: wu.id as string,
       displayName:
-        (p.workspace_users.display_name as string | null) ??
-        (p.workspace_users.user_id as string).slice(0, 6),
-      avatarUrl: (p.workspace_users.avatar_url as string | null) ?? null,
-      isMe: p.workspace_users.id === meWuId,
+        (wu.display_name as string | null) ??
+        emailByUserId.get(wu.user_id as string) ??
+        "Unknown",
+      avatarUrl: (wu.avatar_url as string | null) ?? null,
+      isMe: wu.id === meWuId,
     }));
+
 
     let title = conv.title as string | null;
     if (!title) {
