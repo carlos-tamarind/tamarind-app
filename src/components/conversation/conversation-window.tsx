@@ -252,7 +252,7 @@ export function ConversationWindow({
   const TypeIcon = isGroup ? Users : User;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="grid h-full grid-rows-[auto_8fr_2fr]">
       <header className="flex items-center justify-between border-b px-4 py-3">
         <h1 className="truncate text-base font-semibold">{conv.title}</h1>
         <div className="flex items-center gap-1">
