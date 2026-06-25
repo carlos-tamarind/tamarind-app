@@ -1,66 +1,44 @@
-## Goal
+# Fix-up plan
 
-Restructure the left side of the workspace shell so the workspace rail is collapsible (resizable), relocate workspace settings, and introduce a per-user profile button + modal at the bottom of the navigation panel.
+Four small, scoped fixes — all frontend except #3 which adjusts one server function.
 
-## Changes
+## 1. "Open workspaces panel" button does nothing
 
-### 1. Workspace rail (the narrow column with workspace tiles)
+**Cause:** in `src/routes/_authenticated.w.$workspaceId.tsx`, `handleShellLayout` runs on every layout event from `ResizablePanelGroup` — including the very first one right after we open the rail. The rail mounts at `defaultSize=6` but the library reports an intermediate sub‑3 value during the initial layout pass, so `setRailOpen(false)` fires immediately and the rail snaps back shut.
 
-- **Hidden by default.** On mount, `railOpen` starts `false`.
-- **Resizable, not fixed-width.** Replace the current `w-[10%] min-w-[64px]` rail + adjacent `w-[20vw]` aside with a `ResizablePanelGroup` containing:
-  - Panel `rail` — visible only when `railOpen`, `defaultSize` ≈ 6, `minSize` 4, `maxSize` 8 (percent of viewport — matches the "8% max" requirement when sliding right).
-  - `ResizableHandle` between rail and nav.
-  - Panel `nav` — the navigation aside, `defaultSize` ≈ 20, `minSize` 14.
-- **Slide-to-close.** `onLayoutChanged` watches the rail size: if it drops below ~3% the user has "slid the divider to the left" → set `railOpen=false` (collapses the rail).
-- Keep the central main area (`<main>`) outside this group so the existing conv/page split keeps working unchanged.
+**Fix:** Stop using `onLayoutChanged` for auto‑close. Instead:
+- Remove `handleShellLayout` and the `RAIL_AUTO_CLOSE` constant.
+- Mark the rail `ResizablePanel` as `collapsible collapsedSize={0} minSize={4} maxSize={8}` and pass `onCollapse={() => setRailOpen(false)}`. This way the rail only closes when the user actually drags the handle past the collapse threshold, not on initial layout.
+- Keep the `key={\`shell-${railOpen ? "rail" : "norail"}\`}` remount so opening always restores `defaultSize=6`.
 
-### 2. Navigation panel header
+## 2. Nav-panel "New conversation" / "New page" CTAs stretch with the panel
 
-- Swap the order: **"Open workspaces panel" button on the left**, workspace name label on the right of the header row.
-- The button toggles `railOpen`. Wrap it in `<Tooltip>` with content `"Open workspaces panel"` (uses existing `@/components/ui/tooltip`). Same icon swap as today (`PanelLeftOpen` / `PanelLeftClose`).
+In the same file, the bottom CTA buttons are currently `className="w-full"`. Replace `w-full` with a fixed width (e.g. `w-40`) and keep the wrapping `<div className="flex justify-center px-3 pb-3">` so they stay centered regardless of panel width. Applies to both branches (conversations and pages).
 
-### 3. Workspace settings relocation
+## 3. Messages show a short user-id fragment instead of the display name
 
-- Remove the current bottom strip of the nav aside that holds the **Settings** link and Logout button.
-- Move the **Settings** link to the **bottom of the rail panel**, separated from the workspace tiles by a top border (`border-t`). Same `Link to="/w/$workspaceId/settings"` target — modal behavior unchanged.
-- The rail becomes: tiles list (scrollable, `flex-1`) → divider → Settings button.
+**Cause:** `getConversation` in `src/lib/conversations.functions.ts` falls back to `user_id.slice(0,6)` when `workspace_users.display_name` is null. That fragment is what the conversation bubble renders via `author?.displayName`.
 
-### 4. Profile button (replaces the old settings/logout strip at the bottom of the nav)
+**Fix:** in `getConversation`, when `display_name` is null, look up the user's email from `auth.users` (via `supabaseAdmin.auth.admin.getUserById`, batched per missing user) and fall back to email; only as a last resort use `"Unknown"`. Do the same fallback chain in `listMyConversations` so the sidebar label is consistent. No schema changes.
 
-New bottom row in the nav aside (with `border-t`):
+Frontend (`conversation-window.tsx`) already uses `author?.displayName`, so no UI change needed there.
 
-```
-[ avatar ]  Display name                    [ logout icon ]
-```
+## 4. Composer area should be 2/10 of the conversation height
 
-- **Avatar**: round, size 8/9. Uses `workspace_users.avatar_url` for the current user if present; otherwise `<Avatar><AvatarFallback><User className="size-4"/></AvatarFallback></Avatar>` (generic persona icon, matches the spec's "generic persona icon by default").
-- **Name**: `workspace_users.display_name` for the current `workspaceUserId`, falling back to `auth.user.email`.
-- Clicking the avatar+name area opens the profile modal (local `profileOpen` state).
-- **Logout button**: existing icon button, now wrapped in `<Tooltip>` content `"Logout"`. Same `supabase.auth.signOut()` + redirect.
+In `src/components/conversation/conversation-window.tsx`:
+- Change the root from `flex h-full flex-col` to `grid h-full grid-rows-[auto_1fr_2fr]` where row 1 = header, row 2 = scrollable messages (8/10 effective with header), row 3 = composer (2/10).
+- More precisely, use `grid-rows-[auto_8fr_2fr]` so the header keeps its intrinsic height and the messages/composer split is exactly 8:2 of the remaining space.
+- Add `min-h-0 overflow-y-auto` on the messages container and `min-h-0 overflow-hidden` on the composer container so the grid rows clamp correctly.
+- Inside the composer, let the `EditorContent` wrapper fill (`h-full`) and make the textarea area scroll internally (`overflow-y-auto`) so the toolbar + send column stay visible.
 
-Data source: add a tiny server fn `getMyWorkspaceProfile({ workspaceId })` in a new `src/lib/profile.functions.ts` that returns `{ workspaceUserId, displayName, avatarUrl, email }` (joins `workspace_users` row for `auth.uid()` with `auth.users.email`). Mutation `updateMyDisplayName({ workspaceId, displayName })` updates `workspace_users.display_name` for the caller. Both use `requireSupabaseAuth`; the update uses the auth-scoped supabase client so RLS enforces ownership.
+## Out of scope
 
-### 5. Profile modal (`src/components/profile/profile-dialog.tsx`)
+- No DB migrations.
+- No changes to message sanitizer, realtime, or send behavior.
+- No styling overhaul of the rail/profile area beyond the items above.
 
-- Rendered inside the workspace shell as a `<Dialog>` (shadcn dialog already dims the background and provides the X close button + outside-click close — matches the spec).
-- Content (disposition at our discretion, kept minimal):
-  - Centered profile picture (large `Avatar`, generic persona fallback). No upload UI yet.
-  - Read-only full name line.
-  - **Rename row**: `Input` bound to local state, plus **Cancel** (resets to original) and **Confirm** (calls `updateMyDisplayName`, on success invalidates `["my-profile", workspaceId]` + `["my-workspaces"]`, toast). Change persists only on Confirm.
-  - **Bottom-center Logout** primary `Button` labeled `"Logout"`, full-width-ish, calls `supabase.auth.signOut()` then `navigate({ to: "/login" })`.
-- Modal closes via outside-click and X (default `DialogContent` behavior — no extra work needed).
+## Files touched
 
-### 6. Out of scope (explicitly)
-
-- Avatar upload / image picking.
-- Editing email, password, or any auth fields.
-- Profile fields beyond display name.
-- Any DB schema changes (the `workspace_users.display_name` and `avatar_url` columns already exist).
-
-## Files
-
-- `src/routes/_authenticated.w.$workspaceId.tsx` — rail → resizable panel, header swap + tooltip, relocate settings into rail footer, replace bottom strip with profile button + tooltipped logout.
-- `src/components/profile/profile-dialog.tsx` — new.
-- `src/lib/profile.functions.ts` — new (`getMyWorkspaceProfile`, `updateMyDisplayName`).
-
-No migrations, no changes to the central conv/page split logic, no changes to existing routes.
+- `src/routes/_authenticated.w.$workspaceId.tsx` (fixes #1, #2)
+- `src/lib/conversations.functions.ts` (fix #3)
+- `src/components/conversation/conversation-window.tsx` (fix #4)

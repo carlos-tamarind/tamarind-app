@@ -59,7 +59,7 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 });
 
 const COLLAPSE_THRESHOLD = 20;
-const RAIL_AUTO_CLOSE = 3;
+
 
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
