@@ -386,10 +386,11 @@ export function ConversationWindow({
             <Code className="size-3.5" />
           </Button>
         </div>
-        <div className="flex items-end gap-2 p-2">
-          <div className="flex-1 rounded-md border">
+        <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2">
+          <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:w-full">
             <EditorContent editor={editor} />
           </div>
+
           <div className="flex flex-col gap-1">
             <Button
               size="icon"
