@@ -209,6 +209,10 @@ export function PageWindow({
       Mention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: memberSuggestion,
+      }) as any,
+      MemberMention.configure({
+        HTMLAttributes: { class: "mention-member" },
+        suggestion: memberSuggestion,
       }),
       PageMention.configure({
         HTMLAttributes: { class: "mention-page" },
