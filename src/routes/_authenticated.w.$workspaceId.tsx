@@ -168,15 +168,8 @@ function WorkspaceShell() {
     [bothOpen, navigate, workspaceId],
   );
 
-  const handleShellLayout = useCallback(
-    (layout: Record<string, number>) => {
-      const rail = layout.rail;
-      if (rail !== undefined && rail < RAIL_AUTO_CLOSE) {
-        setRailOpen(false);
-      }
-    },
-    [],
-  );
+
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
