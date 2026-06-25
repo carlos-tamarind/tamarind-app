@@ -252,7 +252,7 @@ export function ConversationWindow({
   const TypeIcon = isGroup ? Users : User;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="grid h-full grid-rows-[auto_8fr_2fr]">
       <header className="flex items-center justify-between border-b px-4 py-3">
         <h1 className="truncate text-base font-semibold">{conv.title}</h1>
         <div className="flex items-center gap-1">
@@ -310,7 +310,7 @@ export function ConversationWindow({
         </div>
       </header>
 
-      <div ref={scrollerRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollerRef} className="min-h-0 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             No messages yet — say hi.
@@ -356,7 +356,7 @@ export function ConversationWindow({
         )}
       </div>
 
-      <div className="border-t">
+      <div className="flex min-h-0 flex-col border-t">
         <div className="flex items-center gap-1 border-b px-2 py-1">
           <Button
             size="icon"
@@ -386,11 +386,12 @@ export function ConversationWindow({
             <Code className="size-3.5" />
           </Button>
         </div>
-        <div className="flex items-end gap-2 p-2">
-          <div className="flex-1 rounded-md border">
+        <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2">
+          <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:w-full">
             <EditorContent editor={editor} />
           </div>
-          <div className="flex flex-col gap-1">
+
+          <div className="flex flex-col justify-end gap-1">
             <Button
               size="icon"
               variant="ghost"

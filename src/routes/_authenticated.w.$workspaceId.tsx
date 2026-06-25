@@ -59,7 +59,7 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 });
 
 const COLLAPSE_THRESHOLD = 20;
-const RAIL_AUTO_CLOSE = 3;
+
 
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
@@ -168,15 +168,8 @@ function WorkspaceShell() {
     [bothOpen, navigate, workspaceId],
   );
 
-  const handleShellLayout = useCallback(
-    (layout: Record<string, number>) => {
-      const rail = layout.rail;
-      if (rail !== undefined && rail < RAIL_AUTO_CLOSE) {
-        setRailOpen(false);
-      }
-    },
-    [],
-  );
+
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -188,13 +181,28 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
           orientation="horizontal"
-          onLayoutChanged={handleShellLayout}
+          onLayoutChanged={(layout: Record<string, number>) => {
+            if (railOpen && layout.rail !== undefined && layout.rail < 1) {
+              setRailOpen(false);
+            }
+          }}
           key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
+
+
           {railOpen && (
             <>
-              <ResizablePanel id="rail" defaultSize={6} minSize={4} maxSize={8}>
+              <ResizablePanel
+                id="rail"
+                defaultSize={6}
+                minSize={4}
+                maxSize={8}
+                collapsible
+                collapsedSize={0}
+              >
+
+
                 <div className="flex h-full flex-col border-r bg-muted/30">
                   <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
                     {(workspaces ?? []).map((w) => (
@@ -374,7 +382,8 @@ function WorkspaceShell() {
                       variant="secondary"
                       size="sm"
                       onClick={() => setConvDialogOpen(true)}
-                      className="w-full"
+                      className="w-44"
+
                     >
                       <MessageSquarePlus className="size-4" />
                       New conversation
@@ -385,7 +394,7 @@ function WorkspaceShell() {
                       size="sm"
                       onClick={handleNewPage}
                       disabled={creatingPage}
-                      className="w-full"
+                      className="w-44"
                     >
                       {creatingPage ? (
                         <Loader2 className="size-4 animate-spin" />

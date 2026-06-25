@@ -87,18 +87,43 @@ export const listMyConversations = createServerFn({ method: "GET" })
           "conversation_id, workspace_users!inner(id, display_name, user_id)",
         )
         .in("conversation_id", convIds);
-      const byConv = new Map<string, string[]>();
+      const byConv = new Map<string, { name: string | null; userId: string }[]>();
       for (const row of allParts ?? []) {
         const cid = row.conversation_id as string;
         const wu: any = (row as any).workspace_users;
         if (wu.id === meWuId) continue;
-        const name = wu.display_name ?? (wu.user_id as string).slice(0, 6);
         if (!byConv.has(cid)) byConv.set(cid, []);
-        byConv.get(cid)!.push(name);
+        byConv.get(cid)!.push({
+          name: (wu.display_name as string | null) ?? null,
+          userId: wu.user_id as string,
+        });
       }
-      for (const [cid, names] of byConv) {
+      const missingUserIds = Array.from(
+        new Set(
+          Array.from(byConv.values())
+            .flat()
+            .filter((e) => !e.name)
+            .map((e) => e.userId),
+        ),
+      );
+      const emailByUserId = new Map<string, string>();
+      await Promise.all(
+        missingUserIds.map(async (uid) => {
+          try {
+            const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+            if (u?.user?.email) emailByUserId.set(uid, u.user.email);
+          } catch {}
+        }),
+      );
+      for (const [cid, entries] of byConv) {
+        const names = entries.map(
+          (e) => e.name ?? emailByUserId.get(e.userId) ?? "Unknown",
+        );
         labelByConv.set(cid, names.slice(0, 3).join(", "));
       }
+
+
+
     }
 
     return convs.map((c: any) => ({
@@ -221,14 +246,34 @@ export const getConversation = createServerFn({ method: "GET" })
       .select("workspace_users!inner(id, display_name, avatar_url, user_id)")
       .eq("conversation_id", data.conversationId);
 
-    const participants = (parts ?? []).map((p: any) => ({
-      workspaceUserId: p.workspace_users.id as string,
+    const rawParts = (parts ?? []).map((p: any) => p.workspace_users);
+    const missingNameUserIds = Array.from(
+      new Set(
+        rawParts
+          .filter((wu: any) => !wu.display_name)
+          .map((wu: any) => wu.user_id as string),
+      ),
+    );
+    const emailByUserId = new Map<string, string>();
+    await Promise.all(
+      missingNameUserIds.map(async (uid) => {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+          if (u?.user?.email) emailByUserId.set(uid, u.user.email);
+        } catch {}
+      }),
+    );
+
+    const participants = rawParts.map((wu: any) => ({
+      workspaceUserId: wu.id as string,
       displayName:
-        (p.workspace_users.display_name as string | null) ??
-        (p.workspace_users.user_id as string).slice(0, 6),
-      avatarUrl: (p.workspace_users.avatar_url as string | null) ?? null,
-      isMe: p.workspace_users.id === meWuId,
+        (wu.display_name as string | null) ??
+        emailByUserId.get(wu.user_id as string) ??
+        "Unknown",
+      avatarUrl: (wu.avatar_url as string | null) ?? null,
+      isMe: wu.id === meWuId,
     }));
+
 
     let title = conv.title as string | null;
     if (!title) {
