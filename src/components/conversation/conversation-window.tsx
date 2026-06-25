@@ -391,7 +391,7 @@ export function ConversationWindow({
             <EditorContent editor={editor} />
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col justify-end gap-1">
             <Button
               size="icon"
               variant="ghost"
