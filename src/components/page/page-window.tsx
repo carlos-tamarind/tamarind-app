@@ -25,7 +25,7 @@ import {
   listMyConversations,
 } from "@/lib/conversations.functions";
 import { SlashCommand } from "@/components/editor/slash-command";
-import { PageMention, ConversationMention } from "@/components/editor/custom-mentions";
+import { PageMention, ConversationMention, MemberMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
