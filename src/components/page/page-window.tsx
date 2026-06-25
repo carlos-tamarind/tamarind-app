@@ -256,7 +256,6 @@ export function PageWindow({
           .then(() => {
             dirtyContentRef.current = null;
             queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-            queryClient.invalidateQueries({ queryKey: ["page", pageId] });
             queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
           })
           .catch(() => {});
@@ -264,12 +263,20 @@ export function PageWindow({
     },
   });
 
+  const hydratedForPageRef = useRef<string | null>(null);
   useEffect(() => {
-    if (data && editor) {
-      setTitle(data.title ?? "Untitled");
-      editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
-    }
-  }, [data, editor]);
+    if (!data || !editor) return;
+    if (hydratedForPageRef.current === pageId) return;
+    hydratedForPageRef.current = pageId;
+    setTitle(data.title ?? "Untitled");
+    editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
+  }, [data, editor, pageId]);
+
+  useEffect(() => {
+    // Reset hydration guard when navigating to a different page so the
+    // editor seeds itself once from the new page's server data.
+    hydratedForPageRef.current = null;
+  }, [pageId]);
 
   useEffect(() => {
     if (!user) return;
