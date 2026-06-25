@@ -122,9 +122,8 @@ export const listMyConversations = createServerFn({ method: "GET" })
         labelByConv.set(cid, names.slice(0, 3).join(", "));
       }
 
-      for (const [cid, names] of byConv) {
-        labelByConv.set(cid, names.slice(0, 3).join(", "));
-      }
+
+
     }
 
     return convs.map((c: any) => ({
