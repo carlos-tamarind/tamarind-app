@@ -187,7 +187,16 @@ function WorkspaceShell() {
 
           {railOpen && (
             <>
-              <ResizablePanel id="rail" defaultSize={6} minSize={4} maxSize={8}>
+              <ResizablePanel
+                id="rail"
+                defaultSize={6}
+                minSize={4}
+                maxSize={8}
+                collapsible
+                collapsedSize={0}
+                onCollapse={() => setRailOpen(false)}
+              >
+
                 <div className="flex h-full flex-col border-r bg-muted/30">
                   <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
                     {(workspaces ?? []).map((w) => (
