@@ -206,22 +206,16 @@ export function PageWindow({
       TaskList,
       TaskItem.configure({ nested: true }),
       SlashCommand,
-      Mention.configure({
-        HTMLAttributes: { class: "mention-member" },
-        suggestion: memberSuggestion,
-      }) as any,
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: memberSuggestion,
       }),
       PageMention.configure({
         HTMLAttributes: { class: "mention-page" },
-        renderText: ({ node }) => `@@${node.attrs.label ?? node.attrs.id}`,
         suggestion: pageSuggestion,
       }),
       ConversationMention.configure({
         HTMLAttributes: { class: "mention-conversation" },
-        renderText: ({ node }) => `\\${node.attrs.label ?? node.attrs.id}`,
         suggestion: conversationSuggestion,
       }),
     ],
