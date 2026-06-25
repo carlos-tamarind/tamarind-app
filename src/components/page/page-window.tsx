@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import Mention from "@tiptap/extension-mention";
+
 import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -25,7 +25,7 @@ import {
   listMyConversations,
 } from "@/lib/conversations.functions";
 import { SlashCommand } from "@/components/editor/slash-command";
-import { PageMention, ConversationMention } from "@/components/editor/custom-mentions";
+import { PageMention, ConversationMention, MemberMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -206,18 +206,16 @@ export function PageWindow({
       TaskList,
       TaskItem.configure({ nested: true }),
       SlashCommand,
-      Mention.configure({
+      MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: memberSuggestion,
       }),
       PageMention.configure({
         HTMLAttributes: { class: "mention-page" },
-        renderText: ({ node }) => `@@${node.attrs.label ?? node.attrs.id}`,
         suggestion: pageSuggestion,
       }),
       ConversationMention.configure({
         HTMLAttributes: { class: "mention-conversation" },
-        renderText: ({ node }) => `\\${node.attrs.label ?? node.attrs.id}`,
         suggestion: conversationSuggestion,
       }),
     ],
@@ -258,7 +256,6 @@ export function PageWindow({
           .then(() => {
             dirtyContentRef.current = null;
             queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-            queryClient.invalidateQueries({ queryKey: ["page", pageId] });
             queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
           })
           .catch(() => {});
@@ -266,12 +263,20 @@ export function PageWindow({
     },
   });
 
+  const hydratedForPageRef = useRef<string | null>(null);
   useEffect(() => {
-    if (data && editor) {
-      setTitle(data.title ?? "Untitled");
-      editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
-    }
-  }, [data, editor]);
+    if (!data || !editor) return;
+    if (hydratedForPageRef.current === pageId) return;
+    hydratedForPageRef.current = pageId;
+    setTitle(data.title ?? "Untitled");
+    editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
+  }, [data, editor, pageId]);
+
+  useEffect(() => {
+    // Reset hydration guard when navigating to a different page so the
+    // editor seeds itself once from the new page's server data.
+    hydratedForPageRef.current = null;
+  }, [pageId]);
 
   useEffect(() => {
     if (!user) return;
@@ -345,7 +350,6 @@ export function PageWindow({
         .current({ data: { pageId, title } })
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-          queryClient.invalidateQueries({ queryKey: ["page", pageId] });
         })
         .catch(() => {});
     }
