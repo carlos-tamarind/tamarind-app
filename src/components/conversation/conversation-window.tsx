@@ -356,7 +356,7 @@ export function ConversationWindow({
         )}
       </div>
 
-      <div className="border-t">
+      <div className="flex min-h-0 flex-col border-t">
         <div className="flex items-center gap-1 border-b px-2 py-1">
           <Button
             size="icon"
