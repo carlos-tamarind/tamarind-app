@@ -350,7 +350,6 @@ export function PageWindow({
         .current({ data: { pageId, title } })
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-          queryClient.invalidateQueries({ queryKey: ["page", pageId] });
         })
         .catch(() => {});
     }
