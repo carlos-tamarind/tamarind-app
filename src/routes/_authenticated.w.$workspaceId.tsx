@@ -181,10 +181,10 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
           orientation="horizontal"
-          onLayoutChanged={handleShellLayout}
           key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
+
           {railOpen && (
             <>
               <ResizablePanel id="rail" defaultSize={6} minSize={4} maxSize={8}>
