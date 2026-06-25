@@ -394,7 +394,7 @@ function WorkspaceShell() {
                       size="sm"
                       onClick={handleNewPage}
                       disabled={creatingPage}
-                      className="w-full"
+                      className="w-44"
                     >
                       {creatingPage ? (
                         <Loader2 className="size-4 animate-spin" />
