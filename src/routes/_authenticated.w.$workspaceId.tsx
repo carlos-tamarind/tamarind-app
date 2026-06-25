@@ -382,7 +382,8 @@ function WorkspaceShell() {
                       variant="secondary"
                       size="sm"
                       onClick={() => setConvDialogOpen(true)}
-                      className="w-full"
+                      className="w-44"
+
                     >
                       <MessageSquarePlus className="size-4" />
                       New conversation
