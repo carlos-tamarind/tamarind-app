@@ -60,7 +60,7 @@ const MESSAGES_SQUARE: SvgSpec = [
   ],
 ];
 
-function buildRenderHTML(icon: SvgSpec, defaultClass: string) {
+function buildRenderHTML(icon: SvgSpec, defaultClass: string): any {
   return function renderHTML(this: any, { node, HTMLAttributes }: any) {
     const label = node.attrs.label ?? node.attrs.id;
     return [
@@ -73,7 +73,7 @@ function buildRenderHTML(icon: SvgSpec, defaultClass: string) {
       ),
       icon,
       ` ${label}`,
-    ];
+    ] as any;
   };
 }
 
