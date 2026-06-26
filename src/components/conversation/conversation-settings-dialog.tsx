@@ -11,11 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   listConversationPages,
   createConversationPage,
 } from "@/lib/conversations.functions";
 import { AddParticipantsDialog } from "./add-participants-dialog";
+import { EditableTitle } from "./editable-title";
 
 type Participant = {
   workspaceUserId: string;
@@ -27,16 +29,20 @@ export function ConversationSettingsDialog({
   workspaceId,
   conversationId,
   title,
+  isGroup,
   participants,
   open,
   onOpenChange,
+  onRename,
 }: {
   workspaceId: string;
   conversationId: string;
   title: string;
+  isGroup: boolean;
   participants: Participant[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRename: (title: string) => Promise<void>;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -64,12 +70,15 @@ export function ConversationSettingsDialog({
     setCreating(true);
     try {
       const { pageId } = await newPage({ data: { conversationId } });
-      queryClient.invalidateQueries({ queryKey: ["conversation-pages", conversationId] });
+      queryClient.invalidateQueries({
+        queryKey: ["conversation-pages", conversationId],
+      });
       queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
       onOpenChange(false);
       navigate({
-        to: "/w/$workspaceId/p/$pageId",
-        params: { workspaceId, pageId },
+        to: "/w/$workspaceId",
+        params: { workspaceId },
+        search: (prev: any) => ({ ...prev, p: pageId }),
       });
     } catch (e) {
       console.error(e);
@@ -78,8 +87,17 @@ export function ConversationSettingsDialog({
     }
   };
 
+  const handleOpenPage = (pageId: string) => {
+    onOpenChange(false);
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev: any) => ({ ...prev, p: pageId }),
+    });
+  };
+
   return (
-    <>
+    <TooltipProvider delayDuration={200}>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -90,7 +108,14 @@ export function ConversationSettingsDialog({
             <div className="flex size-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">
               {initials || "C"}
             </div>
-            <div className="text-base font-medium">{title}</div>
+            <div className="w-full px-6">
+              <EditableTitle
+                value={title}
+                editable={isGroup}
+                onSave={onRename}
+                className="justify-center text-base font-medium"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -131,13 +156,7 @@ export function ConversationSettingsDialog({
                 (pages ?? []).map((p) => (
                   <li key={p.id}>
                     <button
-                      onClick={() => {
-                        onOpenChange(false);
-                        navigate({
-                          to: "/w/$workspaceId/p/$pageId",
-                          params: { workspaceId, pageId: p.id },
-                        });
-                      }}
+                      onClick={() => handleOpenPage(p.id)}
                       className="block w-full truncate rounded px-1 py-1 text-left hover:bg-accent"
                     >
                       {p.title || "Untitled"}
@@ -157,6 +176,6 @@ export function ConversationSettingsDialog({
         open={addOpen}
         onOpenChange={setAddOpen}
       />
-    </>
+    </TooltipProvider>
   );
 }

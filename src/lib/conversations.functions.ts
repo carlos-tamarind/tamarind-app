@@ -456,3 +456,67 @@ export const createConversationPage = createServerFn({ method: "POST" })
     if (error || !page) throw new Error(error?.message ?? "Create failed");
     return { pageId: page.id as string };
   });
+
+export const listMentionablePages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        conversationId: z.string().uuid(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertParticipant(data.conversationId, context.userId);
+    const { data: pages, error } = await supabaseAdmin
+      .from("pages")
+      .select("id, title, visibility, conversation_id")
+      .eq("workspace_id", data.workspaceId)
+      .or(
+        `visibility.eq.workspace,conversation_id.eq.${data.conversationId}`,
+      );
+    if (error) throw new Error(error.message);
+    return (pages ?? []).map((p: any) => ({
+      id: p.id as string,
+      title: (p.title as string) ?? "Untitled",
+      visibility: p.visibility as string,
+    }));
+  });
+
+export const renameConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        title: z.string().trim().min(1).max(120),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertParticipant(data.conversationId, context.userId);
+
+    const { data: conv, error: cErr } = await supabaseAdmin
+      .from("conversations")
+      .select("type")
+      .eq("id", data.conversationId)
+      .single();
+    if (cErr || !conv) throw new Error(cErr?.message ?? "Not found");
+
+    const { count } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("workspace_user_id", { count: "exact", head: true })
+      .eq("conversation_id", data.conversationId);
+
+    if ((conv.type as string) === "direct" || (count ?? 0) <= 2) {
+      throw new Error("Only group conversations can be renamed");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("conversations")
+      .update({ title: data.title, last_modified_at: new Date().toISOString() })
+      .eq("id", data.conversationId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
