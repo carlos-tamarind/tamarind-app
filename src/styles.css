@@ -231,15 +231,21 @@
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  color: #000;
+  color: #000 !important;
   background-color: color-mix(in oklab, var(--muted) 70%, transparent);
 }
 .mention-icon {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
-  color: #000;
-  stroke: currentColor;
+  color: #000 !important;
+  stroke: #000 !important;
+  fill: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.mention-icon * {
+  stroke: #000 !important;
 }
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
