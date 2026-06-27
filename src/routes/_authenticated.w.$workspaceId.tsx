@@ -190,11 +190,11 @@ function WorkspaceShell() {
             <>
               <ResizablePanel
                 id="rail"
-                defaultSize={6}
-                minSize={4}
-                maxSize={8}
+                defaultSize="10%"
+                minSize="8%"
+                maxSize="15%"
                 collapsible
-                collapsedSize={0}
+                collapsedSize="0%"
               >
 
 
@@ -241,7 +241,7 @@ function WorkspaceShell() {
             </>
           )}
 
-          <ResizablePanel id="nav" defaultSize={railOpen ? 20 : 22} minSize={14}>
+          <ResizablePanel id="nav" defaultSize={railOpen ? "20%" : "22%"} minSize="14%">
             <aside className="flex h-full w-full flex-col border-r">
               <div className="flex items-center gap-2 border-b px-3 py-2">
                 {!railOpen && (
@@ -437,7 +437,7 @@ function WorkspaceShell() {
 
           <ResizableHandle />
 
-          <ResizablePanel id="main" defaultSize={railOpen ? 74 : 78} minSize={30}>
+          <ResizablePanel id="main" defaultSize={railOpen ? "70%" : "78%"} minSize="30%">
             <main className="h-full overflow-hidden">
               {!hasConversation && !hasPage ? (
                 <EmptyState
@@ -452,7 +452,7 @@ function WorkspaceShell() {
                   onLayoutChanged={handleMainLayout}
                   key={`split-${conversationId}-${pageId}`}
                 >
-                  <ResizablePanel id="conv" defaultSize={50} minSize={10}>
+                  <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
                     <ConversationWindow
                       key={conversationId}
                       workspaceId={workspaceId}
@@ -460,7 +460,7 @@ function WorkspaceShell() {
                     />
                   </ResizablePanel>
                   <ResizableHandle withHandle />
-                  <ResizablePanel id="page" defaultSize={50} minSize={10}>
+                  <ResizablePanel id="page" defaultSize="50%" minSize="10%">
                     <PageWindow
                       key={pageId}
                       workspaceId={workspaceId}
