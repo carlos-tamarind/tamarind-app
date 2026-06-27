@@ -115,13 +115,16 @@ function sanitizeMessageHtml(html: string): string {
         continue;
       }
       if (tag === "SPAN") {
-        const cls = el.getAttribute("class") ?? "";
-        if (!ALLOWED_MENTION_CLASSES.has(cls)) {
+        const mentionClass = Array.from(el.classList).find((cls) =>
+          ALLOWED_MENTION_CLASSES.has(cls),
+        );
+        if (!mentionClass) {
           // unwrap unknown spans
           const text = document.createTextNode(el.textContent ?? "");
           el.replaceWith(text);
           continue;
         }
+        el.setAttribute("class", mentionClass);
         for (const attr of Array.from(el.attributes)) {
           if (!KEEP_ATTRS_ON_MENTION.has(attr.name)) {
             el.removeAttribute(attr.name);
