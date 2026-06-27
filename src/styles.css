@@ -221,9 +221,9 @@
 .ProseMirror em { font-style: italic; }
 .ProseMirror u { text-decoration: underline; }
 .ProseMirror s { text-decoration: line-through; }
-.ProseMirror .mention-member,
-.ProseMirror .mention-page,
-.ProseMirror .mention-conversation {
+.mention-member,
+.mention-page,
+.mention-conversation {
   display: inline-flex;
   align-items: center;
   gap: 0.25em;
@@ -231,13 +231,15 @@
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  color: var(--foreground);
+  color: #000;
   background-color: color-mix(in oklab, var(--muted) 70%, transparent);
 }
-.ProseMirror .mention-icon {
+.mention-icon {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
+  color: #000;
+  stroke: currentColor;
 }
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;

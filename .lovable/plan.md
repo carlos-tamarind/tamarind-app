@@ -1,85 +1,22 @@
+## Fixes
 
-## 1. Mentions inside conversation messages
+### 1. Conversation composer — resizable + bigger by default
+In `src/components/conversation/conversation-window.tsx`:
+- The inner `ResizablePanelGroup` is currently set with `orientation="vertical"`, but the shadcn `Resizable` wrapper (react-resizable-panels) expects the `direction` prop. With the wrong prop, the panel group falls back to horizontal and the composer ends up at a fixed sliver. Switch to `direction="vertical"`.
+- Update the composer panel sizes to: `defaultSize={20}`, `minSize={15}`, `maxSize={35}`. Match the messages panel to `defaultSize={80}`, `minSize={65}`.
+- Verify the parent container chain (`flex-1 min-h-0`) actually gives the group a measured height so the percentages are meaningful.
 
-Extend the conversation composer (`src/components/conversation/conversation-window.tsx`) to support the same mention chips already used in pages, but limited to two kinds:
+### 2. "Open workspaces panel" button does nothing
+In `src/routes/_authenticated.w.$workspaceId.tsx`:
+- The outer `ResizablePanelGroup` uses `key={shell-${railOpen ? "rail" : "norail"}}` to force a remount when the rail toggles, but the `onLayoutChanged` handler reads `layout.rail` and, during the first measurement after the remount, can briefly see `rail < 1`, which calls `setRailOpen(false)` and immediately closes the panel that was just opened.
+- Fix by guarding `onLayoutChanged`: ignore the callback while the rail is animating in (e.g. only auto-collapse when the user actually drags below the threshold, not on mount). Concretely, skip the auto-collapse for one frame after toggling, or change the logic to "collapse only if rail was previously ≥ minSize and the user dragged below threshold" by tracking the previous size in a ref.
+- Also pass `direction="horizontal"` to the outer group (same prop fix as #1) so resizing reports correct values.
 
-- `@` → workspace user (any workspace member, in or out of the conversation). Reuses `MemberMention` + `MentionList`.
-- `@@` → page mention, limited to:
-  - pages with `visibility = 'workspace'` (public), OR
-  - pages where `conversation_id = <current conversationId>` (local conversation pages).
-- No `\` conversation mention in the composer (future feature).
+### 3. Mention icons invisible (white on white)
+The SVG icons inherit `currentColor`, but the `.mention-*` chip styling only exists inside `.ProseMirror`. In sent message bubbles (rendered as plain `prose` HTML, not ProseMirror) there is no chip background and the icon color depends on the bubble's text color — on the light bubble it can blend in, and the chip itself has no background, so it reads as plain text without an icon.
 
-Backend: add `listMentionablePages({ workspaceId, conversationId })` in `src/lib/conversations.functions.ts` that asserts participant and returns `workspace`-visible pages unioned with pages of the current conversation.
+In `src/styles.css`:
+- Add a global rule (not scoped to `.ProseMirror`) for `.mention-member`, `.mention-page`, `.mention-conversation` giving them the same inline-flex chip styling, an explicit dark text color (`color: #000`), and the muted background. Keep the existing `.ProseMirror`-scoped rules or let them inherit from the new global rule.
+- Force `.mention-icon { color: #000; stroke: currentColor; }` so the SVG always renders black regardless of surrounding text color (covers both light and dark message bubbles for now, per the user's "leave them black" instruction).
 
-Rendering: messages already pass through `sanitizeMessageHtml` with a strict whitelist (`P/STRONG/EM/CODE/BR`). Extend it to allow `SPAN` with `class` in `{mention-member, mention-page}` plus `data-id`/`data-label`, and to allow the inline mention `<svg>` produced by `custom-mentions.ts` (preserving `class="mention-icon"` and structural attributes). Clicking a page chip in a delivered message navigates via `search: { p: <id> }`; member chips are no-ops for now.
-
-## 2. Open page from conversation details modal in split view
-
-`src/components/conversation/conversation-settings-dialog.tsx`: clicking a page row sets the workspace-route search param `p` (keeping `c` intact) instead of routing to `/w/$workspaceId/p/$pageId`, so the central panel splits into conversation + page using existing split logic in `_authenticated.w.$workspaceId.tsx`.
-
-## 3. Resizable message composer
-
-In `conversation-window.tsx`, replace the static `grid-rows-[auto_8fr_2fr]` with a vertical `ResizablePanelGroup`:
-
-- header (auto, outside group)
-- messages panel
-- composer panel: `defaultSize=20`, `minSize=12`, `maxSize=33`
-
-Resize handle between messages and composer.
-
-## 4. Tooltips on conversation buttons
-
-Wrap these icon buttons in `conversation-window.tsx` with shadcn `Tooltip` (`TooltipProvider` added locally if not inherited):
-
-- Participants → "Participants"
-- New page → "New conversation page"
-- Send → "Send message"
-- Bold / Italic / Code → "Bold text" / "Italic text" / "Inline code"
-
-## 5. Swap participants icon
-
-Use Lucide `Users` (the `users` icon) for the participants button in the header, for both direct and group conversations.
-
-## 6. Editable conversation title (groups only)
-
-### Default title for groups
-
-When `conversations.title` is `null` and the conversation has >2 participants, build the default as comma-separated display names (or email fallback), then truncate so the rendered title stays on a single line within its header slot with breathing room from the edges:
-
-- Compute the default on the client in the title component (server still returns the raw stored title, which is `null` for unedited groups).
-- Render the title inside a flex container that's bounded by `min-w-0` plus right-side padding (e.g. `pr-3`) before the pencil/lock icon, with `truncate` (`overflow:hidden; white-space:nowrap; text-overflow: ellipsis`).
-- Cap the source string itself at ~64 characters: join names with `", "`, and if the result exceeds 64 chars, cut at the last full name that fits and append `" ..."`. This avoids both layout overflow and an overly long stored default.
-- `text-overflow: ellipsis` acts as a second line of defense on narrow viewports.
-
-The same rule applies to the title shown in the conversation details modal (truncate visually; the underlying default value is the same capped string).
-
-### Edit behavior
-
-- 1:1 (direct, 2 participants): title is read-only. Show `LockKeyhole` to the right of the title in both the header and the modal.
-- Group (>2 participants): title is editable.
-  - Show a `Pencil` icon-button to the right of the title in the header and the modal.
-  - Click pencil → title becomes an `<input>` prefilled with the current value (stored value, or the truncated default if none stored). Pencil is replaced by `X` (cancel) and `Check` (confirm).
-  - Cancel, click-outside (blur), or Escape → revert, discard changes.
-  - Confirm or Enter → call server fn, persist, exit edit mode.
-  - Closing the details modal while editing also discards changes.
-
-### Backend
-
-Add `renameConversation({ conversationId, title })` in `src/lib/conversations.functions.ts`:
-- Assert participant.
-- Reject if type is `direct` or participant count <= 2.
-- Trim; enforce length 1–120.
-- Update `conversations.title`.
-- Invalidate `conversation` and `conversations-list` queries on the client.
-
-### UI
-
-- New shared component `src/components/conversation/editable-title.tsx` with `{ value, editable, onSave }` so header and modal share behavior.
-- Used in `conversation-window.tsx` header and in `conversation-settings-dialog.tsx`.
-
-## Technical notes
-
-- All work stays in `src/components/conversation/*`, `src/components/editor/*` (reuse existing extensions), and `src/lib/conversations.functions.ts`.
-- `MemberMention` / `PageMention` already serialize to clean inline SVG HTML that round-trips through the expanded sanitizer.
-- `ResizablePanelGroup` with `direction="vertical"` is supported by the existing `@/components/ui/resizable` wrapper.
-- No DB migration required.
+No server / data changes; this is purely UI/CSS.

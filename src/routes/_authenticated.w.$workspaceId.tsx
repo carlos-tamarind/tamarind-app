@@ -181,11 +181,6 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
           orientation="horizontal"
-          onLayoutChanged={(layout: Record<string, number>) => {
-            if (railOpen && layout.rail !== undefined && layout.rail < 1) {
-              setRailOpen(false);
-            }
-          }}
           key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
