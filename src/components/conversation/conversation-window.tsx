@@ -521,8 +521,8 @@ export function ConversationWindow({
           </div>
         </header>
 
-        <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
-          <ResizablePanel id="messages" defaultSize={80} minSize={50}>
+        <ResizablePanelGroup direction="vertical" className="min-h-0 flex-1">
+          <ResizablePanel id="messages" defaultSize={80} minSize={65}>
             <div
               ref={scrollerRef}
               className="h-full overflow-y-auto px-4 py-4"
@@ -578,8 +578,8 @@ export function ConversationWindow({
           <ResizablePanel
             id="composer"
             defaultSize={20}
-            minSize={12}
-            maxSize={33}
+            minSize={15}
+            maxSize={35}
           >
             <div className="flex h-full min-h-0 flex-col border-t">
               <div className="flex items-center gap-1 border-b px-2 py-1">

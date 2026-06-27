@@ -180,12 +180,7 @@ function WorkspaceShell() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
-          orientation="horizontal"
-          onLayoutChanged={(layout: Record<string, number>) => {
-            if (railOpen && layout.rail !== undefined && layout.rail < 1) {
-              setRailOpen(false);
-            }
-          }}
+          direction="horizontal"
           key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
@@ -453,8 +448,10 @@ function WorkspaceShell() {
                 />
               ) : bothOpen ? (
                 <ResizablePanelGroup
-                  orientation="horizontal"
-                  onLayoutChanged={handleMainLayout}
+                  direction="horizontal"
+                  onLayout={(sizes: number[]) =>
+                    handleMainLayout({ conv: sizes[0], page: sizes[1] })
+                  }
                   key={`split-${conversationId}-${pageId}`}
                 >
                   <ResizablePanel id="conv" defaultSize={50} minSize={10}>
