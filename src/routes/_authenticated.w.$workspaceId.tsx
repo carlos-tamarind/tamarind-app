@@ -180,7 +180,7 @@ function WorkspaceShell() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
-          direction="horizontal"
+          orientation="horizontal"
           key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
@@ -448,10 +448,8 @@ function WorkspaceShell() {
                 />
               ) : bothOpen ? (
                 <ResizablePanelGroup
-                  direction="horizontal"
-                  onLayout={(sizes: number[]) =>
-                    handleMainLayout({ conv: sizes[0], page: sizes[1] })
-                  }
+                  orientation="horizontal"
+                  onLayoutChanged={handleMainLayout}
                   key={`split-${conversationId}-${pageId}`}
                 >
                   <ResizablePanel id="conv" defaultSize={50} minSize={10}>
