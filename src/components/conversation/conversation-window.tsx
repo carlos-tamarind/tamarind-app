@@ -358,7 +358,7 @@ export function ConversationWindow({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none min-h-[60px] focus:outline-none px-3 py-2",
+          "prose prose-sm max-w-none min-h-full focus:outline-none px-3 py-2",
       },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -633,7 +633,7 @@ export function ConversationWindow({
                 </Tooltip>
               </div>
               <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2">
-                <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:w-full">
+                <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:h-full [&>div]:w-full">
                   <EditorContent editor={editor} />
                 </div>
 
