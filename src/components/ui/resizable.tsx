@@ -1,4 +1,4 @@
-import { GripHorizontal, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import {
   Group,
   Panel,
@@ -37,8 +37,7 @@ const ResizableHandle = ({
   >
     {withHandle && (
       <div className="z-10 flex h-4 w-4 items-center justify-center rounded-sm border bg-background shadow-sm">
-        <GripVertical className="hidden h-2.5 w-2.5 group-aria-[orientation=vertical]:block" />
-        <GripHorizontal className="hidden h-2.5 w-2.5 group-aria-[orientation=horizontal]:block" />
+        <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
   </Separator>
