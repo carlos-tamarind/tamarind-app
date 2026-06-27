@@ -521,7 +521,10 @@ export function ConversationWindow({
           </div>
         </header>
 
-        <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col">
+        <ResizablePanelGroup
+          orientation="vertical"
+          className="flex min-h-[520px] flex-1 flex-col"
+        >
           <ResizablePanel id="messages" defaultSize="80%" minSize="65%">
             <div
               ref={scrollerRef}
