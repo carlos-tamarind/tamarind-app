@@ -1,22 +1,23 @@
-## Fixes
+## Plan
 
-### 1. Conversation composer — resizable + bigger by default
-In `src/components/conversation/conversation-window.tsx`:
-- The inner `ResizablePanelGroup` is currently set with `orientation="vertical"`, but the shadcn `Resizable` wrapper (react-resizable-panels) expects the `direction` prop. With the wrong prop, the panel group falls back to horizontal and the composer ends up at a fixed sliver. Switch to `direction="vertical"`.
-- Update the composer panel sizes to: `defaultSize={20}`, `minSize={15}`, `maxSize={35}`. Match the messages panel to `defaultSize={80}`, `minSize={65}`.
-- Verify the parent container chain (`flex-1 min-h-0`) actually gives the group a measured height so the percentages are meaningful.
+1. **Fix the conversation composer resize behavior**
+   - Correct the resizable panel API usage from `orientation` to the library’s expected `direction` prop.
+   - Keep the composer panel at **default 20%**, **minimum 15%**, **maximum 35%**.
+   - Give the composer content real vertical space with a stable layout so the formatting toolbar, editor field, new-page button, and send button are always visible and usable.
+   - Make the drag handle visibly horizontal and draggable between messages and composer.
 
-### 2. "Open workspaces panel" button does nothing
-In `src/routes/_authenticated.w.$workspaceId.tsx`:
-- The outer `ResizablePanelGroup` uses `key={shell-${railOpen ? "rail" : "norail"}}` to force a remount when the rail toggles, but the `onLayoutChanged` handler reads `layout.rail` and, during the first measurement after the remount, can briefly see `rail < 1`, which calls `setRailOpen(false)` and immediately closes the panel that was just opened.
-- Fix by guarding `onLayoutChanged`: ignore the callback while the rail is animating in (e.g. only auto-collapse when the user actually drags below the threshold, not on mount). Concretely, skip the auto-collapse for one frame after toggling, or change the logic to "collapse only if rail was previously ≥ minSize and the user dragged below threshold" by tracking the previous size in a ref.
-- Also pass `direction="horizontal"` to the outer group (same prop fix as #1) so resizing reports correct values.
+2. **Fix the workspaces panel sizing/resizing**
+   - Correct the shell resizable panel API usage from `orientation` to `direction` so horizontal resizing works.
+   - When open, make the workspaces panel exactly **10%** of the full app width by default.
+   - Keep it absent when closed, so it consumes **0%**.
+   - Add practical resize bounds around the open state so it is not tiny and the central area resizes correctly around it.
+   - Keep the existing open/close button behavior intact.
 
-### 3. Mention icons invisible (white on white)
-The SVG icons inherit `currentColor`, but the `.mention-*` chip styling only exists inside `.ProseMirror`. In sent message bubbles (rendered as plain `prose` HTML, not ProseMirror) there is no chip background and the icon color depends on the bubble's text color — on the light bubble it can blend in, and the chip itself has no background, so it reads as plain text without an icon.
+3. **Fix mention icon visibility**
+   - Update mention chip/icon CSS so user/page/conversation icons render with explicit black stroke/fill behavior on white backgrounds.
+   - Cover both editable TipTap content and delivered message bubbles, including SVG children such as paths/circles/rects.
 
-In `src/styles.css`:
-- Add a global rule (not scoped to `.ProseMirror`) for `.mention-member`, `.mention-page`, `.mention-conversation` giving them the same inline-flex chip styling, an explicit dark text color (`color: #000`), and the muted background. Keep the existing `.ProseMirror`-scoped rules or let them inherit from the new global rule.
-- Force `.mention-icon { color: #000; stroke: currentColor; }` so the SVG always renders black regardless of surrounding text color (covers both light and dark message bubbles for now, per the user's "leave them black" instruction).
-
-No server / data changes; this is purely UI/CSS.
+4. **Verify in the running UI**
+   - Check that the conversation composer opens with enough height and the handle can resize it.
+   - Check that the workspace panel opens at the intended width and can be horizontally resized.
+   - Check that mention icons are visible on white backgrounds.

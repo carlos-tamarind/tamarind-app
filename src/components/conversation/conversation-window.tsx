@@ -115,13 +115,16 @@ function sanitizeMessageHtml(html: string): string {
         continue;
       }
       if (tag === "SPAN") {
-        const cls = el.getAttribute("class") ?? "";
-        if (!ALLOWED_MENTION_CLASSES.has(cls)) {
+        const mentionClass = Array.from(el.classList).find((cls) =>
+          ALLOWED_MENTION_CLASSES.has(cls),
+        );
+        if (!mentionClass) {
           // unwrap unknown spans
           const text = document.createTextNode(el.textContent ?? "");
           el.replaceWith(text);
           continue;
         }
+        el.setAttribute("class", mentionClass);
         for (const attr of Array.from(el.attributes)) {
           if (!KEEP_ATTRS_ON_MENTION.has(attr.name)) {
             el.removeAttribute(attr.name);
@@ -355,7 +358,7 @@ export function ConversationWindow({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none min-h-[60px] focus:outline-none px-3 py-2",
+          "prose prose-sm max-w-none min-h-full focus:outline-none px-3 py-2",
       },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -521,8 +524,11 @@ export function ConversationWindow({
           </div>
         </header>
 
-        <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col">
-          <ResizablePanel id="messages" defaultSize={80} minSize={65}>
+        <ResizablePanelGroup
+          orientation="vertical"
+          className="flex min-h-[520px] flex-1 flex-col"
+        >
+          <ResizablePanel id="messages" defaultSize="80%" minSize="65%">
             <div
               ref={scrollerRef}
               className="h-full overflow-y-auto px-4 py-4"
@@ -577,11 +583,11 @@ export function ConversationWindow({
           <ResizableHandle withHandle />
           <ResizablePanel
             id="composer"
-            defaultSize={20}
-            minSize={15}
-            maxSize={35}
+            defaultSize="20%"
+            minSize="15%"
+            maxSize="35%"
           >
-            <div className="flex h-full min-h-0 flex-col border-t">
+            <div className="flex h-full min-h-[180px] flex-col border-t bg-background">
               <div className="flex items-center gap-1 border-b px-2 py-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -627,7 +633,7 @@ export function ConversationWindow({
                 </Tooltip>
               </div>
               <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2">
-                <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:w-full">
+                <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:h-full [&>div]:w-full">
                   <EditorContent editor={editor} />
                 </div>
 
