@@ -193,7 +193,6 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
           orientation="horizontal"
-          key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
 
@@ -202,29 +201,17 @@ function WorkspaceShell() {
             <>
               <ResizablePanel
                 id="rail"
-                defaultSize="10%"
-                minSize="10%"
-                maxSize="10%"
+                defaultSize="5%"
+                minSize="5%"
+                maxSize="5%"
                 collapsible
                 collapsedSize="0%"
               >
 
 
                 <div className="flex h-full flex-col border-r bg-muted/30">
-                  <div className="flex items-center justify-center border-b py-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setRailOpen(false)}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-label="Close workspaces panel"
-                        >
-                          <PanelLeftClose className="size-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Close workspaces panel</TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <div className="h-10 border-b" />
+
                   <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
                     {(workspaces ?? []).map((w) => (
                       <button
