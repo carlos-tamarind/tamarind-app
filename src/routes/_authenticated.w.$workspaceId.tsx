@@ -294,13 +294,14 @@ function WorkspaceShell() {
                     <button
                       onClick={() => navPanelRef.current?.expand()}
                       className="flex flex-1 w-full items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label="Expand navigation"
+                      aria-label="Open Navigation panel"
                     >
                       <PanelLeftOpen className="size-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">Expand navigation</TooltipContent>
+                  <TooltipContent side="right">Open Navigation panel</TooltipContent>
                 </Tooltip>
+
                 <div className="flex w-full items-center justify-center border-t py-2">
                   <DropdownMenu>
                     <Tooltip>
