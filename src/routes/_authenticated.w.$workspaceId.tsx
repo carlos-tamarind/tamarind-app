@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   PanelLeftOpen,
   Settings,
@@ -31,7 +31,10 @@ import {
   PanelLeftClose,
   User as UserIcon,
   Users,
+  Menu,
+  CirclePlus,
 } from "lucide-react";
+import type { PanelImperativeHandle } from "react-resizable-panels";
 import { z } from "zod";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
@@ -46,6 +49,12 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConversationWindow } from "@/components/conversation/conversation-window";
 import { PageWindow } from "@/components/page/page-window";
 
