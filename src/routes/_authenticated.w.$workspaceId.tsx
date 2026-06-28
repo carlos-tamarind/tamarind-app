@@ -266,23 +266,117 @@ function WorkspaceShell() {
             </>
           )}
 
-          <ResizablePanel id="nav" defaultSize={railOpen ? "20%" : "22%"} minSize="14%">
-            <aside className="flex h-full w-full flex-col border-r">
-              <div className="flex items-center gap-2 border-b px-3 py-2">
-                {!railOpen && (
+          <ResizablePanel
+            id="nav"
+            panelRef={navPanelRef}
+            defaultSize="22%"
+            minSize="18%"
+            maxSize="33%"
+            collapsible
+            collapsedSize="5%"
+            onResize={(size) => {
+              const pct = size.asPercentage;
+              if (pct <= 17) {
+                if (!folded) setFolded(true);
+              } else if (folded) {
+                setFolded(false);
+              }
+            }}
+          >
+            {folded ? (
+              <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
+                <div className="flex w-full items-center justify-center border-b py-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => setRailOpen(true)}
-                        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                        aria-label="Open workspaces panel"
+                        onClick={() => setRailOpen((v) => !v)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
                       >
-                        <PanelLeftOpen className="size-4" />
+                        <Menu className="size-4" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Open workspaces panel</TooltipContent>
+                    <TooltipContent side="right">
+                      {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                    </TooltipContent>
                   </Tooltip>
-                )}
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navPanelRef.current?.expand()}
+                      className="flex flex-1 w-full items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label="Expand navigation"
+                    >
+                      <PanelLeftOpen className="size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Expand navigation</TooltipContent>
+                </Tooltip>
+                <div className="flex w-full items-center justify-center border-t py-2">
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                            aria-label="Create new"
+                          >
+                            <CirclePlus className="size-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Create new</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent side="right" align="end">
+                      <DropdownMenuItem onClick={() => setConvDialogOpen(true)}>
+                        <MessageSquarePlus className="size-4" />
+                        New conversation
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleNewPage} disabled={creatingPage}>
+                        <FileText className="size-4" />
+                        New page
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex w-full items-center justify-center py-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setProfileOpen(true)}
+                        className="rounded-full"
+                        aria-label="Open profile"
+                      >
+                        <Avatar className="size-7">
+                          {profile?.avatarUrl ? <AvatarImage src={profile.avatarUrl} /> : null}
+                          <AvatarFallback>
+                            <UserIcon className="size-3.5 text-muted-foreground" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{profileName}</TooltipContent>
+                  </Tooltip>
+                </div>
+              </aside>
+            ) : (
+            <aside className="flex h-full w-full flex-col border-r">
+              <div className="flex items-center gap-2 border-b px-3 py-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setRailOpen((v) => !v)}
+                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                    >
+                      <Menu className="size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                  </TooltipContent>
+                </Tooltip>
                 <div className="ml-auto truncate text-sm font-semibold">
                   {current?.name ?? "Workspace"}
                 </div>
@@ -403,7 +497,6 @@ function WorkspaceShell() {
                       size="sm"
                       onClick={() => setConvDialogOpen(true)}
                       className="w-44"
-
                     >
                       <MessageSquarePlus className="size-4" />
                       New conversation
@@ -458,11 +551,12 @@ function WorkspaceShell() {
                 </Tooltip>
               </div>
             </aside>
+            )}
           </ResizablePanel>
 
-          <ResizableHandle />
+          <ResizableHandle withHandle={!folded} />
 
-          <ResizablePanel id="main" defaultSize={railOpen ? "70%" : "78%"} minSize="30%">
+          <ResizablePanel id="main" minSize="40%">
             <main className="h-full overflow-hidden">
               {!hasConversation && !hasPage ? (
                 <EmptyState
