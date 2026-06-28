@@ -193,7 +193,6 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <ResizablePanelGroup
           orientation="horizontal"
-          key={`shell-${railOpen ? "rail" : "norail"}`}
           className="h-full flex-1"
         >
 
@@ -202,29 +201,17 @@ function WorkspaceShell() {
             <>
               <ResizablePanel
                 id="rail"
-                defaultSize="10%"
-                minSize="10%"
-                maxSize="10%"
+                defaultSize="5%"
+                minSize="5%"
+                maxSize="5%"
                 collapsible
                 collapsedSize="0%"
               >
 
 
                 <div className="flex h-full flex-col border-r bg-muted/30">
-                  <div className="flex items-center justify-center border-b py-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setRailOpen(false)}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-label="Close workspaces panel"
-                        >
-                          <PanelLeftClose className="size-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Close workspaces panel</TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <div className="h-10 border-b" />
+
                   <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
                     {(workspaces ?? []).map((w) => (
                       <button
@@ -291,28 +278,30 @@ function WorkspaceShell() {
                       <button
                         onClick={() => setRailOpen((v) => !v)}
                         className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                        aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                        aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                       >
                         <Menu className="size-4" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                      {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     </TooltipContent>
                   </Tooltip>
+
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => navPanelRef.current?.expand()}
                       className="flex flex-1 w-full items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label="Expand navigation"
+                      aria-label="Open Navigation panel"
                     >
                       <PanelLeftOpen className="size-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">Expand navigation</TooltipContent>
+                  <TooltipContent side="right">Open Navigation panel</TooltipContent>
                 </Tooltip>
+
                 <div className="flex w-full items-center justify-center border-t py-2">
                   <DropdownMenu>
                     <Tooltip>
@@ -368,19 +357,32 @@ function WorkspaceShell() {
                     <button
                       onClick={() => setRailOpen((v) => !v)}
                       className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                      aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     >
                       <Menu className="size-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                    {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                   </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navPanelRef.current?.collapse()}
+                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label="Close Navigation panel"
+                    >
+                      <PanelLeftClose className="size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Close Navigation panel</TooltipContent>
                 </Tooltip>
                 <div className="ml-auto truncate text-sm font-semibold">
                   {current?.name ?? "Workspace"}
                 </div>
               </div>
+
 
               <Tabs
                 value={tab}
