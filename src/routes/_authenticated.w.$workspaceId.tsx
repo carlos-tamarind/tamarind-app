@@ -81,6 +81,8 @@ function WorkspaceShell() {
   const [convDialogOpen, setConvDialogOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [creatingPage, setCreatingPage] = useState(false);
+  const [folded, setFolded] = useState(false);
+  const navPanelRef = useRef<PanelImperativeHandle>(null);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
