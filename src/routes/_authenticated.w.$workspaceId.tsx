@@ -278,15 +278,16 @@ function WorkspaceShell() {
                       <button
                         onClick={() => setRailOpen((v) => !v)}
                         className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                        aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                        aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                       >
                         <Menu className="size-4" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                      {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     </TooltipContent>
                   </Tooltip>
+
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
