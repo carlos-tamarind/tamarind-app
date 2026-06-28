@@ -1,42 +1,36 @@
-## Plan: Navigation panel resize + folded state
+## Goal
+Make the Workspaces rail and Navigation panel toggle independently, simplify their headers, and slim the rail to 5%.
 
-Edit only `src/routes/_authenticated.w.$workspaceId.tsx`. No backend or other UI changes.
+## Changes to `src/routes/_authenticated.w.$workspaceId.tsx`
 
-### 1. Resizable nav with collapse-to-folded
+### 1. Independent panel state (no cross-collapsing)
+- Remove the `key={shell-${railOpen ? "rail" : "norail"}}` on the outer `ResizablePanelGroup`. Re-keying remounts the group and resets the Navigation panel's width every time the rail opens/closes, which is why toggling the rail also affects the nav. With the key gone, the navigation panel keeps its current size whether folded or expanded, and the rail mounts/unmounts beside it.
+- The folded/unfolded state of the navigation is driven only by its own `onResize` threshold — opening or closing the rail never calls `setFolded`, so the navigation stays in whatever state the user left it in.
 
-Replace the current fixed-size nav with a resizable + collapsible panel:
+### 2. Workspaces rail (when `railOpen`)
+- Width: change `defaultSize`/`minSize`/`maxSize` from `"10%"` to `"5%"`.
+- Remove the top close button (`PanelLeftClose` + tooltip). Keep the bordered top strip empty so the divider/spacing matches the navigation header height.
+- Leave the workspace list + Settings footer unchanged.
 
-- `<ResizablePanel id="nav" defaultSize="22%" minSize="18%" maxSize="33%" collapsible collapsedSize="5%" onCollapse={() => setFolded(true)} onExpand={() => setFolded(false)}>`
-- Drive `folded` state from a React `useState`, wired through `onCollapse`/`onExpand`. Drag below 18% → collapsed (folded, 5%). Drag right from folded → auto-expand.
-- Main panel becomes `defaultSize` of remaining space with `minSize="40%"`.
-- The grip handle: render `<ResizableHandle withHandle />` only when `!folded`; render plain `<ResizableHandle />` (no grip icon) when folded. The existing `withHandle` already shows `GripVertical` in the center — no change needed in `resizable.tsx`.
+### 3. Navigation panel header — expanded state
+Currently shows: `Menu` (toggle rail) + workspace name.
+- Keep the `Menu` button. Update its tooltip text to:
+  - `railOpen` → "Close Workspaces panel"
+  - else → "Open Workspaces panel"
+- Add a second button immediately to the right of `Menu`, using the `PanelLeftClose` Lucide icon, that calls `navPanelRef.current?.collapse()` to fold the navigation. Tooltip: "Close Navigation panel".
+- Workspace name stays right-aligned via `ml-auto`.
 
-### 2. Expanded nav changes
+### 4. Navigation panel — folded state
+- Keep the existing top `Menu` button (workspace toggle); apply the same updated tooltip strings as in step 3 ("Open/Close Workspaces panel").
+- Change the middle expand button's `aria-label` and tooltip from "Expand navigation" to "Open Navigation panel".
+- Bottom CirclePlus + profile avatar unchanged.
 
-- Change the "Open workspaces panel" button icon from `PanelLeftOpen` to `Menu` (Lucide).
+### 5. Imports
+- No new icons needed; `Menu`, `PanelLeftClose`, `PanelLeftOpen`, `CirclePlus` are already imported.
 
-### 3. Folded nav UI (when `folded === true`)
-
-Replace the existing `<aside>` content with a vertical 5%-wide icon column. The whole middle section is a clickable button that calls `panelRef.expand()` (using a `useRef<ImperativePanelHandle>` on the nav panel).
-
-Top → bottom:
-
-1. **Top** — Workspaces panel toggle button. Same handler as expanded (`setRailOpen(true/false)`). Icon: `Menu`. Tooltip "Open workspaces panel".
-2. **Middle (flex-1, clickable)** — Centered `PanelLeftOpen` icon. Clicking the area calls `panelRef.current?.expand()`. Tooltip "Expand navigation".
-3. **Bottom-up** — `CirclePlus` button inside a `DropdownMenu` with two items:
-   - "New conversation" → `setConvDialogOpen(true)`
-   - "New page" → `handleNewPage()`
-4. **Bottom-down** — Profile avatar button: same `setProfileOpen(true)` handler, just the `Avatar` with no name/email/logout shown. (Logout stays accessible via profile dialog / expanded view.)
-
-All folded items use `Tooltip` on the right side; no text labels.
-
-### 4. Workspaces rail interplay
-
-Rail behavior unchanged — opening the rail works regardless of folded state. When folded + rail open, layout is rail (10%) + nav (5%) + main (85%).
-
-### Technical notes
-
-- `react-resizable-panels` v4: use `collapsible`, `collapsedSize="5%"`, `minSize="18%"`, `maxSize="33%"`, and `onCollapse`/`onExpand` callbacks. Get an imperative handle via `useRef` + `ref` prop on `ResizablePanel` to call `.expand()` from the folded middle-click.
-- New Lucide imports: `Menu`, `CirclePlus`. Remove `PanelLeftOpen` usage from header (still used in folded middle).
-- Use existing `DropdownMenu` from `@/components/ui/dropdown-menu` for the CirclePlus menu.
-- Remove the existing `key={shell-rail}` remount trick on the outer group — no longer needed since the nav panel is the same instance across folded/expanded.
+## Result
+- Clicking the workspace toggle only shows/hides the 5% rail; the navigation keeps its current width and folded/unfolded state.
+- Folding/unfolding the navigation never touches the rail.
+- Workspace toggle is always present at the top of the navigation (both states) with the requested tooltips.
+- A dedicated fold button (`PanelLeftClose`) appears in the expanded navigation header.
+- The folded-state expand button uses the new "Open Navigation panel" tooltip.
