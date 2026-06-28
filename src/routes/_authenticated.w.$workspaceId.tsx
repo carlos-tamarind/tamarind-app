@@ -357,19 +357,32 @@ function WorkspaceShell() {
                     <button
                       onClick={() => setRailOpen((v) => !v)}
                       className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label={railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                      aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     >
                       <Menu className="size-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    {railOpen ? "Close workspaces panel" : "Open workspaces panel"}
+                    {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                   </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navPanelRef.current?.collapse()}
+                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label="Close Navigation panel"
+                    >
+                      <PanelLeftClose className="size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Close Navigation panel</TooltipContent>
                 </Tooltip>
                 <div className="ml-auto truncate text-sm font-semibold">
                   {current?.name ?? "Workspace"}
                 </div>
               </div>
+
 
               <Tabs
                 value={tab}
