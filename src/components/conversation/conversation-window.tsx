@@ -554,9 +554,10 @@ export function ConversationWindow({
                       >
                         {showName && (
                           <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                            {author?.displayName ?? "Unknown"}
+                            {author?.label ?? m.authorLabel ?? "Archived user"}
                           </span>
                         )}
+
                         <div
                           className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
                             isMe
