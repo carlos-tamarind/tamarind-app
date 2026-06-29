@@ -100,44 +100,34 @@ export const listMyConversations = createServerFn({ method: "GET" })
           "conversation_id, workspace_users!inner(id, display_name, user_id)",
         )
         .in("conversation_id", convIds);
-      const byConv = new Map<string, { name: string | null; userId: string }[]>();
+      const byConv = new Map<
+        string,
+        { displayName: string | null; userId: string }[]
+      >();
       for (const row of allParts ?? []) {
         const cid = row.conversation_id as string;
         const wu: any = (row as any).workspace_users;
         if (wu.id === meWuId) continue;
         if (!byConv.has(cid)) byConv.set(cid, []);
         byConv.get(cid)!.push({
-          name: (wu.display_name as string | null) ?? null,
+          displayName: (wu.display_name as string | null) ?? null,
           userId: wu.user_id as string,
         });
       }
-      const missingUserIds = Array.from(
-        new Set(
-          Array.from(byConv.values())
-            .flat()
-            .filter((e) => !e.name)
-            .map((e) => e.userId),
-        ),
-      );
-      const emailByUserId = new Map<string, string>();
-      await Promise.all(
-        missingUserIds.map(async (uid) => {
-          try {
-            const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
-            if (u?.user?.email) emailByUserId.set(uid, u.user.email);
-          } catch {}
-        }),
+      const emails = await fetchEmailsForUserIds(
+        Array.from(byConv.values())
+          .flat()
+          .filter((e) => !(e.displayName ?? "").trim())
+          .map((e) => e.userId),
       );
       for (const [cid, entries] of byConv) {
-        const names = entries.map(
-          (e) => e.name ?? emailByUserId.get(e.userId) ?? "Unknown",
+        const names = entries.map((e) =>
+          resolveLabel({ display_name: e.displayName, user_id: e.userId }, emails),
         );
         labelByConv.set(cid, names.slice(0, 3).join(", "));
       }
-
-
-
     }
+
 
     return convs.map((c: any) => ({
       id: c.id as string,
