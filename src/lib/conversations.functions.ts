@@ -51,13 +51,24 @@ export const listWorkspaceMembers = createServerFn({ method: "GET" })
       .eq("workspace_id", data.workspaceId);
     if (error) throw new Error(error.message);
 
-    return (members ?? []).map((m) => ({
+    const rows = members ?? [];
+    const emails = await fetchEmailsForUserIds(
+      rows.filter((m) => !((m.display_name ?? "") as string).trim()).map((m) => m.user_id as string),
+    );
+
+    return rows.map((m) => ({
       workspaceUserId: m.id as string,
       userId: m.user_id as string,
       displayName: (m.display_name as string | null) ?? null,
+      email: emails.get(m.user_id as string) ?? null,
+      label: resolveLabel(
+        { display_name: m.display_name as any, user_id: m.user_id as any },
+        emails,
+      ),
       avatarUrl: (m.avatar_url as string | null) ?? null,
     }));
   });
+
 
 export const listMyConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
