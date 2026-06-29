@@ -306,13 +306,50 @@ export const listMessages = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true })
       .limit(data.limit ?? 200);
     if (error) throw new Error(error.message);
+
+    const authorIds = Array.from(
+      new Set(
+        (msgs ?? [])
+          .map((m) => m.author_workspace_user_id as string | null)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    const labelByWuId = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const { data: wus } = await supabaseAdmin
+        .from("workspace_users")
+        .select("id, user_id, display_name")
+        .in("id", authorIds);
+      const rows = wus ?? [];
+      const emails = await fetchEmailsForUserIds(
+        rows
+          .filter((r) => !((r.display_name ?? "") as string).trim())
+          .map((r) => r.user_id as string),
+      );
+      const byId = new Map(rows.map((r) => [r.id as string, r]));
+      for (const wuId of authorIds) {
+        const row = byId.get(wuId);
+        labelByWuId.set(
+          wuId,
+          resolveLabel(
+            row ? { display_name: row.display_name as any, user_id: row.user_id as any } : null,
+            emails,
+          ),
+        );
+      }
+    }
+
     return (msgs ?? []).map((m) => ({
       id: m.id as string,
       rawText: m.raw_text as string,
       authorWorkspaceUserId: m.author_workspace_user_id as string | null,
+      authorLabel: m.author_workspace_user_id
+        ? labelByWuId.get(m.author_workspace_user_id as string) ?? "Archived user"
+        : "Unknown user",
       createdAt: m.created_at as string,
     }));
   });
+
 
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
