@@ -53,8 +53,10 @@ type Message = {
   id: string;
   rawText: string;
   authorWorkspaceUserId: string | null;
+  authorLabel?: string;
   createdAt: string;
 };
+
 
 function formatTimestamp(iso: string) {
   const d = new Date(iso);
