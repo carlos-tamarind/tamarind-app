@@ -305,17 +305,14 @@ export function ConversationWindow({
       buildMentionSuggestion("@", async (query) => {
         const members = await fetchMembers({ data: { workspaceId } });
         return members
-          .filter((m) =>
-            (m.displayName ?? m.userId)
-              .toLowerCase()
-              .includes(query.toLowerCase()),
-          )
+          .filter((m) => m.label.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 8)
           .map((m) => ({
             id: m.workspaceUserId,
-            label: m.displayName ?? m.userId.slice(0, 8),
+            label: m.label,
           }));
       }),
+
     [workspaceId, fetchMembers],
   );
 
