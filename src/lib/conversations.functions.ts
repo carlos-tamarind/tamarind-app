@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
+
 
 async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
