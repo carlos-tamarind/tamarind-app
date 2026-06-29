@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
+
 
 async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
@@ -74,7 +76,7 @@ export const getPage = createServerFn({ method: "GET" })
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
 
-    let ownerDisplayName: string | null = null;
+    let ownerRow: { display_name: string | null; user_id: string } | null = null;
     if (page.owner_workspace_user_id) {
       const { data: owner } = await supabaseAdmin
         .from("workspace_users")
@@ -82,26 +84,58 @@ export const getPage = createServerFn({ method: "GET" })
         .eq("id", page.owner_workspace_user_id as string)
         .maybeSingle();
       if (owner) {
-        ownerDisplayName =
-          (owner.display_name as string | null) ??
-          (owner.user_id as string).slice(0, 6);
+        ownerRow = {
+          display_name: (owner.display_name as string | null) ?? null,
+          user_id: owner.user_id as string,
+        };
       }
     }
 
     const { data: collabs } = await supabaseAdmin
       .from("page_collaborators")
       .select(
-        "workspace_user_id, last_edited_at, workspace_users!inner(display_name, user_id)",
+        "workspace_user_id, last_edited_at, workspace_users(display_name, user_id)",
       )
       .eq("page_id", data.pageId)
       .order("last_edited_at", { ascending: false });
-    const collaborators = (collabs ?? []).map((c: any) => ({
-      workspaceUserId: c.workspace_user_id as string,
-      displayName:
-        (c.workspace_users.display_name as string | null) ??
-        (c.workspace_users.user_id as string).slice(0, 6),
-      lastEditedAt: c.last_edited_at as string,
-    }));
+
+    const allRows: Array<{ display_name: string | null; user_id: string } | null> = [
+      ownerRow,
+      ...((collabs ?? []).map((c: any) =>
+        c.workspace_users
+          ? {
+              display_name: (c.workspace_users.display_name as string | null) ?? null,
+              user_id: c.workspace_users.user_id as string,
+            }
+          : null,
+      )),
+    ];
+    const emails = await fetchEmailsForUserIds(
+      allRows
+        .filter((r): r is { display_name: string | null; user_id: string } =>
+          !!r && !(r.display_name ?? "").trim(),
+        )
+        .map((r) => r.user_id),
+    );
+
+    const ownerLabel = page.owner_workspace_user_id
+      ? resolveLabel(ownerRow, emails)
+      : null;
+
+    const collaborators = (collabs ?? []).map((c: any) => {
+      const row = c.workspace_users
+        ? {
+            display_name: (c.workspace_users.display_name as string | null) ?? null,
+            user_id: c.workspace_users.user_id as string,
+          }
+        : null;
+      return {
+        workspaceUserId: c.workspace_user_id as string,
+        displayName: resolveLabel(row, emails),
+        label: resolveLabel(row, emails),
+        lastEditedAt: c.last_edited_at as string,
+      };
+    });
 
     return {
       id: page.id as string,
@@ -110,10 +144,12 @@ export const getPage = createServerFn({ method: "GET" })
       workspaceId: page.workspace_id as string,
       visibility: page.visibility as "private" | "workspace" | "conversation" | "external",
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
-      ownerDisplayName,
+      ownerDisplayName: ownerLabel,
+      ownerLabel,
       collaborators,
     };
   });
+
 
 export const updatePage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

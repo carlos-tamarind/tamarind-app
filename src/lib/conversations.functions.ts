@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
+
 
 async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
@@ -49,13 +51,24 @@ export const listWorkspaceMembers = createServerFn({ method: "GET" })
       .eq("workspace_id", data.workspaceId);
     if (error) throw new Error(error.message);
 
-    return (members ?? []).map((m) => ({
+    const rows = members ?? [];
+    const emails = await fetchEmailsForUserIds(
+      rows.filter((m) => !((m.display_name ?? "") as string).trim()).map((m) => m.user_id as string),
+    );
+
+    return rows.map((m) => ({
       workspaceUserId: m.id as string,
       userId: m.user_id as string,
       displayName: (m.display_name as string | null) ?? null,
+      email: emails.get(m.user_id as string) ?? null,
+      label: resolveLabel(
+        { display_name: m.display_name as any, user_id: m.user_id as any },
+        emails,
+      ),
       avatarUrl: (m.avatar_url as string | null) ?? null,
     }));
   });
+
 
 export const listMyConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -87,44 +100,34 @@ export const listMyConversations = createServerFn({ method: "GET" })
           "conversation_id, workspace_users!inner(id, display_name, user_id)",
         )
         .in("conversation_id", convIds);
-      const byConv = new Map<string, { name: string | null; userId: string }[]>();
+      const byConv = new Map<
+        string,
+        { displayName: string | null; userId: string }[]
+      >();
       for (const row of allParts ?? []) {
         const cid = row.conversation_id as string;
         const wu: any = (row as any).workspace_users;
         if (wu.id === meWuId) continue;
         if (!byConv.has(cid)) byConv.set(cid, []);
         byConv.get(cid)!.push({
-          name: (wu.display_name as string | null) ?? null,
+          displayName: (wu.display_name as string | null) ?? null,
           userId: wu.user_id as string,
         });
       }
-      const missingUserIds = Array.from(
-        new Set(
-          Array.from(byConv.values())
-            .flat()
-            .filter((e) => !e.name)
-            .map((e) => e.userId),
-        ),
-      );
-      const emailByUserId = new Map<string, string>();
-      await Promise.all(
-        missingUserIds.map(async (uid) => {
-          try {
-            const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
-            if (u?.user?.email) emailByUserId.set(uid, u.user.email);
-          } catch {}
-        }),
+      const emails = await fetchEmailsForUserIds(
+        Array.from(byConv.values())
+          .flat()
+          .filter((e) => !(e.displayName ?? "").trim())
+          .map((e) => e.userId),
       );
       for (const [cid, entries] of byConv) {
-        const names = entries.map(
-          (e) => e.name ?? emailByUserId.get(e.userId) ?? "Unknown",
+        const names = entries.map((e) =>
+          resolveLabel({ display_name: e.displayName, user_id: e.userId }, emails),
         );
         labelByConv.set(cid, names.slice(0, 3).join(", "));
       }
-
-
-
     }
+
 
     return convs.map((c: any) => ({
       id: c.id as string,
@@ -247,39 +250,32 @@ export const getConversation = createServerFn({ method: "GET" })
       .eq("conversation_id", data.conversationId);
 
     const rawParts = (parts ?? []).map((p: any) => p.workspace_users);
-    const missingNameUserIds = Array.from(
-      new Set(
-        rawParts
-          .filter((wu: any) => !wu.display_name)
-          .map((wu: any) => wu.user_id as string),
-      ),
-    );
-    const emailByUserId = new Map<string, string>();
-    await Promise.all(
-      missingNameUserIds.map(async (uid) => {
-        try {
-          const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
-          if (u?.user?.email) emailByUserId.set(uid, u.user.email);
-        } catch {}
-      }),
+    const emails = await fetchEmailsForUserIds(
+      rawParts
+        .filter((wu: any) => !((wu.display_name ?? "") as string).trim())
+        .map((wu: any) => wu.user_id as string),
     );
 
-    const participants = rawParts.map((wu: any) => ({
-      workspaceUserId: wu.id as string,
-      displayName:
-        (wu.display_name as string | null) ??
-        emailByUserId.get(wu.user_id as string) ??
-        "Unknown",
-      avatarUrl: (wu.avatar_url as string | null) ?? null,
-      isMe: wu.id === meWuId,
-    }));
-
+    const participants = rawParts.map((wu: any) => {
+      const label = resolveLabel(
+        { display_name: wu.display_name, user_id: wu.user_id },
+        emails,
+      );
+      return {
+        workspaceUserId: wu.id as string,
+        displayName: label,
+        label,
+        avatarUrl: (wu.avatar_url as string | null) ?? null,
+        isMe: wu.id === meWuId,
+      };
+    });
 
     let title = conv.title as string | null;
     if (!title) {
-      const others = participants.filter((p) => !p.isMe).map((p) => p.displayName);
+      const others = participants.filter((p) => !p.isMe).map((p) => p.label);
       title = others.slice(0, 3).join(", ") || "Conversation";
     }
+
 
     return {
       id: conv.id as string,
@@ -310,13 +306,50 @@ export const listMessages = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true })
       .limit(data.limit ?? 200);
     if (error) throw new Error(error.message);
+
+    const authorIds = Array.from(
+      new Set(
+        (msgs ?? [])
+          .map((m) => m.author_workspace_user_id as string | null)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    const labelByWuId = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const { data: wus } = await supabaseAdmin
+        .from("workspace_users")
+        .select("id, user_id, display_name")
+        .in("id", authorIds);
+      const rows = wus ?? [];
+      const emails = await fetchEmailsForUserIds(
+        rows
+          .filter((r) => !((r.display_name ?? "") as string).trim())
+          .map((r) => r.user_id as string),
+      );
+      const byId = new Map(rows.map((r) => [r.id as string, r]));
+      for (const wuId of authorIds) {
+        const row = byId.get(wuId);
+        labelByWuId.set(
+          wuId,
+          resolveLabel(
+            row ? { display_name: row.display_name as any, user_id: row.user_id as any } : null,
+            emails,
+          ),
+        );
+      }
+    }
+
     return (msgs ?? []).map((m) => ({
       id: m.id as string,
       rawText: m.raw_text as string,
       authorWorkspaceUserId: m.author_workspace_user_id as string | null,
+      authorLabel: m.author_workspace_user_id
+        ? labelByWuId.get(m.author_workspace_user_id as string) ?? "Archived user"
+        : "Unknown user",
       createdAt: m.created_at as string,
     }));
   });
+
 
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

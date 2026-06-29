@@ -1,36 +1,78 @@
 ## Goal
-Make the Workspaces rail and Navigation panel toggle independently, simplify their headers, and slim the rail to 5%.
+Standardize how a workspace user is displayed everywhere: always show **display name → email → "Unknown user"**, and **"Archived user"** when the referenced workspace member no longer exists.
 
-## Changes to `src/routes/_authenticated.w.$workspaceId.tsx`
+## Single source of truth
 
-### 1. Independent panel state (no cross-collapsing)
-- Remove the `key={shell-${railOpen ? "rail" : "norail"}}` on the outer `ResizablePanelGroup`. Re-keying remounts the group and resets the Navigation panel's width every time the rail opens/closes, which is why toggling the rail also affects the nav. With the key gone, the navigation panel keeps its current size whether folded or expanded, and the rail mounts/unmounts beside it.
-- The folded/unfolded state of the navigation is driven only by its own `onResize` threshold — opening or closing the rail never calls `setFolded`, so the navigation stays in whatever state the user left it in.
+Add a small helper used by every server function that resolves a workspace_user reference:
 
-### 2. Workspaces rail (when `railOpen`)
-- Width: change `defaultSize`/`minSize`/`maxSize` from `"10%"` to `"5%"`.
-- Remove the top close button (`PanelLeftClose` + tooltip). Keep the bordered top strip empty so the divider/spacing matches the navigation header height.
-- Leave the workspace list + Settings footer unchanged.
+```
+resolveUserLabel(workspace_user_row | null, emailLookup) ->
+  if row == null                          -> "Archived user"
+  else if row.display_name (trimmed)      -> display_name
+  else if email for row.user_id           -> email
+  else                                    -> "Unknown user"
+```
 
-### 3. Navigation panel header — expanded state
-Currently shows: `Menu` (toggle rail) + workspace name.
-- Keep the `Menu` button. Update its tooltip text to:
-  - `railOpen` → "Close Workspaces panel"
-  - else → "Open Workspaces panel"
-- Add a second button immediately to the right of `Menu`, using the `PanelLeftClose` Lucide icon, that calls `navPanelRef.current?.collapse()` to fold the navigation. Tooltip: "Close Navigation panel".
-- Workspace name stays right-aligned via `ml-auto`.
+`emailLookup` is built per request by collecting `user_id`s with no display name and calling `supabaseAdmin.auth.admin.getUserById` (same pattern already used in `getConversation` / `listMyConversations`), then memoizing in a `Map<userId,email>`.
 
-### 4. Navigation panel — folded state
-- Keep the existing top `Menu` button (workspace toggle); apply the same updated tooltip strings as in step 3 ("Open/Close Workspaces panel").
-- Change the middle expand button's `aria-label` and tooltip from "Expand navigation" to "Open Navigation panel".
-- Bottom CirclePlus + profile avatar unchanged.
+A frontend mirror (`formatUserLabel({ displayName, email })`) handles the same fallback for client-built strings (e.g. the new-conversation modal preview), so the rule lives in exactly one client util and one server util.
 
-### 5. Imports
-- No new icons needed; `Menu`, `PanelLeftClose`, `PanelLeftOpen`, `CirclePlus` are already imported.
+## Server-side changes (`src/lib/conversations.functions.ts`, `src/lib/pages.functions.ts`)
 
-## Result
-- Clicking the workspace toggle only shows/hides the 5% rail; the navigation keeps its current width and folded/unfolded state.
-- Folding/unfolding the navigation never touches the rail.
-- Workspace toggle is always present at the top of the navigation (both states) with the requested tooltips.
-- A dedicated fold button (`PanelLeftClose`) appears in the expanded navigation header.
-- The folded-state expand button uses the new "Open Navigation panel" tooltip.
+For every endpoint that returns user-facing names, replace ad-hoc fallbacks (`m.userId.slice(0,8)`, `"Unknown"`, missing email handling) with the helper and ensure the email is fetched when display_name is null:
+
+1. `listWorkspaceMembers` — return `{ workspaceUserId, userId, displayName, email, label }` where `label` is the resolved string. Members come from `workspace_users`, so "Archived user" never applies here.
+2. `getConversation` — already builds participant labels; switch to helper, expose `label` on each participant.
+3. `listMessages` — currently returns only `authorWorkspaceUserId`. Resolve each distinct author to a label server-side and return it as `authorLabel`. If the author's workspace_users row is missing → `"Archived user"`.
+4. `listMyConversations` — switch the default group-title computation to the helper (replaces the inline `"Unknown"` fallback).
+5. `getPage` — `ownerDisplayName` becomes `ownerLabel` using the helper (handles deleted owner = "Archived user").
+6. `listPageCollaborators` — same: each collaborator gets `label`; missing workspace_users row → "Archived user".
+
+All these endpoints already query `workspace_users`; we just (a) fetch email when display_name is null and (b) detect missing rows for `"Archived user"`.
+
+## Client-side changes
+
+Add `src/lib/user-label.ts`:
+
+```ts
+export function formatUserLabel(input: {
+  displayName?: string | null;
+  email?: string | null;
+  archived?: boolean;
+}): string {
+  if (input.archived) return "Archived user";
+  const name = input.displayName?.trim();
+  if (name) return name;
+  const email = input.email?.trim();
+  if (email) return email;
+  return "Unknown user";
+}
+```
+
+Update consumers to render the server-provided `label` (or call `formatUserLabel`) instead of slicing IDs:
+
+- `src/components/conversation/conversation-window.tsx`
+  - Message bubble author: `author?.label ?? "Archived user"` (line ~560 currently `"Unknown"`).
+  - Mention suggestion list: use `label`.
+  - Participants list: use `label`.
+- `src/components/new-conversation-dialog.tsx` — replace `m.displayName ?? m.userId.slice(0, 8)` with `formatUserLabel(m)` (now that `email` is returned).
+- `src/components/conversation/add-participants-dialog.tsx` — same replacement.
+- `src/components/conversation/conversation-settings-dialog.tsx` — render `p.label`.
+- `src/components/page/page-window.tsx`
+  - Owner display (line ~159): use `ownerLabel`.
+  - Mention suggestions (line ~166): use `label` from `listWorkspaceMembers` (no more `userId.slice`).
+  - Presence avatars / collaborator chips: use `label`.
+- `src/components/page/page-settings-dialog.tsx` — Collaborators section uses `c.label`.
+
+Mention nodes (`MemberMention`) already display `label` from the attrs — no schema change there; we just feed them the resolved string when constructing suggestion items.
+
+## Edge cases covered
+- Display name is an empty/whitespace string → falls through to email.
+- User row exists but `auth.admin.getUserById` fails or returns no email → "Unknown user".
+- workspace_user row deleted (FK was nullable / row hard-deleted) → "Archived user" for messages, page owners, collaborators.
+- Current user (`isMe`) keeps the same resolution; no special-casing.
+
+## Out of scope
+- No schema changes (no soft-delete column added; "Archived" is inferred from a missing join).
+- No change to how avatars are resolved.
+- Historical mention chips already stored in TipTap docs keep whatever label they were saved with; this only affects newly rendered UI and freshly inserted mentions.

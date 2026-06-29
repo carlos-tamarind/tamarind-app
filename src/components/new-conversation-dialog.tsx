@@ -109,7 +109,7 @@ export function NewConversationDialog({
                         onCheckedChange={() => toggle(m.workspaceUserId)}
                       />
                       <span className="text-sm">
-                        {m.displayName ?? m.userId.slice(0, 8)}
+                        {m.label}
                       </span>
                     </label>
                   </li>

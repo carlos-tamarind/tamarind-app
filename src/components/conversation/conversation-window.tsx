@@ -53,8 +53,10 @@ type Message = {
   id: string;
   rawText: string;
   authorWorkspaceUserId: string | null;
+  authorLabel?: string;
   createdAt: string;
 };
+
 
 function formatTimestamp(iso: string) {
   const d = new Date(iso);
@@ -305,17 +307,14 @@ export function ConversationWindow({
       buildMentionSuggestion("@", async (query) => {
         const members = await fetchMembers({ data: { workspaceId } });
         return members
-          .filter((m) =>
-            (m.displayName ?? m.userId)
-              .toLowerCase()
-              .includes(query.toLowerCase()),
-          )
+          .filter((m) => m.label.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 8)
           .map((m) => ({
             id: m.workspaceUserId,
-            label: m.displayName ?? m.userId.slice(0, 8),
+            label: m.label,
           }));
       }),
+
     [workspaceId, fetchMembers],
   );
 
@@ -557,9 +556,10 @@ export function ConversationWindow({
                       >
                         {showName && (
                           <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                            {author?.displayName ?? "Unknown"}
+                            {author?.label ?? m.authorLabel ?? "Archived user"}
                           </span>
                         )}
+
                         <div
                           className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
                             isMe
