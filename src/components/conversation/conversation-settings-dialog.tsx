@@ -155,6 +155,15 @@ export function ConversationSettingsDialog({
         open={addOpen}
         onOpenChange={setAddOpen}
       />
+      <NewPageDialog
+        workspaceId={workspaceId}
+        conversationId={conversationId}
+        open={newPageOpen}
+        onOpenChange={setNewPageOpen}
+        onCreated={handlePageCreated}
+      />
+        onOpenChange={setAddOpen}
+      />
     </TooltipProvider>
   );
 }
