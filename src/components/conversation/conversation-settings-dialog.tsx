@@ -43,11 +43,9 @@ export function ConversationSettingsDialog({
   onRename: (title: string) => Promise<void>;
 }) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const fetchPages = useServerFn(listConversationPages);
-  const newPage = useServerFn(createConversationPage);
   const [addOpen, setAddOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [newPageOpen, setNewPageOpen] = useState(false);
 
   const { data: pages } = useQuery({
     queryKey: ["conversation-pages", conversationId],
@@ -63,26 +61,14 @@ export function ConversationSettingsDialog({
     .join("")
     .toUpperCase();
 
-  const handleNewPage = async () => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const { pageId } = await newPage({ data: { conversationId } });
-      queryClient.invalidateQueries({
-        queryKey: ["conversation-pages", conversationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      onOpenChange(false);
-      navigate({
-        to: "/w/$workspaceId",
-        params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: pageId }),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCreating(false);
-    }
+  const handleNewPage = () => setNewPageOpen(true);
+  const handlePageCreated = (pageId: string) => {
+    onOpenChange(false);
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev: any) => ({ ...prev, p: pageId }),
+    });
   };
 
   const handleOpenPage = (pageId: string) => {
