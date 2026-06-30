@@ -605,12 +605,10 @@ function WorkspaceShell() {
 function EmptyState({
   onNewConversation,
   onNewPage,
-  creatingPage,
 }: {
   workspaceId: string;
   onNewConversation: () => void;
   onNewPage: () => void;
-  creatingPage: boolean;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 text-center">
@@ -623,12 +621,8 @@ function EmptyState({
           <MessageSquarePlus className="size-4" />
           New conversation
         </Button>
-        <Button variant="secondary" onClick={onNewPage} disabled={creatingPage}>
-          {creatingPage ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <FileText className="size-4" />
-          )}
+        <Button variant="secondary" onClick={onNewPage}>
+          <FileText className="size-4" />
           New page
         </Button>
       </div>
