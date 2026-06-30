@@ -162,8 +162,6 @@ export function ConversationSettingsDialog({
         onOpenChange={setNewPageOpen}
         onCreated={handlePageCreated}
       />
-        onOpenChange={setAddOpen}
-      />
     </TooltipProvider>
   );
 }
