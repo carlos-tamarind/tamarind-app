@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus, Loader2, UserPlus } from "lucide-react";
+import { FilePlus, UserPlus } from "lucide-react";
 
 import {
   Dialog,
@@ -12,12 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  listConversationPages,
-  createConversationPage,
-} from "@/lib/conversations.functions";
+import { listConversationPages } from "@/lib/conversations.functions";
 import { AddParticipantsDialog } from "./add-participants-dialog";
 import { EditableTitle } from "./editable-title";
+import { NewPageDialog } from "@/components/page/new-page-dialog";
 
 type Participant = {
   workspaceUserId: string;
