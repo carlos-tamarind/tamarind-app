@@ -38,7 +38,6 @@ import {
   getConversation,
   listMessages,
   sendMessage,
-  createConversationPage,
   listMentionablePages,
   listWorkspaceMembers,
   renameConversation,
@@ -46,6 +45,7 @@ import {
 import { ConversationSettingsDialog } from "@/components/conversation/conversation-settings-dialog";
 import { AddParticipantsDialog } from "@/components/conversation/add-participants-dialog";
 import { EditableTitle } from "@/components/conversation/editable-title";
+import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 
@@ -220,7 +220,7 @@ export function ConversationWindow({
   const fetchConv = useServerFn(getConversation);
   const fetchMessages = useServerFn(listMessages);
   const sendMsg = useServerFn(sendMessage);
-  const newPage = useServerFn(createConversationPage);
+  
   const fetchMembers = useServerFn(listWorkspaceMembers);
   const fetchMentionPages = useServerFn(listMentionablePages);
   const renameConv = useServerFn(renameConversation);
@@ -228,7 +228,7 @@ export function ConversationWindow({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [creatingPage, setCreatingPage] = useState(false);
+  const [newPageOpen, setNewPageOpen] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -389,26 +389,7 @@ export function ConversationWindow({
     }
   };
 
-  const handleNewPage = async () => {
-    if (creatingPage) return;
-    setCreatingPage(true);
-    try {
-      const { pageId } = await newPage({ data: { conversationId } });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      queryClient.invalidateQueries({
-        queryKey: ["conversation-pages", conversationId],
-      });
-      navigate({
-        to: "/w/$workspaceId",
-        params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: pageId }),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCreatingPage(false);
-    }
-  };
+  const handleNewPage = () => setNewPageOpen(true);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest(
@@ -644,14 +625,9 @@ export function ConversationWindow({
                         size="icon"
                         variant="ghost"
                         onClick={handleNewPage}
-                        disabled={creatingPage}
                         aria-label="New conversation page"
                       >
-                        {creatingPage ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <FilePlus className="size-4" />
-                        )}
+                        <FilePlus className="size-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">New conversation page</TooltipContent>
@@ -688,6 +664,12 @@ export function ConversationWindow({
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           onRename={handleRename}
+        />
+        <NewPageDialog
+          workspaceId={workspaceId}
+          conversationId={conversationId}
+          open={newPageOpen}
+          onOpenChange={setNewPageOpen}
         />
         <AddParticipantsDialog
           workspaceId={workspaceId}

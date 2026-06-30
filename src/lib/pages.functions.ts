@@ -21,7 +21,13 @@ async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
 export const createBlankPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ workspaceId: z.string().uuid() }).parse(input),
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        title: z.string().trim().max(50).optional(),
+        visibility: z.enum(["private", "workspace"]).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
@@ -31,9 +37,10 @@ export const createBlankPage = createServerFn({ method: "POST" })
         workspace_id: data.workspaceId,
         created_by_workspace_user_id: meWuId,
         owner_workspace_user_id: meWuId,
-        visibility: "private",
+        visibility: data.visibility ?? "private",
         page_type: "standard",
         origin_type: "user",
+        ...(data.title ? { title: data.title } : {}),
       })
       .select("id")
       .single();

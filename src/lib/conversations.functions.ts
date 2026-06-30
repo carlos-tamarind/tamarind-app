@@ -465,24 +465,33 @@ export const listConversationPages = createServerFn({ method: "GET" })
 export const createConversationPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ conversationId: z.string().uuid() }).parse(input),
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        title: z.string().trim().max(50).optional(),
+        visibility: z.enum(["workspace", "conversation"]).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { meWuId, workspaceId } = await assertParticipant(
       data.conversationId,
       context.userId,
     );
+    const visibility = data.visibility ?? "conversation";
+    const linksConversation = visibility === "conversation";
     const { data: page, error } = await supabaseAdmin
       .from("pages")
       .insert({
         workspace_id: workspaceId,
         created_by_workspace_user_id: meWuId,
         owner_workspace_user_id: meWuId,
-        visibility: "conversation",
+        visibility,
         page_type: "standard",
         origin_type: "conversation",
         origin_source_id: data.conversationId,
-        conversation_id: data.conversationId,
+        ...(linksConversation ? { conversation_id: data.conversationId } : {}),
+        ...(data.title ? { title: data.title } : {}),
       })
       .select("id")
       .single();

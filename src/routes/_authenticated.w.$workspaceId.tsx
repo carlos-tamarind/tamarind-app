@@ -6,7 +6,7 @@ import {
   useParams,
   useSearch,
 } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +27,7 @@ import {
   Globe,
   MessageSquare,
   MessageSquarePlus,
-  Loader2,
+  
   PanelLeftClose,
   User as UserIcon,
   Users,
@@ -38,11 +38,12 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import { z } from "zod";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
-import { listMyPages, createBlankPage } from "@/lib/pages.functions";
+import { listMyPages } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
+import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import {
   ResizablePanelGroup,
@@ -75,19 +76,18 @@ function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const [railOpen, setRailOpen] = useState(false);
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
   const [convDialogOpen, setConvDialogOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [creatingPage, setCreatingPage] = useState(false);
+  const [newPageOpen, setNewPageOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
-  const newPage = useServerFn(createBlankPage);
 
   const { data: workspaces } = useQuery({
     queryKey: ["my-workspaces"],
@@ -132,23 +132,7 @@ function WorkspaceShell() {
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
-  const handleNewPage = async () => {
-    if (creatingPage) return;
-    setCreatingPage(true);
-    try {
-      const { pageId } = await newPage({ data: { workspaceId } });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      navigate({
-        to: "/w/$workspaceId",
-        params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: pageId }),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCreatingPage(false);
-    }
-  };
+  const handleNewPage = () => setNewPageOpen(true);
 
   const conversationId = search.c;
   const pageId = search.p;
@@ -322,7 +306,7 @@ function WorkspaceShell() {
                         <MessageSquarePlus className="size-4" />
                         New conversation
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleNewPage} disabled={creatingPage}>
+                      <DropdownMenuItem onClick={handleNewPage}>
                         <FileText className="size-4" />
                         New page
                       </DropdownMenuItem>
@@ -508,14 +492,9 @@ function WorkspaceShell() {
                       variant="secondary"
                       size="sm"
                       onClick={handleNewPage}
-                      disabled={creatingPage}
                       className="w-44"
                     >
-                      {creatingPage ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <FileText className="size-4" />
-                      )}
+                      <FileText className="size-4" />
                       New page
                     </Button>
                   )}
@@ -565,7 +544,6 @@ function WorkspaceShell() {
                   workspaceId={workspaceId}
                   onNewConversation={() => setConvDialogOpen(true)}
                   onNewPage={handleNewPage}
-                  creatingPage={creatingPage}
                 />
               ) : bothOpen ? (
                 <ResizablePanelGroup
@@ -612,6 +590,12 @@ function WorkspaceShell() {
           onOpenChange={setConvDialogOpen}
         />
 
+        <NewPageDialog
+          workspaceId={workspaceId}
+          open={newPageOpen}
+          onOpenChange={setNewPageOpen}
+        />
+
         <ProfileDialog
           workspaceId={workspaceId}
           open={profileOpen}
@@ -627,12 +611,10 @@ function WorkspaceShell() {
 function EmptyState({
   onNewConversation,
   onNewPage,
-  creatingPage,
 }: {
   workspaceId: string;
   onNewConversation: () => void;
   onNewPage: () => void;
-  creatingPage: boolean;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 text-center">
@@ -645,12 +627,8 @@ function EmptyState({
           <MessageSquarePlus className="size-4" />
           New conversation
         </Button>
-        <Button variant="secondary" onClick={onNewPage} disabled={creatingPage}>
-          {creatingPage ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <FileText className="size-4" />
-          )}
+        <Button variant="secondary" onClick={onNewPage}>
+          <FileText className="size-4" />
           New page
         </Button>
       </div>

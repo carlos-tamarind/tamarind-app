@@ -1,78 +1,72 @@
-## Goal
-Standardize how a workspace user is displayed everywhere: always show **display name → email → "Unknown user"**, and **"Archived user"** when the referenced workspace member no longer exists.
 
-## Single source of truth
+## New Page creation flow
 
-Add a small helper used by every server function that resolves a workspace_user reference:
+### 1. New `<NewPageDialog />` component
 
-```
-resolveUserLabel(workspace_user_row | null, emailLookup) ->
-  if row == null                          -> "Archived user"
-  else if row.display_name (trimmed)      -> display_name
-  else if email for row.user_id           -> email
-  else                                    -> "Unknown user"
-```
+File: `src/components/page/new-page-dialog.tsx`
 
-`emailLookup` is built per request by collecting `user_id`s with no display name and calling `supabaseAdmin.auth.admin.getUserById` (same pattern already used in `getConversation` / `listMyConversations`), then memoizing in a `Map<userId,email>`.
+Single source of truth for any "create a new page" action. Uses shadcn `Dialog` (which already provides: click-outside to close, dark overlay, top-right X). Internal state resets on open/close; closing aborts the operation.
 
-A frontend mirror (`formatUserLabel({ displayName, email })`) handles the same fallback for client-built strings (e.g. the new-conversation modal preview), so the rule lives in exactly one client util and one server util.
+Props:
+- `open: boolean`, `onOpenChange(open: boolean)`
+- `workspaceId: string`
+- `conversationId?: string` — when present, enables and defaults to the "Conversation" visibility option, and removes "Private" from the options
+- `onCreated?(pageId: string)` — callback after a successful creation (used to navigate / invalidate queries)
 
-## Server-side changes (`src/lib/conversations.functions.ts`, `src/lib/pages.functions.ts`)
+Form fields (top → bottom):
+1. **Page title** — `<Input>` with label "Page title", placeholder `"My new page"`, `maxLength={50}`. Counts characters with `Array.from(value).length` so emojis count as 1. Empty is allowed (server defaults to "Untitled"); we trim before sending.
+2. **Page visibility** — `<Select>` with label "Page visibility".
+   - When `conversationId` is set: options are `Workspace`, `Conversation` — default `Conversation`. `Private` is intentionally not offered (a page that originates from a conversation must remain reachable to that conversation's participants).
+   - When `conversationId` is not set: options are `Workspace`, `Private` — default `Private`. `Conversation` is not offered.
+3. **Page template** — `<Select>` with label "Page template", disabled, single placeholder item "No templates available" (no options yet).
 
-For every endpoint that returns user-facing names, replace ad-hoc fallbacks (`m.userId.slice(0,8)`, `"Unknown"`, missing email handling) with the helper and ensure the email is fetched when display_name is null:
+Footer:
+- `Cancel` (variant `secondary`) → closes the modal, no side effects.
+- `Create` (variant `default`, primary) → calls the appropriate server fn, on success calls `onCreated(pageId)` then closes.
 
-1. `listWorkspaceMembers` — return `{ workspaceUserId, userId, displayName, email, label }` where `label` is the resolved string. Members come from `workspace_users`, so "Archived user" never applies here.
-2. `getConversation` — already builds participant labels; switch to helper, expose `label` on each participant.
-3. `listMessages` — currently returns only `authorWorkspaceUserId`. Resolve each distinct author to a label server-side and return it as `authorLabel`. If the author's workspace_users row is missing → `"Archived user"`.
-4. `listMyConversations` — switch the default group-title computation to the helper (replaces the inline `"Unknown"` fallback).
-5. `getPage` — `ownerDisplayName` becomes `ownerLabel` using the helper (handles deleted owner = "Archived user").
-6. `listPageCollaborators` — same: each collaborator gets `label`; missing workspace_users row → "Archived user".
+### 2. Server-function updates
 
-All these endpoints already query `workspace_users`; we just (a) fetch email when display_name is null and (b) detect missing rows for `"Archived user"`.
+`src/lib/pages.functions.ts` — `createBlankPage`:
+- Extend input validator with optional `title?: string (max 50)` and `visibility?: "private" | "workspace"`.
+- Pass through to the insert (`title` only if non-empty after trim; visibility defaults to `"private"`).
+- No uniqueness constraint changes — `title` is already free-form text, duplicates already allowed.
 
-## Client-side changes
+`src/lib/conversations.functions.ts` — `createConversationPage`:
+- Extend input validator with optional `title?: string (max 50)` and `visibility?: "workspace" | "conversation"` (no `"private"` accepted on this entry point, matching the UI constraint).
+- Default visibility stays `"conversation"`.
+- When `visibility === "workspace"`, create the page without the conversation link; when `"conversation"`, keep the existing conversation link.
 
-Add `src/lib/user-label.ts`:
+### 3. Wire the modal into every touchpoint
 
-```ts
-export function formatUserLabel(input: {
-  displayName?: string | null;
-  email?: string | null;
-  archived?: boolean;
-}): string {
-  if (input.archived) return "Archived user";
-  const name = input.displayName?.trim();
-  if (name) return name;
-  const email = input.email?.trim();
-  if (email) return email;
-  return "Unknown user";
-}
-```
+Replace every direct `createBlankPage` / `createConversationPage` call site with opening the new dialog:
 
-Update consumers to render the server-provided `label` (or call `formatUserLabel`) instead of slicing IDs:
+- `src/routes/_authenticated.w.$workspaceId.tsx`
+  - Remove `handleNewPage`'s direct call; add `newPageOpen` state.
+  - Folded rail "New page" dropdown item and expanded sidebar "New page" CTA → open `<NewPageDialog workspaceId={...} />`.
+  - `onCreated` → invalidate `["pages-list", workspaceId]` and navigate with `?p=pageId`.
 
 - `src/components/conversation/conversation-window.tsx`
-  - Message bubble author: `author?.label ?? "Archived user"` (line ~560 currently `"Unknown"`).
-  - Mention suggestion list: use `label`.
-  - Participants list: use `label`.
-- `src/components/new-conversation-dialog.tsx` — replace `m.displayName ?? m.userId.slice(0, 8)` with `formatUserLabel(m)` (now that `email` is returned).
-- `src/components/conversation/add-participants-dialog.tsx` — same replacement.
-- `src/components/conversation/conversation-settings-dialog.tsx` — render `p.label`.
-- `src/components/page/page-window.tsx`
-  - Owner display (line ~159): use `ownerLabel`.
-  - Mention suggestions (line ~166): use `label` from `listWorkspaceMembers` (no more `userId.slice`).
-  - Presence avatars / collaborator chips: use `label`.
-- `src/components/page/page-settings-dialog.tsx` — Collaborators section uses `c.label`.
+  - Composer "New page" button → open `<NewPageDialog workspaceId conversationId />`.
+  - `onCreated` → invalidate `pages-list` + `conversation-pages`, navigate with `?p=pageId`.
 
-Mention nodes (`MemberMention`) already display `label` from the attrs — no schema change there; we just feed them the resolved string when constructing suggestion items.
+- `src/components/conversation/conversation-settings-dialog.tsx`
+  - "New page" button in the Pages section → open `<NewPageDialog workspaceId conversationId />`.
+  - On created: close settings dialog, invalidate the two queries, navigate.
 
-## Edge cases covered
-- Display name is an empty/whitespace string → falls through to email.
-- User row exists but `auth.admin.getUserById` fails or returns no email → "Unknown user".
-- workspace_user row deleted (FK was nullable / row hard-deleted) → "Archived user" for messages, page owners, collaborators.
-- Current user (`isMe`) keeps the same resolution; no special-casing.
+Future touchpoints (message selection, in-page inline) will reuse the same component.
 
-## Out of scope
-- No schema changes (no soft-delete column added; "Archived" is inferred from a missing join).
-- No change to how avatars are resolved.
-- Historical mention chips already stored in TipTap docs keep whatever label they were saved with; this only affects newly rendered UI and freshly inserted mentions.
+### 4. Page ID field in `PageSettingsDialog`
+
+File: `src/components/page/page-settings-dialog.tsx`
+- Add a new read-only `pageId` prop.
+- Render a new block between "Title" and "Owner":
+  - Label: `Page ID`
+  - Value: monospace text of the page id (same non-editable styling as Owner).
+- Update `src/components/page/page-window.tsx` to pass `pageId={page.id}` through.
+
+### Notes
+
+- Pages created from a conversation cannot be `Private` — enforced both in the dialog (option not rendered) and in `createConversationPage`'s zod validator (rejects `"private"`).
+- Duplicated titles need no schema change — `pages.title` has no uniqueness constraint today, and `updatePage` already accepts any string.
+- The 50-char cap is enforced client-side (input `maxLength` + grapheme count) and via zod `max(50)` in both server fns.
+- No DB migration required.
