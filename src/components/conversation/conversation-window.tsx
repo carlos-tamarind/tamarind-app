@@ -665,6 +665,12 @@ export function ConversationWindow({
           onOpenChange={setSettingsOpen}
           onRename={handleRename}
         />
+        <NewPageDialog
+          workspaceId={workspaceId}
+          conversationId={conversationId}
+          open={newPageOpen}
+          onOpenChange={setNewPageOpen}
+        />
         <AddParticipantsDialog
           workspaceId={workspaceId}
           conversationId={conversationId}
