@@ -27,7 +27,7 @@ import {
   Globe,
   MessageSquare,
   MessageSquarePlus,
-  Loader2,
+  
   PanelLeftClose,
   User as UserIcon,
   Users,
