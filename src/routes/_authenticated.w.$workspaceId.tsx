@@ -306,7 +306,7 @@ function WorkspaceShell() {
                         <MessageSquarePlus className="size-4" />
                         New conversation
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleNewPage} disabled={creatingPage}>
+                      <DropdownMenuItem onClick={handleNewPage}>
                         <FileText className="size-4" />
                         New page
                       </DropdownMenuItem>
