@@ -590,6 +590,12 @@ function WorkspaceShell() {
           onOpenChange={setConvDialogOpen}
         />
 
+        <NewPageDialog
+          workspaceId={workspaceId}
+          open={newPageOpen}
+          onOpenChange={setNewPageOpen}
+        />
+
         <ProfileDialog
           workspaceId={workspaceId}
           open={profileOpen}
