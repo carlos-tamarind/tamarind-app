@@ -492,14 +492,9 @@ function WorkspaceShell() {
                       variant="secondary"
                       size="sm"
                       onClick={handleNewPage}
-                      disabled={creatingPage}
                       className="w-44"
                     >
-                      {creatingPage ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <FileText className="size-4" />
-                      )}
+                      <FileText className="size-4" />
                       New page
                     </Button>
                   )}
