@@ -31,18 +31,17 @@ export const createBlankPage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
-    const insert: Record<string, unknown> = {
-      workspace_id: data.workspaceId,
-      created_by_workspace_user_id: meWuId,
-      owner_workspace_user_id: meWuId,
-      visibility: data.visibility ?? "private",
-      page_type: "standard",
-      origin_type: "user",
-    };
-    if (data.title) insert.title = data.title;
     const { data: page, error } = await supabaseAdmin
       .from("pages")
-      .insert(insert)
+      .insert({
+        workspace_id: data.workspaceId,
+        created_by_workspace_user_id: meWuId,
+        owner_workspace_user_id: meWuId,
+        visibility: data.visibility ?? "private",
+        page_type: "standard",
+        origin_type: "user",
+        ...(data.title ? { title: data.title } : {}),
+      })
       .select("id")
       .single();
     if (error || !page) throw new Error(error?.message ?? "Create failed");
