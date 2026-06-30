@@ -21,20 +21,28 @@ async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
 export const createBlankPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ workspaceId: z.string().uuid() }).parse(input),
+    z
+      .object({
+        workspaceId: z.string().uuid(),
+        title: z.string().trim().max(50).optional(),
+        visibility: z.enum(["private", "workspace"]).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
+    const insert: Record<string, unknown> = {
+      workspace_id: data.workspaceId,
+      created_by_workspace_user_id: meWuId,
+      owner_workspace_user_id: meWuId,
+      visibility: data.visibility ?? "private",
+      page_type: "standard",
+      origin_type: "user",
+    };
+    if (data.title) insert.title = data.title;
     const { data: page, error } = await supabaseAdmin
       .from("pages")
-      .insert({
-        workspace_id: data.workspaceId,
-        created_by_workspace_user_id: meWuId,
-        owner_workspace_user_id: meWuId,
-        visibility: "private",
-        page_type: "standard",
-        origin_type: "user",
-      })
+      .insert(insert)
       .select("id")
       .single();
     if (error || !page) throw new Error(error?.message ?? "Create failed");
