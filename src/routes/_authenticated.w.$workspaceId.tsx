@@ -38,11 +38,12 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import { z } from "zod";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
-import { listMyPages, createBlankPage } from "@/lib/pages.functions";
+import { listMyPages } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
+import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import {
   ResizablePanelGroup,
