@@ -510,6 +510,7 @@ export function PageWindow({
       <PageSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        pageId={pageId}
         title={title}
         onTitleChange={handleTitleChange}
         onTitleCommit={handleTitleBlur}
