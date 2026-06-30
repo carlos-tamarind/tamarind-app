@@ -389,26 +389,7 @@ export function ConversationWindow({
     }
   };
 
-  const handleNewPage = async () => {
-    if (creatingPage) return;
-    setCreatingPage(true);
-    try {
-      const { pageId } = await newPage({ data: { conversationId } });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      queryClient.invalidateQueries({
-        queryKey: ["conversation-pages", conversationId],
-      });
-      navigate({
-        to: "/w/$workspaceId",
-        params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: pageId }),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCreatingPage(false);
-    }
-  };
+  const handleNewPage = () => setNewPageOpen(true);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest(
