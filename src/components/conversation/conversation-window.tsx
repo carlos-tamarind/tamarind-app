@@ -625,14 +625,9 @@ export function ConversationWindow({
                         size="icon"
                         variant="ghost"
                         onClick={handleNewPage}
-                        disabled={creatingPage}
                         aria-label="New conversation page"
                       >
-                        {creatingPage ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <FilePlus className="size-4" />
-                        )}
+                        <FilePlus className="size-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">New conversation page</TooltipContent>
