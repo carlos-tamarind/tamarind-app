@@ -26,6 +26,7 @@ export type PageVisibility = "private" | "workspace" | "conversation" | "externa
 export function PageSettingsDialog({
   open,
   onOpenChange,
+  pageId,
   title,
   onTitleChange,
   onTitleCommit,
@@ -36,6 +37,7 @@ export function PageSettingsDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  pageId: string;
   title: string;
   onTitleChange: (value: string) => void;
   onTitleCommit: () => void;
