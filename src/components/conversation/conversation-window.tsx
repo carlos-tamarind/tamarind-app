@@ -220,7 +220,7 @@ export function ConversationWindow({
   const fetchConv = useServerFn(getConversation);
   const fetchMessages = useServerFn(listMessages);
   const sendMsg = useServerFn(sendMessage);
-  const newPage = useServerFn(createConversationPage);
+  
   const fetchMembers = useServerFn(listWorkspaceMembers);
   const fetchMentionPages = useServerFn(listMentionablePages);
   const renameConv = useServerFn(renameConversation);
