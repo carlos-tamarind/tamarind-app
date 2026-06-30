@@ -544,7 +544,6 @@ function WorkspaceShell() {
                   workspaceId={workspaceId}
                   onNewConversation={() => setConvDialogOpen(true)}
                   onNewPage={handleNewPage}
-                  creatingPage={creatingPage}
                 />
               ) : bothOpen ? (
                 <ResizablePanelGroup
