@@ -228,7 +228,7 @@ export function ConversationWindow({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [creatingPage, setCreatingPage] = useState(false);
+  const [newPageOpen, setNewPageOpen] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
