@@ -76,7 +76,7 @@ function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const [railOpen, setRailOpen] = useState(false);
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
   const [convDialogOpen, setConvDialogOpen] = useState(false);
