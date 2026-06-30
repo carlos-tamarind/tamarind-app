@@ -124,13 +124,8 @@ export function ConversationSettingsDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Pages</h3>
-              <Button size="sm" variant="ghost" onClick={handleNewPage} disabled={creating}>
-                {creating ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <FilePlus className="size-3.5" />
-                )}{" "}
-                New page
+              <Button size="sm" variant="ghost" onClick={handleNewPage}>
+                <FilePlus className="size-3.5" /> New page
               </Button>
             </div>
             <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
