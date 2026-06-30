@@ -81,14 +81,13 @@ function WorkspaceShell() {
   const [tab, setTab] = useState<"conversations" | "pages">("conversations");
   const [convDialogOpen, setConvDialogOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [creatingPage, setCreatingPage] = useState(false);
+  const [newPageOpen, setNewPageOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
-  const newPage = useServerFn(createBlankPage);
 
   const { data: workspaces } = useQuery({
     queryKey: ["my-workspaces"],
@@ -133,23 +132,7 @@ function WorkspaceShell() {
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
-  const handleNewPage = async () => {
-    if (creatingPage) return;
-    setCreatingPage(true);
-    try {
-      const { pageId } = await newPage({ data: { workspaceId } });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      navigate({
-        to: "/w/$workspaceId",
-        params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: pageId }),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCreatingPage(false);
-    }
-  };
+  const handleNewPage = () => setNewPageOpen(true);
 
   const conversationId = search.c;
   const pageId = search.p;
