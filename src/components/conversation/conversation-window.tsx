@@ -58,12 +58,52 @@ type Message = {
 };
 
 
-function formatTimestamp(iso: string) {
+const SHORT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function localDateKey(iso: string) {
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}, ${pad(d.getDate())}-${pad(
-    d.getMonth() + 1,
-  )}-${d.getFullYear()}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function formatDaySeparator(iso: string) {
+  const d = new Date(iso);
+  const weekday = SHORT_WEEKDAYS[d.getDay()];
+  const day = pad2(d.getDate());
+  const month = SHORT_MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+}
+
+function formatMessageTimestamp(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  if (isToday) return time;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${time}`;
 }
 
 const ALLOWED_MESSAGE_TAGS = new Set([
