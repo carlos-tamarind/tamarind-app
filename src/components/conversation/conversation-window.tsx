@@ -570,31 +570,48 @@ export function ConversationWindow({
                       !isMe &&
                       (!prev ||
                         prev.authorWorkspaceUserId !== m.authorWorkspaceUserId);
-                    return (
-                      <li
-                        key={m.id}
-                        className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                      >
-                        {showName && (
-                          <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                            {author?.label ?? m.authorLabel ?? "Archived user"}
-                          </span>
-                        )}
+                    const currentDate = localDateKey(m.createdAt);
+                    const previousDate = prev ? localDateKey(prev.createdAt) : null;
+                    const showDaySeparator = !prev || currentDate !== previousDate;
 
-                        <div
-                          className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
-                            isMe
-                              ? "prose-invert bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          }`}
-                          dangerouslySetInnerHTML={{
-                            __html: sanitizeMessageHtml(m.rawText),
-                          }}
-                        />
-                        <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
-                          {formatTimestamp(m.createdAt)}
-                        </span>
-                      </li>
+                    return (
+                      <>
+                        {showDaySeparator && (
+                          <li
+                            key={`day-${currentDate}`}
+                            className="flex flex-col items-center pt-6 pb-4 first:pt-0"
+                          >
+                            <span className="text-xs italic text-muted-foreground">
+                              {formatDaySeparator(m.createdAt)}
+                            </span>
+                            <hr className="mt-2 w-2/3 border-t border-border/60" />
+                          </li>
+                        )}
+                        <li
+                          key={m.id}
+                          className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                        >
+                          {showName && (
+                            <span className="mb-0.5 px-2 text-xs text-muted-foreground">
+                              {author?.label ?? m.authorLabel ?? "Archived user"}
+                            </span>
+                          )}
+
+                          <div
+                            className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
+                              isMe
+                                ? "prose-invert bg-primary text-primary-foreground"
+                                : "bg-muted text-foreground"
+                            }`}
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeMessageHtml(m.rawText),
+                            }}
+                          />
+                          <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
+                            {formatMessageTimestamp(m.createdAt)}
+                          </span>
+                        </li>
+                      </>
                     );
                   })}
                 </ul>
