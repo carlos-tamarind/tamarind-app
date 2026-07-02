@@ -438,6 +438,7 @@ export function ConversationWindow({
       await sendMsg({ data: { conversationId, rawText: html } });
       editor.commands.clearContent();
       setIsEmpty(true);
+      clearSelection();
     } catch (e) {
       console.error(e);
     } finally {
