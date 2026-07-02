@@ -1,35 +1,56 @@
-## Conversation timestamp redesign
+## Message selection in conversations
 
-File: `src/components/conversation/conversation-window.tsx` (presentation-only change).
+Presentation-only change in `src/components/conversation/conversation-window.tsx`. No schema, server, or API changes.
 
-### 1. Day separators
+### 1. Selection state
 
-Render the message list as a flat sequence of items. Insert a separator **before** any message whose local date differs from the previous message's local date.
+Local component state:
+- `selectedIds: Set<string>` of selected message IDs.
+- `toggleSelected(id)` — add if absent, remove if present.
+- `clearSelection()` — reset to empty.
 
-- If the conversation has no messages, render the existing empty state and emit **no separators**.
-- A separator always has at least one message directly below it (the message that triggered the new-day check), so it never appears as a trailing element or above an empty area.
+Selection is not persisted and is per-conversation instance.
 
-Separator layout:
+### 2. Row layout
 
-- Italic, muted label: `Sun, 28 Jun 2026` format. Build with `Intl.DateTimeFormat("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(d)`, then insert a comma after the weekday.
-- Centered divider directly below the label, at `66%` of the message list width (`w-2/3`), using `border-t border-border/60`. It resizes automatically with the panel.
-- Vertical spacing above/below (`mt-6 mb-4`) to separate day groups cleanly.
+Each message currently renders as an `<li>` with `items-end`/`items-start`. Restructure so the whole row is a full-width, clickable container with a slot for the check icon:
 
-### 2. Per-message timestamps
+```
+<li> (full width, onClick=toggleSelected, cursor-pointer,
+      hover:bg-muted/40, selected: bg-muted/60)
+  <div class="flex items-center gap-2 px-3 py-1
+              justify-end (isMe) | justify-start (other)">
+    [ if !isMe && selected ] <CircleCheckBig>
+    <div class="flex flex-col items-end|items-start
+                transition-transform
+                translate-x-2 (other, selected)
+                -translate-x-2 (me, selected)">
+       (name, bubble, timestamp — unchanged)
+    </div>
+    [ if isMe && selected ] <CircleCheckBig>
+  </div>
+</li>
+```
 
-Replace the existing `formatTimestamp` helper with a function that compares the message's local date to the current local date:
+Details:
+- Hover: `hover:bg-muted/40`. Selected: `bg-muted/60` (no hover swap needed).
+- Icon: `CircleCheckBig` from `lucide-react`, `size-4 text-primary shrink-0`.
+- Slide: `translate-x-2` / `-translate-x-2` on the bubble column only when selected, with `transition-transform`.
+- Row `onClick` calls `toggleSelected(m.id)`. Keep the existing `handleMessageClick` mention-navigation logic and add `e.stopPropagation()` when a `.mention-page` is clicked so the row toggle does not fire.
 
-- Same calendar day as today → `HH:MM:SS`
-- Yesterday or any earlier day → `YYYY-MM-DD HH:MM:SS`
+### 3. Auto-deselect triggers
 
-Keep the timestamp in the same position under the bubble, same muted size.
+Call `clearSelection()` in:
+- `handleSend`, after a successful send (inside `try`, after `clearContent()`).
+- On unmount and on `conversationId` change — reuse the existing `useEffect([conversationId])` that resets `liveMessages`, and add a cleanup return for unmount. This covers "closing or hiding the conversation".
+- After a page is actually created from this conversation. `NewPageDialog` already accepts an `onCreated` callback. Wire `<NewPageDialog ... onCreated={(pageId) => { clearSelection(); navigate({ to: "/w/$workspaceId", params: { workspaceId }, search: (prev: any) => ({ ...prev, p: pageId }) }); }} />`. Opening/closing the modal without submitting does NOT clear selection.
 
-### 3. Constraint: no orphaned day separators
+### 4. Day separators
 
-Do not render a day separator unless it is immediately followed by a message. This naturally happens because the separator is inserted only before the first message of a new day. Empty conversations and trailing days therefore never show a separator alone.
+Day separator `<li>`s remain non-interactive: no hover/selected styling, no click handler. Only message rows are selectable.
 
-### Notes
+### Technical notes
 
-- No schema, server, or API changes.
-- Time formatting is locale-independent for the numeric portions; the day separator uses English short weekday/month names as specified.
-- The separator is a full-width `<li>` inside the existing `<ul>`, so it participates in the normal document flow and adapts to panel width changes.
+- Add `CircleCheckBig` to the `lucide-react` import block.
+- Keep `<ul className="space-y-3">` unchanged.
+- The existing fragment wrapper around separator + row remains; keys stay on inner `<li>`s.

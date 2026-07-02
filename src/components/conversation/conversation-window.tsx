@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bold,
+  CircleCheckBig,
   Code,
   FilePlus,
   Italic,
@@ -271,7 +272,18 @@ export function ConversationWindow({
   const [newPageOpen, setNewPageOpen] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
 
   const { data: conv } = useQuery({
     queryKey: ["conversation", conversationId],
@@ -285,6 +297,10 @@ export function ConversationWindow({
 
   useEffect(() => {
     setLiveMessages([]);
+    setSelectedIds(new Set());
+    return () => {
+      setSelectedIds(new Set());
+    };
   }, [conversationId]);
 
   useEffect(() => {
@@ -422,6 +438,7 @@ export function ConversationWindow({
       await sendMsg({ data: { conversationId, rawText: html } });
       editor.commands.clearContent();
       setIsEmpty(true);
+      clearSelection();
     } catch (e) {
       console.error(e);
     } finally {
@@ -574,6 +591,7 @@ export function ConversationWindow({
                     const previousDate = prev ? localDateKey(prev.createdAt) : null;
                     const showDaySeparator = !prev || currentDate !== previousDate;
 
+                    const isSelected = selectedIds.has(m.id);
                     return (
                       <>
                         {showDaySeparator && (
@@ -589,27 +607,61 @@ export function ConversationWindow({
                         )}
                         <li
                           key={m.id}
-                          className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                          onClick={(e) => {
+                            if (
+                              (e.target as HTMLElement).closest(
+                                "span.mention-page",
+                              )
+                            )
+                              return;
+                            toggleSelected(m.id);
+                          }}
+                          className={`-mx-4 cursor-pointer rounded-sm px-4 py-1 transition-colors ${
+                            isSelected ? "bg-muted/60" : "hover:bg-muted/40"
+                          }`}
                         >
-                          {showName && (
-                            <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                              {author?.label ?? m.authorLabel ?? "Archived user"}
-                            </span>
-                          )}
-
                           <div
-                            className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
-                              isMe
-                                ? "prose-invert bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
+                            className={`flex items-center gap-2 ${
+                              isMe ? "justify-end" : "justify-start"
                             }`}
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeMessageHtml(m.rawText),
-                            }}
-                          />
-                          <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
-                            {formatMessageTimestamp(m.createdAt)}
-                          </span>
+                          >
+                            {!isMe && isSelected && (
+                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                            )}
+                            <div
+                              className={`flex min-w-0 flex-col transition-transform ${
+                                isMe ? "items-end" : "items-start"
+                              } ${
+                                isSelected
+                                  ? isMe
+                                    ? "-translate-x-2"
+                                    : "translate-x-2"
+                                  : ""
+                              }`}
+                            >
+                              {showName && (
+                                <span className="mb-0.5 px-2 text-xs text-muted-foreground">
+                                  {author?.label ?? m.authorLabel ?? "Archived user"}
+                                </span>
+                              )}
+                              <div
+                                className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
+                                  isMe
+                                    ? "prose-invert bg-primary text-primary-foreground"
+                                    : "bg-muted text-foreground"
+                                }`}
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeMessageHtml(m.rawText),
+                                }}
+                              />
+                              <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
+                                {formatMessageTimestamp(m.createdAt)}
+                              </span>
+                            </div>
+                            {isMe && isSelected && (
+                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                            )}
+                          </div>
                         </li>
                       </>
                     );
@@ -727,6 +779,14 @@ export function ConversationWindow({
           conversationId={conversationId}
           open={newPageOpen}
           onOpenChange={setNewPageOpen}
+          onCreated={(pageId) => {
+            clearSelection();
+            navigate({
+              to: "/w/$workspaceId",
+              params: { workspaceId },
+              search: (prev: any) => ({ ...prev, p: pageId }),
+            });
+          }}
         />
         <AddParticipantsDialog
           workspaceId={workspaceId}
