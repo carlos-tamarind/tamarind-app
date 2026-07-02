@@ -297,6 +297,10 @@ export function ConversationWindow({
 
   useEffect(() => {
     setLiveMessages([]);
+    setSelectedIds(new Set());
+    return () => {
+      setSelectedIds(new Set());
+    };
   }, [conversationId]);
 
   useEffect(() => {
