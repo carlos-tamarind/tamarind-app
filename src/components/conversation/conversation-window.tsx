@@ -591,6 +591,7 @@ export function ConversationWindow({
                     const previousDate = prev ? localDateKey(prev.createdAt) : null;
                     const showDaySeparator = !prev || currentDate !== previousDate;
 
+                    const isSelected = selectedIds.has(m.id);
                     return (
                       <>
                         {showDaySeparator && (
@@ -606,27 +607,61 @@ export function ConversationWindow({
                         )}
                         <li
                           key={m.id}
-                          className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                          onClick={(e) => {
+                            if (
+                              (e.target as HTMLElement).closest(
+                                "span.mention-page",
+                              )
+                            )
+                              return;
+                            toggleSelected(m.id);
+                          }}
+                          className={`-mx-4 cursor-pointer rounded-sm px-4 py-1 transition-colors ${
+                            isSelected ? "bg-muted/60" : "hover:bg-muted/40"
+                          }`}
                         >
-                          {showName && (
-                            <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                              {author?.label ?? m.authorLabel ?? "Archived user"}
-                            </span>
-                          )}
-
                           <div
-                            className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
-                              isMe
-                                ? "prose-invert bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
+                            className={`flex items-center gap-2 ${
+                              isMe ? "justify-end" : "justify-start"
                             }`}
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeMessageHtml(m.rawText),
-                            }}
-                          />
-                          <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
-                            {formatMessageTimestamp(m.createdAt)}
-                          </span>
+                          >
+                            {!isMe && isSelected && (
+                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                            )}
+                            <div
+                              className={`flex min-w-0 flex-col transition-transform ${
+                                isMe ? "items-end" : "items-start"
+                              } ${
+                                isSelected
+                                  ? isMe
+                                    ? "-translate-x-2"
+                                    : "translate-x-2"
+                                  : ""
+                              }`}
+                            >
+                              {showName && (
+                                <span className="mb-0.5 px-2 text-xs text-muted-foreground">
+                                  {author?.label ?? m.authorLabel ?? "Archived user"}
+                                </span>
+                              )}
+                              <div
+                                className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
+                                  isMe
+                                    ? "prose-invert bg-primary text-primary-foreground"
+                                    : "bg-muted text-foreground"
+                                }`}
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeMessageHtml(m.rawText),
+                                }}
+                              />
+                              <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
+                                {formatMessageTimestamp(m.createdAt)}
+                              </span>
+                            </div>
+                            {isMe && isSelected && (
+                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                            )}
+                          </div>
                         </li>
                       </>
                     );
