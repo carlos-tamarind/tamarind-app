@@ -779,6 +779,14 @@ export function ConversationWindow({
           conversationId={conversationId}
           open={newPageOpen}
           onOpenChange={setNewPageOpen}
+          onCreated={(pageId) => {
+            clearSelection();
+            navigate({
+              to: "/w/$workspaceId",
+              params: { workspaceId },
+              search: (prev: any) => ({ ...prev, p: pageId }),
+            });
+          }}
         />
         <AddParticipantsDialog
           workspaceId={workspaceId}
