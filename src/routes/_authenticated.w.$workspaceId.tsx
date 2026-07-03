@@ -84,6 +84,7 @@ function WorkspaceShell() {
   const [newPageOpen, setNewPageOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
+  const railPanelRef = useRef<PanelImperativeHandle>(null);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
@@ -181,61 +182,61 @@ function WorkspaceShell() {
         >
 
 
-          {railOpen && (
-            <>
-              <ResizablePanel
-                id="rail"
-                defaultSize="5%"
-                minSize="5%"
-                maxSize="5%"
-                collapsible
-                collapsedSize="0%"
-              >
+          <ResizablePanel
+            id="rail"
+            panelRef={railPanelRef}
+            defaultSize="0%"
+            minSize="5%"
+            maxSize="5%"
+            collapsible
+            collapsedSize="0%"
+            onResize={(size) => {
+              const open = size.asPercentage > 0;
+              setRailOpen((prev) => (prev === open ? prev : open));
+            }}
+          >
+            <div className="flex h-full flex-col border-r bg-muted/30">
+              <div className="h-10 border-b" />
 
+              <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
+                {(workspaces ?? []).map((w) => (
+                  <button
+                    key={w.workspaceId}
+                    onClick={() =>
+                      navigate({
+                        to: "/w/$workspaceId",
+                        params: { workspaceId: w.workspaceId },
+                      })
+                    }
+                    className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
+                      w.workspaceId === workspaceId
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background hover:bg-accent"
+                    }`}
+                    title={w.name}
+                  >
+                    {w.name.slice(0, 2).toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-center border-t py-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/w/$workspaceId/settings"
+                      params={{ workspaceId }}
+                      className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label="Workspace settings"
+                    >
+                      <Settings className="size-4" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Workspace settings</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </ResizablePanel>
 
-                <div className="flex h-full flex-col border-r bg-muted/30">
-                  <div className="h-10 border-b" />
-
-                  <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
-                    {(workspaces ?? []).map((w) => (
-                      <button
-                        key={w.workspaceId}
-                        onClick={() =>
-                          navigate({
-                            to: "/w/$workspaceId",
-                            params: { workspaceId: w.workspaceId },
-                          })
-                        }
-                        className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
-                          w.workspaceId === workspaceId
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background hover:bg-accent"
-                        }`}
-                        title={w.name}
-                      >
-                        {w.name.slice(0, 2).toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-center border-t py-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          to="/w/$workspaceId/settings"
-                          params={{ workspaceId }}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-label="Workspace settings"
-                        >
-                          <Settings className="size-4" />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Workspace settings</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </ResizablePanel>
-            </>
-          )}
 
           <ResizablePanel
             id="nav"
@@ -260,7 +261,11 @@ function WorkspaceShell() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => setRailOpen((v) => !v)}
+                        onClick={() => {
+                          const p = railPanelRef.current;
+                          if (!p) return;
+                          if (p.isCollapsed()) p.expand(); else p.collapse();
+                        }}
                         className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
                         aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                       >
@@ -339,7 +344,11 @@ function WorkspaceShell() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => setRailOpen((v) => !v)}
+                      onClick={() => {
+                        const p = railPanelRef.current;
+                        if (!p) return;
+                        if (p.isCollapsed()) p.expand(); else p.collapse();
+                      }}
                       className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                       aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     >
