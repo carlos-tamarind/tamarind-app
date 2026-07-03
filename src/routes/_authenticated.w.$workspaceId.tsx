@@ -344,7 +344,11 @@ function WorkspaceShell() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => setRailOpen((v) => !v)}
+                      onClick={() => {
+                        const p = railPanelRef.current;
+                        if (!p) return;
+                        if (p.isCollapsed()) p.expand(); else p.collapse();
+                      }}
                       className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                       aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
                     >
