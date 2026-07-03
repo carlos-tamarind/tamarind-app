@@ -1,56 +1,73 @@
-## Message selection in conversations
+## Folded Message Contextual Menu (MCM)
 
-Presentation-only change in `src/components/conversation/conversation-window.tsx`. No schema, server, or API changes.
+Presentation-only change in `src/components/conversation/conversation-window.tsx`. No schema, server, or new component files required.
 
-### 1. Selection state
+### 1. Trigger condition
 
-Local component state:
-- `selectedIds: Set<string>` of selected message IDs.
-- `toggleSelected(id)` — add if absent, remove if present.
-- `clearSelection()` — reset to empty.
+- Show MCM when `selectedIds.size > 0`.
+- Otherwise, render the existing `<header>` unchanged.
+- Selection is already per-viewer local state, so only the current user ever sees their own MCM — no extra work needed.
 
-Selection is not persisted and is per-conversation instance.
+### 2. Header replacement
 
-### 2. Row layout
+Replace the current `<header>` block (lines 490–562) with a conditional:
 
-Each message currently renders as an `<li>` with `items-end`/`items-start`. Restructure so the whole row is a full-width, clickable container with a slot for the check icon:
+```tsx
+{selectedIds.size > 0 ? <McmFolded ... /> : <header>...existing header...</header>}
+```
+
+- The existing header stays exactly as-is when no message is selected. When MCM is active, the header is not rendered — its buttons (participants, settings) are therefore not visible and not clickable, satisfying the requirement.
+- After `clearSelection()` runs (cancel, send, page created, conversation change, unmount), the header reappears automatically because `selectedIds.size === 0`.
+
+### 3. Folded MCM layout
+
+Inline component (or JSX block) inside the same file. Height ≈ 2× current header (`py-3` → roughly `min-h-[6.5rem]`, matching two stacked rows).
 
 ```
-<li> (full width, onClick=toggleSelected, cursor-pointer,
-      hover:bg-muted/40, selected: bg-muted/60)
-  <div class="flex items-center gap-2 px-3 py-1
-              justify-end (isMe) | justify-start (other)">
-    [ if !isMe && selected ] <CircleCheckBig>
-    <div class="flex flex-col items-end|items-start
-                transition-transform
-                translate-x-2 (other, selected)
-                -translate-x-2 (me, selected)">
-       (name, bubble, timestamp — unchanged)
-    </div>
-    [ if isMe && selected ] <CircleCheckBig>
+┌────────────────────────────────────────────────────────┐
+│ ← n selected                                  Cancel   │
+│                                                        │
+│ New page             Quote                    More …   │
+└────────────────────────────────────────────────────────┘
+```
+
+Structure:
+
+```tsx
+<div className="border-b px-4 py-3 flex flex-col gap-2">
+  {/* top row */}
+  <div className="flex items-center justify-between">
+    <span className="text-sm font-medium">← {selectedIds.size} selected</span>
+    <Button size="sm" variant="ghost" onClick={clearSelection}>Cancel</Button>
   </div>
-</li>
+  {/* bottom row: 3 slots — left, center, right */}
+  <div className="grid grid-cols-3 items-center">
+    <div className="justify-self-start">
+      <Button size="sm" variant="ghost" disabled>New page</Button>
+    </div>
+    <div className="justify-self-center">
+      <Button size="sm" variant="ghost" disabled>Quote</Button>
+    </div>
+    <div className="justify-self-end">
+      <Button size="sm" variant="ghost" disabled>More …</Button>
+    </div>
+  </div>
+</div>
 ```
 
-Details:
-- Hover: `hover:bg-muted/40`. Selected: `bg-muted/60` (no hover swap needed).
-- Icon: `CircleCheckBig` from `lucide-react`, `size-4 text-primary shrink-0`.
-- Slide: `translate-x-2` / `-translate-x-2` on the bubble column only when selected, with `transition-transform`.
-- Row `onClick` calls `toggleSelected(m.id)`. Keep the existing `handleMessageClick` mention-navigation logic and add `e.stopPropagation()` when a `.mention-page` is clicked so the row toggle does not fire.
+- All buttons except `Cancel` are `disabled` and have no `onClick`.
+- `Cancel` calls the existing `clearSelection()`.
+- `← n selected` is a plain `<span>`, not a button.
+- No icons required; label text only per spec.
 
-### 3. Auto-deselect triggers
+### 4. Behavior notes
 
-Call `clearSelection()` in:
-- `handleSend`, after a successful send (inside `try`, after `clearContent()`).
-- On unmount and on `conversationId` change — reuse the existing `useEffect([conversationId])` that resets `liveMessages`, and add a cleanup return for unmount. This covers "closing or hiding the conversation".
-- After a page is actually created from this conversation. `NewPageDialog` already accepts an `onCreated` callback. Wire `<NewPageDialog ... onCreated={(pageId) => { clearSelection(); navigate({ to: "/w/$workspaceId", params: { workspaceId }, search: (prev: any) => ({ ...prev, p: pageId }) }); }} />`. Opening/closing the modal without submitting does NOT clear selection.
+- No new state needed; MCM visibility is derived from `selectedIds.size`.
+- The `translate-x` / hover / `CircleCheckBig` message-row styling from the previous step is untouched.
+- All existing auto-deselect triggers (send, conversation change, unmount, page created) already cause the MCM to disappear because they call `clearSelection()`.
+- Expanded state and per-button logic/visibility rules are out of scope for this prompt.
 
-### 4. Day separators
+### Technical details
 
-Day separator `<li>`s remain non-interactive: no hover/selected styling, no click handler. Only message rows are selectable.
-
-### Technical notes
-
-- Add `CircleCheckBig` to the `lucide-react` import block.
-- Keep `<ul className="space-y-3">` unchanged.
-- The existing fragment wrapper around separator + row remains; keys stay on inner `<li>`s.
+- No new imports required beyond `Button` (already imported).
+- Keep the outer flex column layout so `ResizablePanelGroup` below still fills remaining space; the MCM being taller simply reduces chat area, as specified.
