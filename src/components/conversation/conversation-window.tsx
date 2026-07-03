@@ -487,79 +487,109 @@ export function ConversationWindow({
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
-          <div className="min-w-0 flex-1 pr-3">
-            <EditableTitle
-              value={displayTitle}
-              editable={isGroup}
-              onSave={handleRename}
-              className="text-base font-semibold"
-            />
+        {selectedIds.size > 0 ? (
+          <div className="flex flex-col gap-2 border-b px-4 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                ← {selectedIds.size} selected
+              </span>
+              <Button size="sm" variant="ghost" onClick={clearSelection}>
+                Cancel
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 items-center">
+              <div className="justify-self-start">
+                <Button size="sm" variant="ghost" disabled>
+                  New page
+                </Button>
+              </div>
+              <div className="justify-self-center">
+                <Button size="sm" variant="ghost" disabled>
+                  Quote
+                </Button>
+              </div>
+              <div className="justify-self-end">
+                <Button size="sm" variant="ghost" disabled>
+                  More …
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {isGroup ? (
-              <Popover>
+        ) : (
+          <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
+            <div className="min-w-0 flex-1 pr-3">
+              <EditableTitle
+                value={displayTitle}
+                editable={isGroup}
+                onSave={handleRename}
+                className="text-base font-semibold"
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {isGroup ? (
+                <Popover>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <Button size="icon" variant="ghost" aria-label="Participants">
+                          <Users className="size-4" />
+                        </Button>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Participants</TooltipContent>
+                  </Tooltip>
+                  <PopoverContent align="end" className="w-64">
+                    <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                      Participants ({conv.participants.length})
+                    </div>
+                    <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
+                      {conv.participants.map((p) => (
+                        <li key={p.workspaceUserId}>
+                          {p.displayName}
+                          {p.isMe && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              (you)
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => setAddOpen(true)}
+                    >
+                      Add participants
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <PopoverTrigger asChild>
-                      <Button size="icon" variant="ghost" aria-label="Participants">
-                        <Users className="size-4" />
-                      </Button>
-                    </PopoverTrigger>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Participants"
+                      onClick={() => setAddOpen(true)}
+                    >
+                      <Users className="size-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Participants</TooltipContent>
                 </Tooltip>
-                <PopoverContent align="end" className="w-64">
-                  <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                    Participants ({conv.participants.length})
-                  </div>
-                  <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
-                    {conv.participants.map((p) => (
-                      <li key={p.workspaceUserId}>
-                        {p.displayName}
-                        {p.isMe && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            (you)
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => setAddOpen(true)}
-                  >
-                    Add participants
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Participants"
-                    onClick={() => setAddOpen(true)}
-                  >
-                    <Users className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Participants</TooltipContent>
-              </Tooltip>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Settings"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </div>
-        </header>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Settings"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </div>
+          </header>
+        )}
 
         <ResizablePanelGroup
           orientation="vertical"
