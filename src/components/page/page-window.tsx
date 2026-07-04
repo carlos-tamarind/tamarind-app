@@ -250,19 +250,11 @@ export function PageWindow({
       },
     },
     onUpdate: ({ editor: ed }) => {
+      if (isHydratingRef.current) return;
       const json = ed.getJSON();
-      dirtyContentRef.current = json;
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        savePageRef
-          .current({ data: { pageId, content: json } })
-          .then(() => {
-            dirtyContentRef.current = null;
-            queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-            queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
-          })
-          .catch(() => {});
-      }, 600);
+      latestContentRef.current = json;
+      contentPendingVersion.current += 1;
+      scheduleFlushRef.current?.();
     },
   });
 
