@@ -323,7 +323,7 @@ export function PageWindow({
     // false = do not emit an 'update' event → no spurious save on load.
     editor.commands.setContent(
       (data.content as any) ?? { type: "doc", content: [] },
-      false,
+      { emitUpdate: false },
     );
     // Baseline: everything we just loaded is considered saved.
     contentSavedVersion.current = contentPendingVersion.current;
