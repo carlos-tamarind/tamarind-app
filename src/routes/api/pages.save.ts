@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/pages/save")({
 
         const patch: {
           title?: string;
-          content?: unknown;
+          content?: any;
           last_modified_at: string;
         } = { last_modified_at: new Date().toISOString() };
         if (title !== undefined) patch.title = title;
