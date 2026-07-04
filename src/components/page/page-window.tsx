@@ -145,8 +145,14 @@ export function PageWindow({
   const [publishOpen, setPublishOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dirtyContentRef = useRef<any>(null);
-  const dirtyTitleRef = useRef<string | null>(null);
+  const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestContentRef = useRef<any>(null);
+  const latestTitleRef = useRef<string | null>(null);
+  const contentPendingVersion = useRef(0);
+  const contentSavedVersion = useRef(0);
+  const titlePendingVersion = useRef(0);
+  const titleSavedVersion = useRef(0);
+  const isHydratingRef = useRef(false);
   const savePageRef = useRef(savePage);
   savePageRef.current = savePage;
 
