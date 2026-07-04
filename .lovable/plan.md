@@ -1,62 +1,70 @@
-## Fix WKS/NVT panel state coupling
+## Diagnosis
 
-### Root cause
+Page saves are lost due to a race in `src/components/page/page-window.tsx` plus no unload-time flush.
 
-The Workspaces rail is conditionally mounted (`{railOpen && <ResizablePanel …/>}` at line 184). Mounting/unmounting a `ResizablePanel` inside a `ResizablePanelGroup` forces react-resizable-panels to recompute the layout across all remaining panels. That recomputation changes the Navigation panel's percentage — sometimes pushing it under the 17% threshold (auto-fold) or above it (auto-unfold). The `onResize` handler on the nav panel then flips `folded`, which looks like "clicking WKS also toggles NVT".
+**Race in the debounced save:**
+1. User types → `onUpdate` sets `dirtyContentRef.current = v1` and schedules a 600ms timer.
+2. Timer fires → `savePage(v1)` starts.
+3. Before it resolves, user types again → `dirtyContentRef.current = v2`, new timer scheduled.
+4. `savePage(v1)` resolves → `.then()` runs `dirtyContentRef.current = null`, **overwriting v2**.
+5. User navigates away before the 2nd timer fires → unmount cleanup sees `dirtyContentRef === null` and skips the flush. **v2 is lost.**
 
-The behavior is non-deterministic because the group tries to preserve prior stored sizes, so the outcome depends on the sequence of previous resizes.
+**No unload flush:** Closing the tab, reloading, or a hard nav never runs the React unmount cleanup, so any pending debounced content dies with the page.
 
-### Fix
+**Bonus bug:** the hydration effect calls `editor.commands.setContent(data)` which by default emits an `update` event, triggering a save of the just-loaded content (writes a spurious `last_modified_at` and re-orders the sidebar).
 
-Keep the rail panel **always mounted** and toggle it with the imperative `collapse()`/`expand()` API — same pattern already used for the nav panel. This leaves the nav panel's size untouched when WKS toggles, so `folded` never flips as a side effect.
+## Fix
 
-### Changes in `src/routes/_authenticated.w.$workspaceId.tsx`
+### 1. Correct the "dirty" bookkeeping (`page-window.tsx`)
 
-1. Add a ref for the rail panel:
-   ```tsx
-   const railPanelRef = useRef<PanelImperativeHandle>(null);
-   ```
+- Replace `dirtyContentRef` semantics with a monotonically increasing `pendingVersionRef` + `savedVersionRef`, and keep `latestContentRef` always holding the very last JSON produced by `onUpdate`.
+- After a save resolves, set `savedVersionRef = versionThatWasSaved`. The "is there unsaved work?" check becomes `pendingVersionRef > savedVersionRef` — no risk of clobbering newer edits.
+- Same treatment for title (`pendingTitleVersionRef` / `savedTitleVersionRef` / `latestTitleRef`).
+- The debounced timer, unmount cleanup, and new unload/visibility handlers all consult these refs and re-send `latestContentRef.current` / `latestTitleRef.current` whenever pending > saved.
 
-2. Remove the `{railOpen && (...)}` conditional wrapper (lines 184 and 238). Render the rail `ResizablePanel` unconditionally with:
-   - `panelRef={railPanelRef}`
-   - `defaultSize="0%"` (starts closed, matching current `useState(false)`)
-   - `collapsible`, `collapsedSize="0%"`, `minSize="5%"`, `maxSize="5%"`
-   - `onResize={(size) => setRailOpen(size.asPercentage > 0)}` so `railOpen` stays in sync (drives tooltip labels and the corresponding `ResizableHandle` visibility if any).
+### 2. Stop the hydration from triggering a save
 
-3. Replace both WKS button `onClick` handlers (lines 263 and 342):
-   ```tsx
-   onClick={() => {
-     const p = railPanelRef.current;
-     if (!p) return;
-     if (p.isCollapsed()) p.expand(); else p.collapse();
-   }}
-   ```
-   Do NOT touch `navPanelRef` or `folded` here.
+- Change `editor.commands.setContent((data.content ?? …))` in the hydration effect to `setContent(content, false)` (TipTap: `false` = do not emit update). Also gate `onUpdate` with an `isHydratingRef` guard as belt-and-braces.
 
-4. Add a `ResizableHandle` between the rail and the nav panel. To avoid a visible handle when the rail is collapsed, render it conditionally on `railOpen` (safe because it's just a divider element, not a `ResizablePanel`, so its mount/unmount does not trigger layout redistribution).
+### 3. Flush on tab close / hide / hard nav
 
-5. Confirm the nav panel's `onResize` remains as-is — with the rail no longer mounting/unmounting, it will only fire on genuine user drags or explicit `navPanelRef.collapse()`/`expand()` calls.
+- Add a `beforeunload` and `visibilitychange` (`document.visibilityState === "hidden"`) listener while the component is mounted.
+- When fired with unsaved work, call `navigator.sendBeacon(url, Blob(JSON.stringify({...})))` against a new server route that accepts a page patch and applies it with the same auth as `updatePage`.
+- `createServerFn` RPC is not beacon-friendly, so add a new server route:
 
-### QA checklist to run after the edit
+  ```
+  src/routes/api/pages.save.ts   →  POST /api/pages/save
+  ```
 
-Load `/w/:workspaceId` and verify each transition leaves the *other* panel unchanged:
+  The route re-uses the same Supabase auth pattern as the other authenticated server functions (reads the bearer from the request, constructs a user-scoped Supabase client via `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY`, performs the same update as `updatePage`, and best-effort upserts `page_collaborators`). It is **not** placed under `/api/public/*` because it requires the user session.
+  - Because `sendBeacon` cannot set an `Authorization` header, the client passes the current access token in the JSON body (retrieved via `supabase.auth.getSession()` just-in-time before sending). The route verifies it with `supabase.auth.getUser(token)` before writing. RLS still applies.
+  - Payload: `{ accessToken, pageId, title?, content? }`.
 
-| Start (WKS, NVT) | Click        | Expected end state          |
-| ---------------- | ------------ | --------------------------- |
-| closed, expanded | WKS          | open, expanded              |
-| closed, folded   | WKS          | open, folded                |
-| open, expanded   | WKS          | closed, expanded            |
-| open, folded     | WKS          | closed, folded              |
-| closed, expanded | NVT (close)  | closed, folded              |
-| open, expanded   | NVT (close)  | open, folded                |
-| closed, folded   | NVT (open)   | closed, expanded            |
-| open, folded     | NVT (open)   | open, expanded              |
+### 4. Shorten the debounce and add a "typing pause" safety net
 
-Also verify:
-- Repeating WKS toggle 5× in a row with NVT folded keeps NVT folded every time.
-- Repeating WKS toggle 5× in a row with NVT expanded keeps NVT expanded every time.
-- Manually dragging the nav-panel handle below 17% still folds it (existing threshold behavior intact).
-- Manually dragging back above 17% unfolds it.
-- Tooltip labels on the WKS button reflect the current `railOpen` state after each click.
+- Drop the debounce from 600 ms → 250 ms (more forgiving, still coalesces bursts).
+- Additionally schedule a hard "max wait" flush every 2 s while typing so a user who types continuously and then closes the tab has at most ~2 s of unsaved work sitting in the beacon path.
 
-Run the QA with Playwright by driving the two buttons and screenshotting each end state.
+### 5. Keep the existing SPA-unmount flush, but use the new refs
+
+The `useEffect` cleanup keeps calling `savePage` (real RPC) when unmounting during SPA navigation — same code path as today but driven by `pendingVersionRef > savedVersionRef` instead of the null check. This means the "navigate to another page inside the app" path is covered by the RPC (reliable), and only true page-unloads use the beacon.
+
+## Files touched
+
+- `src/components/page/page-window.tsx` — new refs, hydration `setContent(_, false)`, shorter debounce + max-wait, `beforeunload`/`visibilitychange` handlers, correct dirty check in unmount cleanup.
+- `src/routes/api/pages.save.ts` — new server route for beacon-based saves (verifies bearer via Supabase, performs the same update as `updatePage`).
+
+## Out of scope (as requested)
+
+- Multi-user collaborative editing / conflict resolution.
+- Offline queueing beyond the beacon on unload.
+
+## QA checklist
+
+1. Type in page A, immediately click page B → return to A. Content preserved.
+2. Type in page A, wait ~1 s, keep typing, click page B within 100 ms → return to A. Content preserved (was the race that lost data).
+3. Type in page A, immediately close the tab / reload. Reopen — content preserved (beacon path).
+4. Change title only, navigate away — title preserved.
+5. Toggle visibility on a page with unsaved content, navigate away — both persisted.
+6. Sidebar "Pages" list is ordered by `last_modified_at` and updates after each real edit; no spurious reordering just from opening a page (hydration no longer emits a save).
+7. Rapid A→B→A within 300 ms does not lose either page's edits.
