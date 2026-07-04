@@ -258,18 +258,80 @@ export function PageWindow({
     },
   });
 
+  // Flush any pending content/title changes via the RPC. Uses a
+  // pending-vs-saved version guard so newer edits arriving mid-flight
+  // are never marked as saved.
+  const scheduleFlushRef = useRef<(() => void) | null>(null);
+  const flushNowRef = useRef<() => Promise<void>>(async () => {});
+
+  flushNowRef.current = async () => {
+    const contentVersion = contentPendingVersion.current;
+    const titleVersion = titlePendingVersion.current;
+    const contentDirty = contentVersion > contentSavedVersion.current;
+    const titleDirty = titleVersion > titleSavedVersion.current;
+    if (!contentDirty && !titleDirty) return;
+
+    const patch: { pageId: string; title?: string; content?: any } = { pageId };
+    if (contentDirty) patch.content = latestContentRef.current;
+    if (titleDirty && latestTitleRef.current !== null)
+      patch.title = latestTitleRef.current;
+
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (maxWaitTimer.current) {
+      clearTimeout(maxWaitTimer.current);
+      maxWaitTimer.current = null;
+    }
+
+    try {
+      await savePageRef.current({ data: patch });
+      if (contentDirty && contentVersion > contentSavedVersion.current)
+        contentSavedVersion.current = contentVersion;
+      if (titleDirty && titleVersion > titleSavedVersion.current)
+        titleSavedVersion.current = titleVersion;
+      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      if (contentDirty)
+        queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
+    } catch {
+      // Leave versions unchanged; next scheduleFlush will retry.
+    }
+  };
+
+  scheduleFlushRef.current = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void flushNowRef.current();
+    }, 250);
+    if (!maxWaitTimer.current) {
+      maxWaitTimer.current = setTimeout(() => {
+        maxWaitTimer.current = null;
+        void flushNowRef.current();
+      }, 2000);
+    }
+  };
+
   const hydratedForPageRef = useRef<string | null>(null);
   useEffect(() => {
     if (!data || !editor) return;
     if (hydratedForPageRef.current === pageId) return;
     hydratedForPageRef.current = pageId;
+    isHydratingRef.current = true;
     setTitle(data.title ?? "Untitled");
-    editor.commands.setContent((data.content as any) ?? { type: "doc", content: [] });
+    latestTitleRef.current = null;
+    // false = do not emit an 'update' event → no spurious save on load.
+    editor.commands.setContent(
+      (data.content as any) ?? { type: "doc", content: [] },
+      false,
+    );
+    // Baseline: everything we just loaded is considered saved.
+    contentSavedVersion.current = contentPendingVersion.current;
+    titleSavedVersion.current = titlePendingVersion.current;
+    isHydratingRef.current = false;
   }, [data, editor, pageId]);
 
   useEffect(() => {
-    // Reset hydration guard when navigating to a different page so the
-    // editor seeds itself once from the new page's server data.
     hydratedForPageRef.current = null;
   }, [pageId]);
 
@@ -304,51 +366,85 @@ export function PageWindow({
     };
   }, [pageId, user]);
 
+  // Best-effort flush on tab close / hide / reload via sendBeacon.
   useEffect(() => {
-    const flushingPageId = pageId;
+    const beacon = () => {
+      const contentDirty =
+        contentPendingVersion.current > contentSavedVersion.current;
+      const titleDirty =
+        titlePendingVersion.current > titleSavedVersion.current;
+      if (!contentDirty && !titleDirty) return;
+      if (typeof navigator === "undefined" || !navigator.sendBeacon) return;
+
+      const send = async () => {
+        try {
+          const { data: sess } = await supabase.auth.getSession();
+          const accessToken = sess.session?.access_token;
+          if (!accessToken) return;
+          const payload: {
+            accessToken: string;
+            pageId: string;
+            title?: string;
+            content?: any;
+          } = { accessToken, pageId };
+          if (contentDirty) payload.content = latestContentRef.current;
+          if (titleDirty && latestTitleRef.current !== null)
+            payload.title = latestTitleRef.current;
+          const blob = new Blob([JSON.stringify(payload)], {
+            type: "application/json",
+          });
+          navigator.sendBeacon("/api/pages/save", blob);
+          if (contentDirty)
+            contentSavedVersion.current = contentPendingVersion.current;
+          if (titleDirty)
+            titleSavedVersion.current = titlePendingVersion.current;
+        } catch {
+          // ignore
+        }
+      };
+      void send();
+    };
+
+    const onBeforeUnload = () => beacon();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") beacon();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [pageId]);
+
+  // SPA-unmount flush (real RPC — reliable during in-app navigation).
+  useEffect(() => {
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
       }
-      const patch: { pageId: string; title?: string; content?: any } = {
-        pageId: flushingPageId,
-      };
-      if (dirtyContentRef.current !== null) {
-        patch.content = dirtyContentRef.current;
-        dirtyContentRef.current = null;
+      if (maxWaitTimer.current) {
+        clearTimeout(maxWaitTimer.current);
+        maxWaitTimer.current = null;
       }
-      if (dirtyTitleRef.current !== null) {
-        patch.title = dirtyTitleRef.current;
-        dirtyTitleRef.current = null;
-      }
-      if (patch.content !== undefined || patch.title !== undefined) {
-        savePageRef
-          .current({ data: patch })
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-          })
-          .catch(() => {});
-      }
+      void flushNowRef.current();
     };
   }, [pageId, workspaceId, queryClient]);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    dirtyTitleRef.current = value;
+    latestTitleRef.current = value;
+    titlePendingVersion.current += 1;
+    scheduleFlushRef.current?.();
   };
 
   const handleTitleBlur = () => {
-    if (title && title !== data?.title) {
-      dirtyTitleRef.current = null;
-      savePageRef
-        .current({ data: { pageId, title } })
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-        })
-        .catch(() => {});
+    if (titlePendingVersion.current > titleSavedVersion.current) {
+      void flushNowRef.current();
     }
   };
+
 
   const applyVisibility = async (value: "private" | "workspace") => {
     await setVis({ data: { pageId, visibility: value } });
