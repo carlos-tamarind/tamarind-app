@@ -16,6 +16,7 @@ import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
@@ -55,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
+  id: '/api/pages/save',
+  path: '/api/pages/save',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWWorkspaceIdRoute =
   AuthenticatedWWorkspaceIdRouteImport.update({
     id: '/w/$workspaceId',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/w/$workspaceId'
+    | '/api/pages/save'
     | '/w/$workspaceId/settings'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/w/$workspaceId'
+    | '/api/pages/save'
     | '/w/$workspaceId/settings'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/_authenticated/w/$workspaceId'
+    | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPagesSaveRoute: typeof ApiPagesSaveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pages/save': {
+      id: '/api/pages/save'
+      path: '/api/pages/save'
+      fullPath: '/api/pages/save'
+      preLoaderRoute: typeof ApiPagesSaveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/w/$workspaceId': {
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPagesSaveRoute: ApiPagesSaveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
