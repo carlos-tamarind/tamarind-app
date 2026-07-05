@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
@@ -12,6 +12,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { Globe, Link2, Lock, MessageSquare, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   getPage,
@@ -262,14 +263,16 @@ export function PageWindow({
   // pending-vs-saved version guard so newer edits arriving mid-flight
   // are never marked as saved.
   const scheduleFlushRef = useRef<(() => void) | null>(null);
-  const flushNowRef = useRef<() => Promise<void>>(async () => {});
+  const flushNowRef = useRef<(options?: { silent?: boolean }) => Promise<boolean>>(
+    async () => true,
+  );
 
-  flushNowRef.current = async () => {
+  flushNowRef.current = async (options = {}) => {
     const contentVersion = contentPendingVersion.current;
     const titleVersion = titlePendingVersion.current;
     const contentDirty = contentVersion > contentSavedVersion.current;
     const titleDirty = titleVersion > titleSavedVersion.current;
-    if (!contentDirty && !titleDirty) return;
+    if (!contentDirty && !titleDirty) return true;
 
     const patch: { pageId: string; title?: string; content?: any } = { pageId };
     if (contentDirty) patch.content = latestContentRef.current;
@@ -291,13 +294,45 @@ export function PageWindow({
         contentSavedVersion.current = contentVersion;
       if (titleDirty && titleVersion > titleSavedVersion.current)
         titleSavedVersion.current = titleVersion;
+      queryClient.setQueryData(["page", pageId], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          ...(patch.title !== undefined ? { title: patch.title } : {}),
+          ...(patch.content !== undefined ? { content: patch.content } : {}),
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ["page", pageId] });
       queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      if (data?.conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["conversation-pages", data.conversationId],
+        });
+      }
       if (contentDirty)
         queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
+      return true;
     } catch {
       // Leave versions unchanged; next scheduleFlush will retry.
+      if (!options.silent) {
+        toast.error("Page changes could not be saved. Please try again before leaving.");
+      }
+      scheduleFlushRef.current?.();
+      return false;
     }
   };
+
+  useBlocker({
+    shouldBlockFn: async () => {
+      const contentDirty =
+        contentPendingVersion.current > contentSavedVersion.current;
+      const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
+      if (!contentDirty && !titleDirty) return false;
+      const saved = await flushNowRef.current({ silent: false });
+      return !saved;
+    },
+    enableBeforeUnload: false,
+  });
 
   scheduleFlushRef.current = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -320,9 +355,10 @@ export function PageWindow({
     isHydratingRef.current = true;
     setTitle(data.title ?? "Untitled");
     latestTitleRef.current = null;
+    latestContentRef.current = (data.content as any) ?? { type: "doc", content: [] };
     // false = do not emit an 'update' event → no spurious save on load.
     editor.commands.setContent(
-      (data.content as any) ?? { type: "doc", content: [] },
+      latestContentRef.current,
       { emitUpdate: false },
     );
     // Baseline: everything we just loaded is considered saved.
@@ -394,10 +430,6 @@ export function PageWindow({
             type: "application/json",
           });
           navigator.sendBeacon("/api/pages/save", blob);
-          if (contentDirty)
-            contentSavedVersion.current = contentPendingVersion.current;
-          if (titleDirty)
-            titleSavedVersion.current = titlePendingVersion.current;
         } catch {
           // ignore
         }
@@ -428,7 +460,7 @@ export function PageWindow({
         clearTimeout(maxWaitTimer.current);
         maxWaitTimer.current = null;
       }
-      void flushNowRef.current();
+      void flushNowRef.current({ silent: true });
     };
   }, [pageId, workspaceId, queryClient]);
 
