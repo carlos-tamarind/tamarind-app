@@ -115,14 +115,18 @@ export const Route = createFileRoute("/api/pages/save")({
           if (error) return new Response(error.message, { status: 400 });
 
           // Best-effort collaborator upsert with service role (mirrors updatePage).
-          await supabaseAdmin.from("page_collaborators").upsert(
-            {
-              page_id: pageId,
-              workspace_user_id: workspaceUserId,
-              last_edited_at: new Date().toISOString(),
-            },
-            { onConflict: "page_id,workspace_user_id" },
-          );
+          try {
+            await supabaseAdmin.from("page_collaborators").upsert(
+              {
+                page_id: pageId,
+                workspace_user_id: workspaceUserId,
+                last_edited_at: new Date().toISOString(),
+              },
+              { onConflict: "page_id,workspace_user_id" },
+            );
+          } catch {
+            // ignore collaborator bookkeeping failures
+          }
         } catch {
           return new Response("Save failed", { status: 500 });
         }
