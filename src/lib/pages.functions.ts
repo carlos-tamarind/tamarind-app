@@ -105,7 +105,6 @@ export const listMyPages = createServerFn({ method: "GET" })
     z.object({ workspaceId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabase } = context;
     const { data: pages, error } = await supabase
       .from("pages")
