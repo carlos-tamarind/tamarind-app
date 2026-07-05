@@ -149,6 +149,7 @@ export function PageWindow({
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<any>(null);
   const latestTitleRef = useRef<string | null>(null);
+  const latestTitleValueRef = useRef("");
   const contentPendingVersion = useRef(0);
   const contentSavedVersion = useRef(0);
   const titlePendingVersion = useRef(0);
@@ -157,6 +158,37 @@ export function PageWindow({
   const savePageRef = useRef(savePage);
   const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
+  const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
+
+  const writeLocalDraft = () => {
+    if (typeof window === "undefined") return;
+    const contentDirty =
+      contentPendingVersion.current > contentSavedVersion.current;
+    const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
+    if (!contentDirty && !titleDirty) return;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          pageId,
+          title: latestTitleValueRef.current,
+          content: latestContentRef.current,
+          updatedAt: Date.now(),
+        }),
+      );
+    } catch {
+      // ignore local draft failures
+    }
+  };
+
+  const clearLocalDraft = () => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  };
 
   const memberSuggestion = useMemo(
     () =>
@@ -256,6 +288,7 @@ export function PageWindow({
       const json = ed.getJSON();
       latestContentRef.current = json;
       contentPendingVersion.current += 1;
+      writeLocalDraft();
       scheduleFlushRef.current?.();
     },
   });
@@ -281,7 +314,10 @@ export function PageWindow({
       const titleVersion = titlePendingVersion.current;
       const contentDirty = contentVersion > contentSavedVersion.current;
       const titleDirty = titleVersion > titleSavedVersion.current;
-      if (!contentDirty && !titleDirty) return true;
+      if (!contentDirty && !titleDirty) {
+        clearLocalDraft();
+        return true;
+      }
 
       const patch: { pageId: string; title?: string; content?: any } = { pageId };
       if (contentDirty) patch.content = latestContentRef.current;
@@ -370,19 +406,59 @@ export function PageWindow({
     if (hydratedForPageRef.current === pageId) return;
     hydratedForPageRef.current = pageId;
     isHydratingRef.current = true;
-    setTitle(data.title ?? "Untitled");
+    let nextTitle = data.title ?? "Untitled";
+    let nextContent = (data.content as any) ?? { type: "doc", content: [] };
+    let draftApplied = false;
+    let draftHasTitle = false;
+    let draftHasContent = false;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(draftKey);
+        const draft = raw ? JSON.parse(raw) : null;
+        const serverTime = data.lastModifiedAt
+          ? new Date(data.lastModifiedAt).getTime()
+          : 0;
+        if (
+          draft?.pageId === pageId &&
+          typeof draft.updatedAt === "number" &&
+          draft.updatedAt > serverTime
+        ) {
+          if (typeof draft.title === "string") {
+            nextTitle = draft.title;
+            draftHasTitle = true;
+          }
+          if (draft.content !== undefined) {
+            nextContent = draft.content;
+            draftHasContent = true;
+          }
+          draftApplied = draftHasTitle || draftHasContent;
+        }
+      } catch {
+        // ignore invalid drafts
+      }
+    }
+    setTitle(nextTitle);
+    latestTitleValueRef.current = nextTitle;
     latestTitleRef.current = null;
-    latestContentRef.current = (data.content as any) ?? { type: "doc", content: [] };
+    latestContentRef.current = nextContent;
     // false = do not emit an 'update' event → no spurious save on load.
     editor.commands.setContent(
-      latestContentRef.current,
+      nextContent,
       { emitUpdate: false },
     );
     // Baseline: everything we just loaded is considered saved.
     contentSavedVersion.current = contentPendingVersion.current;
     titleSavedVersion.current = titlePendingVersion.current;
+    if (draftApplied) {
+      if (draftHasContent) contentPendingVersion.current += 1;
+      if (draftHasTitle) {
+        latestTitleRef.current = nextTitle;
+        titlePendingVersion.current += 1;
+      }
+      scheduleFlushRef.current?.();
+    }
     isHydratingRef.current = false;
-  }, [data, editor, pageId]);
+  }, [data, draftKey, editor, pageId]);
 
   useEffect(() => {
     hydratedForPageRef.current = null;
@@ -479,8 +555,10 @@ export function PageWindow({
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
+    latestTitleValueRef.current = value;
     latestTitleRef.current = value;
     titlePendingVersion.current += 1;
+    writeLocalDraft();
     scheduleFlushRef.current?.();
   };
 

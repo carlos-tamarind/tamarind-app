@@ -69,7 +69,7 @@ export const getPage = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: page, error } = await supabase
       .from("pages")
-      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id, conversation_id")
+      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id, conversation_id, last_modified_at")
       .eq("id", data.pageId)
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
@@ -141,6 +141,7 @@ export const getPage = createServerFn({ method: "GET" })
       content: page.content,
       workspaceId: page.workspace_id as string,
       conversationId: (page.conversation_id as string | null) ?? null,
+      lastModifiedAt: page.last_modified_at as string,
       visibility: page.visibility as "private" | "workspace" | "conversation" | "external",
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
       ownerDisplayName: ownerLabel,
