@@ -155,6 +155,7 @@ export function PageWindow({
   const titleSavedVersion = useRef(0);
   const isHydratingRef = useRef(false);
   const savePageRef = useRef(savePage);
+  const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
 
   const memberSuggestion = useMemo(
@@ -268,57 +269,73 @@ export function PageWindow({
   );
 
   flushNowRef.current = async (options = {}) => {
-    const contentVersion = contentPendingVersion.current;
-    const titleVersion = titlePendingVersion.current;
-    const contentDirty = contentVersion > contentSavedVersion.current;
-    const titleDirty = titleVersion > titleSavedVersion.current;
-    if (!contentDirty && !titleDirty) return true;
-
-    const patch: { pageId: string; title?: string; content?: any } = { pageId };
-    if (contentDirty) patch.content = latestContentRef.current;
-    if (titleDirty && latestTitleRef.current !== null)
-      patch.title = latestTitleRef.current;
-
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
-    if (maxWaitTimer.current) {
-      clearTimeout(maxWaitTimer.current);
-      maxWaitTimer.current = null;
-    }
-
-    try {
-      await savePageRef.current({ data: patch });
-      if (contentDirty && contentVersion > contentSavedVersion.current)
-        contentSavedVersion.current = contentVersion;
-      if (titleDirty && titleVersion > titleSavedVersion.current)
-        titleSavedVersion.current = titleVersion;
-      queryClient.setQueryData(["page", pageId], (prev: any) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          ...(patch.title !== undefined ? { title: patch.title } : {}),
-          ...(patch.content !== undefined ? { content: patch.content } : {}),
-        };
-      });
-      queryClient.invalidateQueries({ queryKey: ["page", pageId] });
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      if (data?.conversationId) {
-        queryClient.invalidateQueries({
-          queryKey: ["conversation-pages", data.conversationId],
-        });
+    while (true) {
+      const inFlight = inFlightSaveRef.current;
+      if (inFlight) {
+        const ok = await inFlight;
+        if (!ok) return false;
+        continue;
       }
-      if (contentDirty)
-        queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
-      return true;
-    } catch {
-      // Leave versions unchanged; next scheduleFlush will retry.
-      if (!options.silent) {
-        toast.error("Page changes could not be saved. Please try again before leaving.");
+
+      const contentVersion = contentPendingVersion.current;
+      const titleVersion = titlePendingVersion.current;
+      const contentDirty = contentVersion > contentSavedVersion.current;
+      const titleDirty = titleVersion > titleSavedVersion.current;
+      if (!contentDirty && !titleDirty) return true;
+
+      const patch: { pageId: string; title?: string; content?: any } = { pageId };
+      if (contentDirty) patch.content = latestContentRef.current;
+      if (titleDirty && latestTitleRef.current !== null)
+        patch.title = latestTitleRef.current;
+
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
       }
-      scheduleFlushRef.current?.();
-      return false;
+      if (maxWaitTimer.current) {
+        clearTimeout(maxWaitTimer.current);
+        maxWaitTimer.current = null;
+      }
+
+      const run = (async () => {
+        try {
+          await savePageRef.current({ data: patch });
+          if (contentDirty && contentVersion > contentSavedVersion.current)
+            contentSavedVersion.current = contentVersion;
+          if (titleDirty && titleVersion > titleSavedVersion.current)
+            titleSavedVersion.current = titleVersion;
+          queryClient.setQueryData(["page", pageId], (prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              ...(patch.title !== undefined ? { title: patch.title } : {}),
+              ...(patch.content !== undefined ? { content: patch.content } : {}),
+            };
+          });
+          queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+          queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+          if (data?.conversationId) {
+            queryClient.invalidateQueries({
+              queryKey: ["conversation-pages", data.conversationId],
+            });
+          }
+          if (contentDirty)
+            queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
+          return true;
+        } catch {
+          // Leave versions unchanged; next scheduleFlush will retry.
+          if (!options.silent) {
+            toast.error("Page changes could not be saved. Please try again before leaving.");
+          }
+          scheduleFlushRef.current?.();
+          return false;
+        }
+      })();
+
+      inFlightSaveRef.current = run;
+      const ok = await run;
+      if (inFlightSaveRef.current === run) inFlightSaveRef.current = null;
+      if (!ok) return false;
     }
   };
 
