@@ -348,6 +348,25 @@ export function PageWindow({
               ...(patch.content !== undefined ? { content: patch.content } : {}),
             };
           });
+      if (patch.title !== undefined) {
+        queryClient.setQueryData(["pages-list", workspaceId], (prev: any) => {
+          if (!Array.isArray(prev)) return prev;
+          return prev.map((p) =>
+            p.id === pageId ? { ...p, title: patch.title } : p,
+          );
+        });
+        if (data?.conversationId) {
+          queryClient.setQueryData(
+            ["conversation-pages", data.conversationId],
+            (prev: any) => {
+              if (!Array.isArray(prev)) return prev;
+              return prev.map((p) =>
+                p.id === pageId ? { ...p, title: patch.title } : p,
+              );
+            },
+          );
+        }
+      }
           queryClient.invalidateQueries({ queryKey: ["page", pageId] });
           queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
           if (data?.conversationId) {
@@ -570,7 +589,12 @@ export function PageWindow({
 
 
   const applyVisibility = async (value: "private" | "workspace") => {
+    const saved = await flushNowRef.current({ silent: false });
+    if (!saved) return;
     await setVis({ data: { pageId, visibility: value } });
+    queryClient.setQueryData(["page", pageId], (prev: any) =>
+      prev ? { ...prev, visibility: value } : prev,
+    );
     queryClient.invalidateQueries({ queryKey: ["page", pageId] });
     queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
   };
