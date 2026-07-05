@@ -2,11 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
 
 
 async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("workspace_users")
     .select("id")
@@ -16,6 +15,57 @@ async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Not a member of this workspace");
   return data.id as string;
+}
+
+async function assertCanEditPage(pageId: string, userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: page, error } = await supabaseAdmin
+    .from("pages")
+    .select("id, workspace_id, visibility, owner_workspace_user_id, conversation_id")
+    .eq("id", pageId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!page) throw new Error("Page not found");
+
+  const meWuId = await getCurrentWorkspaceUser(
+    page.workspace_id as string,
+    userId,
+  );
+  const visibility = page.visibility as "private" | "workspace" | "conversation" | "external";
+
+  if (visibility === "private" && page.owner_workspace_user_id !== meWuId) {
+    throw new Error("You cannot edit this page");
+  }
+
+  if (visibility === "conversation") {
+    if (!page.conversation_id) throw new Error("Page is not linked to a conversation");
+    const { data: participant, error: participantError } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("workspace_user_id")
+      .eq("conversation_id", page.conversation_id as string)
+      .eq("workspace_user_id", meWuId)
+      .maybeSingle();
+    if (participantError) throw new Error(participantError.message);
+    if (!participant) throw new Error("You cannot edit this page");
+  }
+
+  return {
+    workspaceId: page.workspace_id as string,
+    workspaceUserId: meWuId,
+    conversationId: (page.conversation_id as string | null) ?? null,
+  };
+}
+
+async function recordPageCollaborator(pageId: string, workspaceUserId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("page_collaborators").upsert(
+    {
+      page_id: pageId,
+      workspace_user_id: workspaceUserId,
+      last_edited_at: new Date().toISOString(),
+    },
+    { onConflict: "page_id,workspace_user_id" },
+  );
 }
 
 export const createBlankPage = createServerFn({ method: "POST" })
@@ -30,6 +80,7 @@ export const createBlankPage = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
     const { data: page, error } = await supabaseAdmin
       .from("pages")
@@ -54,6 +105,7 @@ export const listMyPages = createServerFn({ method: "GET" })
     z.object({ workspaceId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabase } = context;
     const { data: pages, error } = await supabase
       .from("pages")
@@ -75,10 +127,14 @@ export const getPage = createServerFn({ method: "GET" })
     z.object({ pageId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { fetchEmailsForUserIds, resolveLabel } = await import(
+      "@/lib/user-label.server"
+    );
     const { supabase } = context;
     const { data: page, error } = await supabase
       .from("pages")
-      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id")
+      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id, conversation_id")
       .eq("id", data.pageId)
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
@@ -149,6 +205,7 @@ export const getPage = createServerFn({ method: "GET" })
       title: page.title as string,
       content: page.content,
       workspaceId: page.workspace_id as string,
+      conversationId: (page.conversation_id as string | null) ?? null,
       visibility: page.visibility as "private" | "workspace" | "conversation" | "external",
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
       ownerDisplayName: ownerLabel,
@@ -164,44 +221,29 @@ export const updatePage = createServerFn({ method: "POST" })
     z
       .object({
         pageId: z.string().uuid(),
-        title: z.string().min(1).max(500).optional(),
+        title: z.string().max(500).optional(),
         content: z.any().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { userId } = context;
+    const access = await assertCanEditPage(data.pageId, userId);
     const patch: { title?: string; content?: any; last_modified_at: string } = {
       last_modified_at: new Date().toISOString(),
     };
     if (data.title !== undefined) patch.title = data.title;
     if (data.content !== undefined) patch.content = data.content;
-    const { error } = await supabase.from("pages").update(patch).eq("id", data.pageId);
+    const { error } = await supabaseAdmin
+      .from("pages")
+      .update(patch)
+      .eq("id", data.pageId);
     if (error) throw new Error(error.message);
 
     // Record collaborator (best-effort)
     try {
-      const { data: pageRow } = await supabaseAdmin
-        .from("pages")
-        .select("workspace_id")
-        .eq("id", data.pageId)
-        .maybeSingle();
-      if (pageRow?.workspace_id) {
-        const meWuId = await getCurrentWorkspaceUser(
-          pageRow.workspace_id as string,
-          userId,
-        );
-        await supabaseAdmin
-          .from("page_collaborators")
-          .upsert(
-            {
-              page_id: data.pageId,
-              workspace_user_id: meWuId,
-              last_edited_at: new Date().toISOString(),
-            },
-            { onConflict: "page_id,workspace_user_id" },
-          );
-      }
+      await recordPageCollaborator(data.pageId, access.workspaceUserId);
     } catch {
       // ignore
     }
