@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
@@ -12,6 +12,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { Globe, Link2, Lock, MessageSquare, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   getPage,
@@ -128,7 +129,7 @@ export function PageWindow({
   const fetchConversations = useServerFn(listMyConversations);
   const fetchBacklinks = useServerFn(getPageBacklinks);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["page", pageId],
@@ -148,13 +149,46 @@ export function PageWindow({
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<any>(null);
   const latestTitleRef = useRef<string | null>(null);
+  const latestTitleValueRef = useRef("");
   const contentPendingVersion = useRef(0);
   const contentSavedVersion = useRef(0);
   const titlePendingVersion = useRef(0);
   const titleSavedVersion = useRef(0);
   const isHydratingRef = useRef(false);
   const savePageRef = useRef(savePage);
+  const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
+  const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
+
+  const writeLocalDraft = () => {
+    if (typeof window === "undefined") return;
+    const contentDirty =
+      contentPendingVersion.current > contentSavedVersion.current;
+    const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
+    if (!contentDirty && !titleDirty) return;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          pageId,
+          title: latestTitleValueRef.current,
+          content: latestContentRef.current,
+          updatedAt: Date.now(),
+        }),
+      );
+    } catch {
+      // ignore local draft failures
+    }
+  };
+
+  const clearLocalDraft = () => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  };
 
   const memberSuggestion = useMemo(
     () =>
@@ -254,6 +288,7 @@ export function PageWindow({
       const json = ed.getJSON();
       latestContentRef.current = json;
       contentPendingVersion.current += 1;
+      writeLocalDraft();
       scheduleFlushRef.current?.();
     },
   });
@@ -262,42 +297,114 @@ export function PageWindow({
   // pending-vs-saved version guard so newer edits arriving mid-flight
   // are never marked as saved.
   const scheduleFlushRef = useRef<(() => void) | null>(null);
-  const flushNowRef = useRef<() => Promise<void>>(async () => {});
+  const flushNowRef = useRef<(options?: { silent?: boolean }) => Promise<boolean>>(
+    async () => true,
+  );
 
-  flushNowRef.current = async () => {
-    const contentVersion = contentPendingVersion.current;
-    const titleVersion = titlePendingVersion.current;
-    const contentDirty = contentVersion > contentSavedVersion.current;
-    const titleDirty = titleVersion > titleSavedVersion.current;
-    if (!contentDirty && !titleDirty) return;
+  flushNowRef.current = async (options = {}) => {
+    while (true) {
+      const inFlight = inFlightSaveRef.current;
+      if (inFlight) {
+        const ok = await inFlight;
+        if (!ok) return false;
+        continue;
+      }
 
-    const patch: { pageId: string; title?: string; content?: any } = { pageId };
-    if (contentDirty) patch.content = latestContentRef.current;
-    if (titleDirty && latestTitleRef.current !== null)
-      patch.title = latestTitleRef.current;
+      const contentVersion = contentPendingVersion.current;
+      const titleVersion = titlePendingVersion.current;
+      const contentDirty = contentVersion > contentSavedVersion.current;
+      const titleDirty = titleVersion > titleSavedVersion.current;
+      if (!contentDirty && !titleDirty) {
+        clearLocalDraft();
+        return true;
+      }
 
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
-    if (maxWaitTimer.current) {
-      clearTimeout(maxWaitTimer.current);
-      maxWaitTimer.current = null;
-    }
+      const patch: { pageId: string; title?: string; content?: any } = { pageId };
+      if (contentDirty) patch.content = latestContentRef.current;
+      if (titleDirty && latestTitleRef.current !== null)
+        patch.title = latestTitleRef.current;
 
-    try {
-      await savePageRef.current({ data: patch });
-      if (contentDirty && contentVersion > contentSavedVersion.current)
-        contentSavedVersion.current = contentVersion;
-      if (titleDirty && titleVersion > titleSavedVersion.current)
-        titleSavedVersion.current = titleVersion;
-      queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
-      if (contentDirty)
-        queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
-    } catch {
-      // Leave versions unchanged; next scheduleFlush will retry.
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      if (maxWaitTimer.current) {
+        clearTimeout(maxWaitTimer.current);
+        maxWaitTimer.current = null;
+      }
+
+      const run = (async () => {
+        try {
+          await savePageRef.current({ data: patch });
+          if (contentDirty && contentVersion > contentSavedVersion.current)
+            contentSavedVersion.current = contentVersion;
+          if (titleDirty && titleVersion > titleSavedVersion.current)
+            titleSavedVersion.current = titleVersion;
+          queryClient.setQueryData(["page", pageId], (prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              ...(patch.title !== undefined ? { title: patch.title } : {}),
+              ...(patch.content !== undefined ? { content: patch.content } : {}),
+            };
+          });
+      if (patch.title !== undefined) {
+        queryClient.setQueryData(["pages-list", workspaceId], (prev: any) => {
+          if (!Array.isArray(prev)) return prev;
+          return prev.map((p) =>
+            p.id === pageId ? { ...p, title: patch.title } : p,
+          );
+        });
+        if (data?.conversationId) {
+          queryClient.setQueryData(
+            ["conversation-pages", data.conversationId],
+            (prev: any) => {
+              if (!Array.isArray(prev)) return prev;
+              return prev.map((p) =>
+                p.id === pageId ? { ...p, title: patch.title } : p,
+              );
+            },
+          );
+        }
+      }
+          queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+          queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+          if (data?.conversationId) {
+            queryClient.invalidateQueries({
+              queryKey: ["conversation-pages", data.conversationId],
+            });
+          }
+          if (contentDirty)
+            queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
+          return true;
+        } catch {
+          // Leave versions unchanged; next scheduleFlush will retry.
+          if (!options.silent) {
+            toast.error("Page changes could not be saved. Please try again before leaving.");
+          }
+          scheduleFlushRef.current?.();
+          return false;
+        }
+      })();
+
+      inFlightSaveRef.current = run;
+      const ok = await run;
+      if (inFlightSaveRef.current === run) inFlightSaveRef.current = null;
+      if (!ok) return false;
     }
   };
+
+  useBlocker({
+    shouldBlockFn: async () => {
+      const contentDirty =
+        contentPendingVersion.current > contentSavedVersion.current;
+      const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
+      if (!contentDirty && !titleDirty) return false;
+      const saved = await flushNowRef.current({ silent: false });
+      return !saved;
+    },
+    enableBeforeUnload: false,
+  });
 
   scheduleFlushRef.current = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -318,18 +425,59 @@ export function PageWindow({
     if (hydratedForPageRef.current === pageId) return;
     hydratedForPageRef.current = pageId;
     isHydratingRef.current = true;
-    setTitle(data.title ?? "Untitled");
+    let nextTitle = data.title ?? "Untitled";
+    let nextContent = (data.content as any) ?? { type: "doc", content: [] };
+    let draftApplied = false;
+    let draftHasTitle = false;
+    let draftHasContent = false;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(draftKey);
+        const draft = raw ? JSON.parse(raw) : null;
+        const serverTime = data.lastModifiedAt
+          ? new Date(data.lastModifiedAt).getTime()
+          : 0;
+        if (
+          draft?.pageId === pageId &&
+          typeof draft.updatedAt === "number" &&
+          draft.updatedAt > serverTime
+        ) {
+          if (typeof draft.title === "string") {
+            nextTitle = draft.title;
+            draftHasTitle = true;
+          }
+          if (draft.content !== undefined) {
+            nextContent = draft.content;
+            draftHasContent = true;
+          }
+          draftApplied = draftHasTitle || draftHasContent;
+        }
+      } catch {
+        // ignore invalid drafts
+      }
+    }
+    setTitle(nextTitle);
+    latestTitleValueRef.current = nextTitle;
     latestTitleRef.current = null;
+    latestContentRef.current = nextContent;
     // false = do not emit an 'update' event → no spurious save on load.
     editor.commands.setContent(
-      (data.content as any) ?? { type: "doc", content: [] },
+      nextContent,
       { emitUpdate: false },
     );
     // Baseline: everything we just loaded is considered saved.
     contentSavedVersion.current = contentPendingVersion.current;
     titleSavedVersion.current = titlePendingVersion.current;
+    if (draftApplied) {
+      if (draftHasContent) contentPendingVersion.current += 1;
+      if (draftHasTitle) {
+        latestTitleRef.current = nextTitle;
+        titlePendingVersion.current += 1;
+      }
+      scheduleFlushRef.current?.();
+    }
     isHydratingRef.current = false;
-  }, [data, editor, pageId]);
+  }, [data, draftKey, editor, pageId]);
 
   useEffect(() => {
     hydratedForPageRef.current = null;
@@ -375,34 +523,26 @@ export function PageWindow({
         titlePendingVersion.current > titleSavedVersion.current;
       if (!contentDirty && !titleDirty) return;
       if (typeof navigator === "undefined" || !navigator.sendBeacon) return;
+      const accessToken = session?.access_token;
+      if (!accessToken) return;
 
-      const send = async () => {
-        try {
-          const { data: sess } = await supabase.auth.getSession();
-          const accessToken = sess.session?.access_token;
-          if (!accessToken) return;
-          const payload: {
-            accessToken: string;
-            pageId: string;
-            title?: string;
-            content?: any;
-          } = { accessToken, pageId };
-          if (contentDirty) payload.content = latestContentRef.current;
-          if (titleDirty && latestTitleRef.current !== null)
-            payload.title = latestTitleRef.current;
-          const blob = new Blob([JSON.stringify(payload)], {
-            type: "application/json",
-          });
-          navigator.sendBeacon("/api/pages/save", blob);
-          if (contentDirty)
-            contentSavedVersion.current = contentPendingVersion.current;
-          if (titleDirty)
-            titleSavedVersion.current = titlePendingVersion.current;
-        } catch {
-          // ignore
-        }
+      try {
+        const payload: {
+          accessToken: string;
+          pageId: string;
+          title?: string;
+          content?: any;
+        } = { accessToken, pageId };
+        if (contentDirty) payload.content = latestContentRef.current;
+        if (titleDirty && latestTitleRef.current !== null)
+          payload.title = latestTitleRef.current;
+        const blob = new Blob([JSON.stringify(payload)], {
+          type: "application/json",
+        });
+        navigator.sendBeacon("/api/pages/save", blob);
+      } catch {
+        // ignore
       };
-      void send();
     };
 
     const onBeforeUnload = () => beacon();
@@ -415,7 +555,7 @@ export function PageWindow({
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [pageId]);
+  }, [pageId, session?.access_token]);
 
   // SPA-unmount flush (real RPC — reliable during in-app navigation).
   useEffect(() => {
@@ -428,14 +568,16 @@ export function PageWindow({
         clearTimeout(maxWaitTimer.current);
         maxWaitTimer.current = null;
       }
-      void flushNowRef.current();
+      void flushNowRef.current({ silent: true });
     };
   }, [pageId, workspaceId, queryClient]);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
+    latestTitleValueRef.current = value;
     latestTitleRef.current = value;
     titlePendingVersion.current += 1;
+    writeLocalDraft();
     scheduleFlushRef.current?.();
   };
 
@@ -447,7 +589,12 @@ export function PageWindow({
 
 
   const applyVisibility = async (value: "private" | "workspace") => {
+    const saved = await flushNowRef.current({ silent: false });
+    if (!saved) return;
     await setVis({ data: { pageId, visibility: value } });
+    queryClient.setQueryData(["page", pageId], (prev: any) =>
+      prev ? { ...prev, visibility: value } : prev,
+    );
     queryClient.invalidateQueries({ queryKey: ["page", pageId] });
     queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
   };

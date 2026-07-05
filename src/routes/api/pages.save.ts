@@ -7,7 +7,7 @@ import type { Database } from "@/integrations/supabase/types";
 const bodySchema = z.object({
   accessToken: z.string().min(1),
   pageId: z.string().uuid(),
-  title: z.string().min(1).max(500).optional(),
+  title: z.string().max(500).optional(),
   content: z.any().optional(),
 });
 
@@ -57,52 +57,78 @@ export const Route = createFileRoute("/api/pages/save")({
         }
         const userId = userData.user.id;
 
-        const patch: {
-          title?: string;
-          content?: any;
-          last_modified_at: string;
-        } = { last_modified_at: new Date().toISOString() };
-        if (title !== undefined) patch.title = title;
-        if (content !== undefined) patch.content = content;
-
-        const { error } = await supabase
-          .from("pages")
-          .update(patch)
-          .eq("id", pageId);
-        if (error) {
-          return new Response(error.message, { status: 400 });
-        }
-
-        // Best-effort collaborator upsert with service role (mirrors updatePage).
+        let workspaceUserId: string | null = null;
         try {
           const { supabaseAdmin } = await import(
             "@/integrations/supabase/client.server"
           );
-          const { data: pageRow } = await supabaseAdmin
+
+          const { data: pageRow, error: pageError } = await supabaseAdmin
             .from("pages")
-            .select("workspace_id")
+            .select("workspace_id, visibility, owner_workspace_user_id, conversation_id")
             .eq("id", pageId)
             .maybeSingle();
-          if (pageRow?.workspace_id) {
-            const { data: wu } = await supabaseAdmin
-              .from("workspace_users")
-              .select("id")
-              .eq("workspace_id", pageRow.workspace_id as string)
-              .eq("user_id", userId)
+          if (pageError) return new Response(pageError.message, { status: 400 });
+          if (!pageRow) return new Response("Page not found", { status: 404 });
+
+          const { data: wu, error: wuError } = await supabaseAdmin
+            .from("workspace_users")
+            .select("id")
+            .eq("workspace_id", pageRow.workspace_id as string)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (wuError) return new Response(wuError.message, { status: 400 });
+          if (!wu?.id) return new Response("Forbidden", { status: 403 });
+          workspaceUserId = wu.id as string;
+
+          const visibility = pageRow.visibility as string;
+          if (visibility === "private" && pageRow.owner_workspace_user_id !== workspaceUserId) {
+            return new Response("Forbidden", { status: 403 });
+          }
+
+          if (visibility === "conversation") {
+            if (!pageRow.conversation_id) return new Response("Forbidden", { status: 403 });
+            const { data: participant, error: participantError } = await supabaseAdmin
+              .from("conversation_participants")
+              .select("workspace_user_id")
+              .eq("conversation_id", pageRow.conversation_id as string)
+              .eq("workspace_user_id", workspaceUserId)
               .maybeSingle();
-            if (wu?.id) {
-              await supabaseAdmin.from("page_collaborators").upsert(
-                {
-                  page_id: pageId,
-                  workspace_user_id: wu.id as string,
-                  last_edited_at: new Date().toISOString(),
-                },
-                { onConflict: "page_id,workspace_user_id" },
-              );
+            if (participantError) {
+              return new Response(participantError.message, { status: 400 });
             }
+            if (!participant) return new Response("Forbidden", { status: 403 });
+          }
+
+          const patch: {
+            title?: string;
+            content?: any;
+            last_modified_at: string;
+          } = { last_modified_at: new Date().toISOString() };
+          if (title !== undefined) patch.title = title;
+          if (content !== undefined) patch.content = content;
+
+          const { error } = await supabaseAdmin
+            .from("pages")
+            .update(patch)
+            .eq("id", pageId);
+          if (error) return new Response(error.message, { status: 400 });
+
+          // Best-effort collaborator upsert with service role (mirrors updatePage).
+          try {
+            await supabaseAdmin.from("page_collaborators").upsert(
+              {
+                page_id: pageId,
+                workspace_user_id: workspaceUserId,
+                last_edited_at: new Date().toISOString(),
+              },
+              { onConflict: "page_id,workspace_user_id" },
+            );
+          } catch {
+            // ignore collaborator bookkeeping failures
           }
         } catch {
-          // ignore
+          return new Response("Save failed", { status: 500 });
         }
 
         return new Response("ok");
