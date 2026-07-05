@@ -129,7 +129,7 @@ export function PageWindow({
   const fetchConversations = useServerFn(listMyConversations);
   const fetchBacklinks = useServerFn(getPageBacklinks);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["page", pageId],
@@ -428,30 +428,26 @@ export function PageWindow({
         titlePendingVersion.current > titleSavedVersion.current;
       if (!contentDirty && !titleDirty) return;
       if (typeof navigator === "undefined" || !navigator.sendBeacon) return;
+      const accessToken = session?.access_token;
+      if (!accessToken) return;
 
-      const send = async () => {
-        try {
-          const { data: sess } = await supabase.auth.getSession();
-          const accessToken = sess.session?.access_token;
-          if (!accessToken) return;
-          const payload: {
-            accessToken: string;
-            pageId: string;
-            title?: string;
-            content?: any;
-          } = { accessToken, pageId };
-          if (contentDirty) payload.content = latestContentRef.current;
-          if (titleDirty && latestTitleRef.current !== null)
-            payload.title = latestTitleRef.current;
-          const blob = new Blob([JSON.stringify(payload)], {
-            type: "application/json",
-          });
-          navigator.sendBeacon("/api/pages/save", blob);
-        } catch {
-          // ignore
-        }
+      try {
+        const payload: {
+          accessToken: string;
+          pageId: string;
+          title?: string;
+          content?: any;
+        } = { accessToken, pageId };
+        if (contentDirty) payload.content = latestContentRef.current;
+        if (titleDirty && latestTitleRef.current !== null)
+          payload.title = latestTitleRef.current;
+        const blob = new Blob([JSON.stringify(payload)], {
+          type: "application/json",
+        });
+        navigator.sendBeacon("/api/pages/save", blob);
+      } catch {
+        // ignore
       };
-      void send();
     };
 
     const onBeforeUnload = () => beacon();
@@ -464,7 +460,7 @@ export function PageWindow({
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [pageId]);
+  }, [pageId, session?.access_token]);
 
   // SPA-unmount flush (real RPC — reliable during in-app navigation).
   useEffect(() => {
