@@ -84,7 +84,7 @@ function WorkspaceShell() {
   const [newPageOpen, setNewPageOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
-  const railPanelRef = useRef<PanelImperativeHandle>(null);
+  const toggleRail = useCallback(() => setRailOpen((v) => !v), []);
 
   const fetchPages = useServerFn(listMyPages);
   const fetchConvs = useServerFn(listMyConversations);
