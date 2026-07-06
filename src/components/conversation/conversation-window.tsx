@@ -619,6 +619,7 @@ export function ConversationWindow({
               </div>
             );
           })()
+        ) : (
           <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <div className="min-w-0 flex-1 pr-3">
               <EditableTitle
