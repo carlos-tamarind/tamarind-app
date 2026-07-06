@@ -4,13 +4,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bold,
+  ChevronDown,
+  ChevronUp,
   CircleCheckBig,
   Code,
+  Copy,
   FilePlus,
+  FileText,
   Italic,
   Loader2,
   MoreHorizontal,
+  Quote,
   Send,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
