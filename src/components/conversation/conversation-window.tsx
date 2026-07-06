@@ -4,13 +4,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bold,
+  ChevronDown,
+  ChevronUp,
   CircleCheckBig,
   Code,
+  Copy,
   FilePlus,
+  FileText,
   Italic,
   Loader2,
   MoreHorizontal,
+  Quote,
   Send,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
@@ -273,6 +279,7 @@ export function ConversationWindow({
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [mcmExpanded, setMcmExpanded] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const toggleSelected = (id: string) => {
@@ -283,7 +290,14 @@ export function ConversationWindow({
       return next;
     });
   };
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setMcmExpanded(false);
+  };
+
+  useEffect(() => {
+    if (selectedIds.size === 0 && mcmExpanded) setMcmExpanded(false);
+  }, [selectedIds, mcmExpanded]);
 
   const { data: conv } = useQuery({
     queryKey: ["conversation", conversationId],
@@ -488,33 +502,123 @@ export function ConversationWindow({
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col">
         {selectedIds.size > 0 ? (
-          <div className="flex flex-col gap-2 border-b px-4 py-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                ← {selectedIds.size} selected
-              </span>
-              <Button size="sm" variant="ghost" onClick={clearSelection}>
-                Cancel
-              </Button>
-            </div>
-            <div className="grid grid-cols-3 items-center">
-              <div className="justify-self-start">
-                <Button size="sm" variant="ghost" disabled>
-                  New page
-                </Button>
+          (() => {
+            const plural = selectedIds.size > 1 ? "messages" : "message";
+            const noop = () => {};
+            return (
+              <div className="flex flex-col gap-2 border-b px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    ← {selectedIds.size} selected
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={clearSelection}>
+                    Cancel
+                  </Button>
+                </div>
+                {mcmExpanded ? (
+                  <div className="flex flex-col rounded-md border bg-popover/40 p-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={noop}
+                        >
+                          <FilePlus className="size-4" />
+                          Create new page
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Creates a new page using the selected message as placeholder.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={noop}
+                        >
+                          <FileText className="size-4" />
+                          Add to page
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Adds the contents of the selected message to an existing page.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={noop}
+                        >
+                          <Quote className="size-4" />
+                          Quote {plural}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Quotes the selected message inside the new message area.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={noop}
+                    >
+                      <Copy className="size-4" />
+                      Copy {plural} to clipboard
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      onClick={noop}
+                    >
+                      <Trash2 className="size-4" />
+                      Delete {plural}
+                    </Button>
+                    <div className="mt-1 flex justify-end border-t pt-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setMcmExpanded(false)}
+                      >
+                        Less <ChevronUp className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 items-center">
+                    <div className="justify-self-start">
+                      <Button size="sm" variant="ghost" disabled>
+                        New page
+                      </Button>
+                    </div>
+                    <div className="justify-self-center">
+                      <Button size="sm" variant="ghost" disabled>
+                        Quote
+                      </Button>
+                    </div>
+                    <div className="justify-self-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setMcmExpanded(true)}
+                      >
+                        More <ChevronDown className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="justify-self-center">
-                <Button size="sm" variant="ghost" disabled>
-                  Quote
-                </Button>
-              </div>
-              <div className="justify-self-end">
-                <Button size="sm" variant="ghost" disabled>
-                  More …
-                </Button>
-              </div>
-            </div>
-          </div>
+            );
+          })()
         ) : (
           <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <div className="min-w-0 flex-1 pr-3">
