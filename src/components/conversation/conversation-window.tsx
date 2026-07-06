@@ -279,6 +279,7 @@ export function ConversationWindow({
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [mcmExpanded, setMcmExpanded] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const toggleSelected = (id: string) => {
@@ -289,7 +290,14 @@ export function ConversationWindow({
       return next;
     });
   };
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setMcmExpanded(false);
+  };
+
+  useEffect(() => {
+    if (selectedIds.size === 0 && mcmExpanded) setMcmExpanded(false);
+  }, [selectedIds, mcmExpanded]);
 
   const { data: conv } = useQuery({
     queryKey: ["conversation", conversationId],
