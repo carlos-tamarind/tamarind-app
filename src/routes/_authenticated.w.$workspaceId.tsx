@@ -176,66 +176,56 @@ function WorkspaceShell() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-screen bg-background text-foreground">
+        <div
+          className={`shrink-0 overflow-hidden border-r bg-muted/30 transition-[width] duration-150 ${
+            railOpen ? "w-14" : "w-0"
+          }`}
+        >
+          <div className="flex h-full w-14 flex-col">
+            <div className="h-10 border-b" />
+            <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
+              {(workspaces ?? []).map((w) => (
+                <button
+                  key={w.workspaceId}
+                  onClick={() =>
+                    navigate({
+                      to: "/w/$workspaceId",
+                      params: { workspaceId: w.workspaceId },
+                    })
+                  }
+                  className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
+                    w.workspaceId === workspaceId
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-accent"
+                  }`}
+                  title={w.name}
+                >
+                  {w.name.slice(0, 2).toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-center border-t py-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/w/$workspaceId/settings"
+                    params={{ workspaceId }}
+                    className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    aria-label="Workspace settings"
+                  >
+                    <Settings className="size-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">Workspace settings</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+
         <ResizablePanelGroup
           orientation="horizontal"
           className="h-full flex-1"
         >
-
-
-          <ResizablePanel
-            id="rail"
-            panelRef={railPanelRef}
-            defaultSize="0%"
-            minSize="5%"
-            maxSize="5%"
-            collapsible
-            collapsedSize="0%"
-            onResize={(size) => {
-              const open = size.asPercentage > 0;
-              setRailOpen((prev) => (prev === open ? prev : open));
-            }}
-          >
-            <div className="flex h-full flex-col border-r bg-muted/30">
-              <div className="h-10 border-b" />
-
-              <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
-                {(workspaces ?? []).map((w) => (
-                  <button
-                    key={w.workspaceId}
-                    onClick={() =>
-                      navigate({
-                        to: "/w/$workspaceId",
-                        params: { workspaceId: w.workspaceId },
-                      })
-                    }
-                    className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
-                      w.workspaceId === workspaceId
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background hover:bg-accent"
-                    }`}
-                    title={w.name}
-                  >
-                    {w.name.slice(0, 2).toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center justify-center border-t py-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/w/$workspaceId/settings"
-                      params={{ workspaceId }}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label="Workspace settings"
-                    >
-                      <Settings className="size-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Workspace settings</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </ResizablePanel>
 
 
           <ResizablePanel
