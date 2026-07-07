@@ -1,5 +1,25 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+// A ProseMirror doc is "empty" when it's null/undefined, not a doc, or a doc
+// with no non-empty children. Used server-side to refuse overwrites that
+// would wipe existing page content.
+export function isEmptyDoc(content: any): boolean {
+  if (content === null || content === undefined) return true;
+  if (typeof content !== "object") return true;
+  if (content.type !== "doc") return true;
+  const children = Array.isArray(content.content) ? content.content : [];
+  if (children.length === 0) return true;
+  // Treat a doc that only contains an empty paragraph as empty too.
+  const hasSubstance = children.some((node: any) => {
+    if (!node || typeof node !== "object") return false;
+    if (Array.isArray(node.content) && node.content.length > 0) return true;
+    if (typeof node.text === "string" && node.text.length > 0) return true;
+    return false;
+  });
+  return !hasSubstance;
+}
+
+
 export async function getCurrentWorkspaceUser(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
     .from("workspace_users")
