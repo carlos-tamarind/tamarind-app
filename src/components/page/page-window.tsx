@@ -159,6 +159,8 @@ export function PageWindow({
   const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
   const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
+  const hydratedForPageRef = useRef<string | null>(null);
+
 
   const isValidDoc = (v: any): boolean =>
     !!v &&
