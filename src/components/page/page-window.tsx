@@ -434,7 +434,7 @@ export function PageWindow({
     }
   };
 
-  const hydratedForPageRef = useRef<string | null>(null);
+  // hydratedForPageRef declared earlier (near the top of the component).
   useEffect(() => {
     if (!data || !editor) return;
     if (hydratedForPageRef.current === pageId) return;
