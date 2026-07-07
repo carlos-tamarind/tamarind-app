@@ -329,8 +329,19 @@ export function PageWindow({
 
       const contentVersion = contentPendingVersion.current;
       const titleVersion = titlePendingVersion.current;
-      const contentDirty = contentVersion > contentSavedVersion.current;
-      const titleDirty = titleVersion > titleSavedVersion.current;
+      let contentDirty = contentVersion > contentSavedVersion.current;
+      let titleDirty = titleVersion > titleSavedVersion.current;
+
+      // Safety: never overwrite the server with an invalid/empty content doc
+      // or a null title. Drop the field from the patch; a future real edit
+      // will save.
+      if (contentDirty && !isValidDoc(latestContentRef.current)) {
+        contentDirty = false;
+      }
+      if (titleDirty && latestTitleRef.current === null) {
+        titleDirty = false;
+      }
+
       if (!contentDirty && !titleDirty) {
         clearLocalDraft();
         return true;
@@ -340,6 +351,7 @@ export function PageWindow({
       if (contentDirty) patch.content = latestContentRef.current;
       if (titleDirty && latestTitleRef.current !== null)
         patch.title = latestTitleRef.current;
+
 
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
