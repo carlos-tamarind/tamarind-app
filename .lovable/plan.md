@@ -1,59 +1,54 @@
-## Goal
-Add an "expanded" state to the Message Contextual Menu (MCM) that appears when the user has selected one or more messages in a conversation. In folded state, keep the current two contextual buttons plus Cancel and add a "More …" button. Clicking "More …" expands the MCM into a larger dropdown-style panel that reveals every available option; clicking "Less …" folds it back to its exact original layout.
+## Bug
 
-## Scope
-- File: `src/components/conversation/conversation-window.tsx` — the selection bar (currently lines ~490–517) is the only surface changing.
-- No changes to message selection, sending, backend, or other panels.
-- All new option handlers are visual placeholders (buttons render, hint tooltips work, click does nothing yet). "More …" always renders enabled — the conditional visibility logic is deferred to a later prompt.
+When a page has been idle for 5+ minutes and the user opens it while another page is currently open, the page's title AND content are wiped in the database. Owner, visibility, collaborators are intact — which means an UPDATE is being issued that sets `title` and `content` to empty values.
 
-## Behavior
+## Likely cause
 
-Folded state (unchanged visual footprint):
-- Top row: `← N selected` on the left, `Cancel` on the right.
-- Bottom row (3-column grid, as today):
-  - Left: `New page` (existing button, kept as-is)
-  - Center: `Quote` (existing button, kept as-is)
-  - Right: `More …` button (replaces the currently-disabled `More …` placeholder — always enabled per this prompt)
+Two suspect code paths in `src/components/page/page-window.tsx` combine with React Query's 5-minute `gcTime` to explain the symptom:
 
-Expanded state:
-- Same top row (`← N selected` + `Cancel` in the same positions).
-- Replaces the 3-column folded row with a vertical list of all options styled as a compact dropdown-menu-like panel that "steals" vertical space from the messages area (the message list stays scrollable; the MCM panel simply grows in place above it, inside the existing `border-b` container).
-- Options, top-to-bottom, left-aligned with icon + label:
-  1. Create new page — hint: "Creates a new page using the selected message as placeholder."
-  2. Add to page — hint: "Adds the contents of the selected message to an existing page."
-  3. Quote message — hint: "Quotes the selected message inside the new message area."
-  4. Copy message to clipboard
-  5. Delete message (rendered in destructive tone)
-- Bottom-right corner of the panel: `Less …` button.
-- Every label containing the word "message" is pluralized to "messages" when `selectedIds.size > 1` (Quote message(s), Copy message(s) to clipboard, Delete message(s)).
-- Hints are Tooltip components using the existing `TooltipProvider` on hover of each option (options 1–3 per spec; add none for 4–5 unless spec dictates — spec only lists hints for 1–3, so only those three get tooltips).
+1. **Local-draft hydration can apply an empty draft and immediately save it.**
+   `hydration effect` reads `mento:page-draft:{pageId}` from `localStorage`. If a draft exists whose `updatedAt > data.lastModifiedAt`, it overwrites `nextTitle` / `nextContent` with the draft's values, bumps the pending versions, and calls `scheduleFlushRef.current()` — which will POST that draft (potentially `title = ""`, `content = { type: "doc", content: [] }`) back to the server. A stale draft ends up in `localStorage` whenever an earlier save failed silently (the unmount flush runs with `{ silent: true }`, and on failure it does NOT clear the draft; it also has no live component to retry from). After 5+ minutes the query cache is gc'd, so `getPage` re-runs from scratch and hydration re-triggers the draft path.
 
-State machine:
-- `mcmExpanded: boolean` local state, initialized to `false`.
-- Reset to `false` whenever `selectedIds` becomes empty (Cancel, message deselection to zero, conversation change).
-- `More …` click → `setMcmExpanded(true)`.
-- `Less …` click → `setMcmExpanded(false)`; folded layout re-renders with the same two contextual buttons (`New page`, `Quote`) as before — this is guaranteed because the folded JSX is a single static layout, not derived from prior expanded selections.
-- `Cancel` behavior identical in both states: `clearSelection()` (already implemented) and implicitly folds (since selection is now empty).
+2. **`writeLocalDraft` can persist a draft with `content = null`.**
+   `latestContentRef.current` is initialised to `null` and only set to a real doc when hydration runs OR `onUpdate` fires. If the user types in the title *before* hydration finishes (fast switch into an idle page), `handleTitleChange` bumps the dirty flags and calls `writeLocalDraft`, which writes `{ title, content: null }` to `localStorage`. Later, hydration applies that draft → editor content becomes empty → a save wipes DB `content`.
 
-## Design notes
-- Reuse `Button` (`variant="ghost"`, `size="sm"`), `Tooltip`, and existing token classes. No new component files.
-- Expanded panel: `flex flex-col` list of full-width ghost buttons with left-aligned icon+label, subtle hover (`hover:bg-muted/60`), and a trailing row containing `Less …` right-aligned. Destructive delete uses `text-destructive`.
-- Icons from `lucide-react` already available in the bundle: `FilePlus`, `FileText`, `Quote`, `Copy`, `Trash2`, `ChevronDown` (More), `ChevronUp` (Less). Import only the new ones (`FileText`, `Quote`, `Copy`, `Trash2`, `ChevronDown`, `ChevronUp`).
-- Keep everything inside the existing `border-b` selection container so the messages list below is untouched and remains resizable/scrollable.
+Both paths ultimately reach `updatePage` / `/api/pages/save`, which currently accept whatever is sent (`if (title !== undefined) patch.title = title; if (content !== undefined) patch.content = content;`), so an empty payload is written verbatim.
 
-## Technical details
-- Add `const [mcmExpanded, setMcmExpanded] = useState(false);` near the other selection state.
-- Extend `clearSelection` to also call `setMcmExpanded(false)`, and add an `useEffect` that resets it when `selectedIds.size === 0`.
-- Update the `selectedIds.size > 0` branch of the JSX to conditionally render folded vs expanded layouts.
-- Pluralization helper inline: `const plural = selectedIds.size > 1 ? "messages" : "message";`.
-- All new option `onClick` handlers are no-ops (`() => {}`) for now; buttons stay enabled so the UI is interactive per the spec ("just placeholders").
+## Fix
 
-## QA plan
-- Select one message → folded MCM shows `New page`, `Quote`, `More …`, `Cancel`. Labels singular.
-- Select multiple → same folded layout; expanded labels use "messages".
-- Click `More …` → panel expands with 5 options + `Less …` bottom-right; `Cancel` still top-right.
-- Hover options 1–3 → tooltips show the specified hints.
-- Click `Less …` → folds back to exact original layout (`New page`, `Quote`, `More …`).
-- Click `Cancel` in either state → selection clears and menu disappears.
-- Deselect last message manually → menu disappears and next reopen starts folded.
-- Switch conversations while expanded → new conversation starts with no selection and folded default.
+Defence in depth: guard on the client, the local draft, and the server. No functional changes to editing or collaboration.
+
+### 1. `src/components/page/page-window.tsx`
+
+- **Never treat a draft as valid unless its content is a well-formed doc.** In the hydration effect, when reading `draft`, only accept `draft.content` if it is an object with `type === "doc"` and an `Array.isArray(content)`. Otherwise ignore `draftHasContent`. Same guard for `draft.title` (must be a non-null string; empty string only allowed if the user genuinely cleared it, i.e. draft is newer than server AND title was already empty on the server).
+- **Never write a draft that would represent a page wipe.** In `writeLocalDraft`, skip writing if `latestContentRef.current` is `null`/`undefined` AND `latestTitleValueRef.current` is empty. Also skip the whole write if hydration has not yet completed (`hydratedForPageRef.current !== pageId`) — nothing the user typed before hydration should be persisted, since we don't yet know the server baseline.
+- **Clear the draft even after silent unmount flush failure.** In the unmount cleanup, if `flushNowRef.current({ silent: true })` rejects/returns false and no live component will retry, still leave a draft only if the pending content is a valid doc (uses the same validator as above). Simpler: reuse the guard so a bad draft can never persist across a reload.
+- **Guard `flushNowRef.current` against no-op wipes.** Before building `patch`, if `contentDirty` and `latestContentRef.current` is not a valid doc, drop `content` from the patch (and leave `contentPendingVersion` alone so a future real edit will save). Same for `titleDirty` when `latestTitleRef.current === null`.
+
+### 2. `src/lib/pages.functions.ts` (`updatePage`)
+
+Add a server-side safety net so a buggy client can't wipe a page:
+
+- Fetch the current row inside the handler (already done by `assertCanEditPage`; extend it or add a follow-up read for `title`, `content`).
+- If the incoming `content` is an "empty doc" (`{ type: "doc", content: [] }` or missing/empty `content` array) AND the stored `content` is non-empty, drop `content` from the patch and log a warning with `pageId` + caller `userId`. Do the same for `title === ""` when the stored title is non-empty.
+- If after this filtering the patch is empty (only `last_modified_at`), skip the UPDATE and return `{ ok: true, skipped: true }`.
+
+### 3. `src/routes/api/pages.save.ts` (beacon endpoint)
+
+Apply the exact same "don't overwrite non-empty with empty" guard as `updatePage`. The beacon runs at tab-close / hide time and is the highest-risk path because there is no UI feedback if it wipes the row.
+
+### 4. Small telemetry
+
+Add a single `console.warn("[pages] blocked empty-content overwrite", { pageId, userId })` in both server paths whenever the guard trips, so if this recurs we can trace which client path fired.
+
+## Out of scope
+
+- Real collaborative editing (still a future prompt).
+- Any change to visibility, collaborators, presence, or the conversation panel.
+- Any change to how successful edits are debounced/saved — only the "empty overwrite" edge is closed.
+
+## Verification
+
+1. Manual: open Page A with content, open Page B, wait 6 minutes, click Page A → content and title still present. Repeat with the tab hidden during the wait (exercises the beacon).
+2. Manual: type in a page, force a network failure (offline), navigate away → confirm the draft written to `localStorage` is either a valid doc or absent; reload the page → confirm no empty save occurs.
+3. DB check via read query on `pages.title` / `pages.content` before and after the reopen to confirm no wipe.

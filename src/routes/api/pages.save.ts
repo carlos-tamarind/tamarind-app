@@ -65,7 +65,7 @@ export const Route = createFileRoute("/api/pages/save")({
 
           const { data: pageRow, error: pageError } = await supabaseAdmin
             .from("pages")
-            .select("workspace_id, visibility, owner_workspace_user_id, conversation_id")
+            .select("workspace_id, visibility, owner_workspace_user_id, conversation_id, title, content")
             .eq("id", pageId)
             .maybeSingle();
           if (pageError) return new Response(pageError.message, { status: 400 });
@@ -100,19 +100,54 @@ export const Route = createFileRoute("/api/pages/save")({
             if (!participant) return new Response("Forbidden", { status: 403 });
           }
 
+          // Safety: refuse to overwrite non-empty stored title/content with
+          // empty values (mirrors the guard in updatePage).
+          const { isEmptyDoc } = await import("@/lib/pages.server");
+          let safeTitle = title;
+          let safeContent = content;
+          if (
+            safeTitle !== undefined &&
+            safeTitle === "" &&
+            typeof pageRow.title === "string" &&
+            (pageRow.title as string).length > 0
+          ) {
+            console.warn("[pages] blocked empty-title overwrite (beacon)", {
+              pageId,
+              userId,
+            });
+            safeTitle = undefined;
+          }
+          if (
+            safeContent !== undefined &&
+            isEmptyDoc(safeContent) &&
+            !isEmptyDoc(pageRow.content)
+          ) {
+            console.warn("[pages] blocked empty-content overwrite (beacon)", {
+              pageId,
+              userId,
+            });
+            safeContent = undefined;
+          }
+
+          if (safeTitle === undefined && safeContent === undefined) {
+            // Nothing meaningful left to write.
+            return new Response("ok");
+          }
+
           const patch: {
             title?: string;
             content?: any;
             last_modified_at: string;
           } = { last_modified_at: new Date().toISOString() };
-          if (title !== undefined) patch.title = title;
-          if (content !== undefined) patch.content = content;
+          if (safeTitle !== undefined) patch.title = safeTitle;
+          if (safeContent !== undefined) patch.content = safeContent;
 
           const { error } = await supabaseAdmin
             .from("pages")
             .update(patch)
             .eq("id", pageId);
           if (error) return new Response(error.message, { status: 400 });
+
 
           // Best-effort collaborator upsert with service role (mirrors updatePage).
           try {

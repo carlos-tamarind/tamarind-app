@@ -159,13 +159,29 @@ export function PageWindow({
   const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
   const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
+  const hydratedForPageRef = useRef<string | null>(null);
+
+
+  const isValidDoc = (v: any): boolean =>
+    !!v &&
+    typeof v === "object" &&
+    v.type === "doc" &&
+    Array.isArray(v.content);
 
   const writeLocalDraft = () => {
     if (typeof window === "undefined") return;
+    // Do not persist anything until hydration has established a baseline.
+    if (hydratedForPageRef.current !== pageId) return;
     const contentDirty =
       contentPendingVersion.current > contentSavedVersion.current;
     const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
     if (!contentDirty && !titleDirty) return;
+    // Refuse to persist a draft that represents a "wiped" page.
+    const contentOk = isValidDoc(latestContentRef.current);
+    const titleOk =
+      typeof latestTitleValueRef.current === "string" &&
+      latestTitleValueRef.current.length > 0;
+    if (!contentOk && !titleOk) return;
     try {
       window.localStorage.setItem(
         draftKey,
@@ -189,6 +205,7 @@ export function PageWindow({
       // ignore
     }
   };
+
 
   const memberSuggestion = useMemo(
     () =>
@@ -312,8 +329,19 @@ export function PageWindow({
 
       const contentVersion = contentPendingVersion.current;
       const titleVersion = titlePendingVersion.current;
-      const contentDirty = contentVersion > contentSavedVersion.current;
-      const titleDirty = titleVersion > titleSavedVersion.current;
+      let contentDirty = contentVersion > contentSavedVersion.current;
+      let titleDirty = titleVersion > titleSavedVersion.current;
+
+      // Safety: never overwrite the server with an invalid/empty content doc
+      // or a null title. Drop the field from the patch; a future real edit
+      // will save.
+      if (contentDirty && !isValidDoc(latestContentRef.current)) {
+        contentDirty = false;
+      }
+      if (titleDirty && latestTitleRef.current === null) {
+        titleDirty = false;
+      }
+
       if (!contentDirty && !titleDirty) {
         clearLocalDraft();
         return true;
@@ -323,6 +351,7 @@ export function PageWindow({
       if (contentDirty) patch.content = latestContentRef.current;
       if (titleDirty && latestTitleRef.current !== null)
         patch.title = latestTitleRef.current;
+
 
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
@@ -419,7 +448,7 @@ export function PageWindow({
     }
   };
 
-  const hydratedForPageRef = useRef<string | null>(null);
+  // hydratedForPageRef declared earlier (near the top of the component).
   useEffect(() => {
     if (!data || !editor) return;
     if (hydratedForPageRef.current === pageId) return;
@@ -442,16 +471,28 @@ export function PageWindow({
           typeof draft.updatedAt === "number" &&
           draft.updatedAt > serverTime
         ) {
-          if (typeof draft.title === "string") {
+          // Only accept a draft title that is a non-empty string, and only a
+          // draft content that is a valid ProseMirror doc. This blocks the
+          // "draft wipes the page" class of bugs.
+          if (typeof draft.title === "string" && draft.title.length > 0) {
             nextTitle = draft.title;
             draftHasTitle = true;
           }
-          if (draft.content !== undefined) {
+          if (isValidDoc(draft.content)) {
             nextContent = draft.content;
             draftHasContent = true;
           }
           draftApplied = draftHasTitle || draftHasContent;
+          if (!draftApplied) {
+            // Draft was invalid — drop it so we don't keep re-reading it.
+            try {
+              window.localStorage.removeItem(draftKey);
+            } catch {
+              // ignore
+            }
+          }
         }
+
       } catch {
         // ignore invalid drafts
       }
