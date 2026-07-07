@@ -471,16 +471,28 @@ export function PageWindow({
           typeof draft.updatedAt === "number" &&
           draft.updatedAt > serverTime
         ) {
-          if (typeof draft.title === "string") {
+          // Only accept a draft title that is a non-empty string, and only a
+          // draft content that is a valid ProseMirror doc. This blocks the
+          // "draft wipes the page" class of bugs.
+          if (typeof draft.title === "string" && draft.title.length > 0) {
             nextTitle = draft.title;
             draftHasTitle = true;
           }
-          if (draft.content !== undefined) {
+          if (isValidDoc(draft.content)) {
             nextContent = draft.content;
             draftHasContent = true;
           }
           draftApplied = draftHasTitle || draftHasContent;
+          if (!draftApplied) {
+            // Draft was invalid — drop it so we don't keep re-reading it.
+            try {
+              window.localStorage.removeItem(draftKey);
+            } catch {
+              // ignore
+            }
+          }
         }
+
       } catch {
         // ignore invalid drafts
       }
