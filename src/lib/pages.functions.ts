@@ -167,13 +167,65 @@ export const updatePage = createServerFn({ method: "POST" })
     const { assertCanEditPage, recordPageCollaborator } = await import(
       "@/lib/pages.server"
     );
+    const { isEmptyDoc } = await import("@/lib/pages.server");
     const { userId } = context;
     const access = await assertCanEditPage(data.pageId, userId);
+
+    let title = data.title;
+    let content = data.content;
+
+    // Safety net: refuse to overwrite non-empty stored title/content with
+    // empty values. Prevents client-side draft/hydration bugs from wiping
+    // pages.
+    if (title !== undefined || content !== undefined) {
+      const { data: current } = await supabaseAdmin
+        .from("pages")
+        .select("title, content")
+        .eq("id", data.pageId)
+        .maybeSingle();
+      if (current) {
+        if (
+          title !== undefined &&
+          title === "" &&
+          typeof current.title === "string" &&
+          current.title.length > 0
+        ) {
+          console.warn("[pages] blocked empty-title overwrite", {
+            pageId: data.pageId,
+            userId,
+          });
+          title = undefined;
+        }
+        if (
+          content !== undefined &&
+          isEmptyDoc(content) &&
+          !isEmptyDoc(current.content)
+        ) {
+          console.warn("[pages] blocked empty-content overwrite", {
+            pageId: data.pageId,
+            userId,
+          });
+          content = undefined;
+        }
+      }
+    }
+
     const patch: { title?: string; content?: any; last_modified_at: string } = {
       last_modified_at: new Date().toISOString(),
     };
-    if (data.title !== undefined) patch.title = data.title;
-    if (data.content !== undefined) patch.content = data.content;
+    if (title !== undefined) patch.title = title;
+    if (content !== undefined) patch.content = content;
+
+    // Nothing meaningful to write — still record collaborator activity.
+    if (title === undefined && content === undefined) {
+      try {
+        await recordPageCollaborator(data.pageId, access.workspaceUserId);
+      } catch {
+        // ignore
+      }
+      return { ok: true, skipped: true as const };
+    }
+
     const { error } = await supabaseAdmin
       .from("pages")
       .update(patch)
@@ -189,6 +241,7 @@ export const updatePage = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
 
 export const setPageVisibility = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
