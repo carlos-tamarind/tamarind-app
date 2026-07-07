@@ -160,12 +160,26 @@ export function PageWindow({
   savePageRef.current = savePage;
   const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
 
+  const isValidDoc = (v: any): boolean =>
+    !!v &&
+    typeof v === "object" &&
+    v.type === "doc" &&
+    Array.isArray(v.content);
+
   const writeLocalDraft = () => {
     if (typeof window === "undefined") return;
+    // Do not persist anything until hydration has established a baseline.
+    if (hydratedForPageRef.current !== pageId) return;
     const contentDirty =
       contentPendingVersion.current > contentSavedVersion.current;
     const titleDirty = titlePendingVersion.current > titleSavedVersion.current;
     if (!contentDirty && !titleDirty) return;
+    // Refuse to persist a draft that represents a "wiped" page.
+    const contentOk = isValidDoc(latestContentRef.current);
+    const titleOk =
+      typeof latestTitleValueRef.current === "string" &&
+      latestTitleValueRef.current.length > 0;
+    if (!contentOk && !titleOk) return;
     try {
       window.localStorage.setItem(
         draftKey,
@@ -189,6 +203,7 @@ export function PageWindow({
       // ignore
     }
   };
+
 
   const memberSuggestion = useMemo(
     () =>
