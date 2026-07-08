@@ -670,13 +670,13 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
 
     // Conversation display title (fallback like getConversation)
     const convTitle =
-      (convRow.title as string | null) ??
-      participants
+      (convRow.title as string | null) ||
+      (participants
         .filter((p) => p.workspaceUserId !== meWuId)
         .slice(0, 3)
         .map((p) => p.label)
         .join(", ") ||
-      "Conversation";
+        "Conversation");
 
     // Messages (chronological, restricted to given ids AND this conversation)
     const { data: msgs, error: mErr } = await supabaseAdmin
