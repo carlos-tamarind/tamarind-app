@@ -548,7 +548,7 @@ export function ConversationWindow({
                           size="sm"
                           variant="ghost"
                           className="w-full justify-start"
-                          onClick={noop}
+                          onClick={handleCreatePageFromSelection}
                         >
                           <FilePlus className="size-4" />
                           Create new page
