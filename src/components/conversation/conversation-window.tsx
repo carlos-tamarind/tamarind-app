@@ -942,6 +942,9 @@ export function ConversationWindow({
           conversationId={conversationId}
           open={newPageOpen}
           onOpenChange={setNewPageOpen}
+          mode={newPageFromMessages ? "fromMessages" : "blank"}
+          presetTitle={newPageFromMessages ? newPagePresetTitle : undefined}
+          messageIds={newPageFromMessages ? newPageMessageIds : undefined}
           onCreated={(pageId) => {
             clearSelection();
             navigate({
