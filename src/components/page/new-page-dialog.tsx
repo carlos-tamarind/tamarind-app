@@ -21,11 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createBlankPage } from "@/lib/pages.functions";
-import { createConversationPage } from "@/lib/conversations.functions";
+import {
+  createConversationPage,
+  createPageFromMessages,
+} from "@/lib/conversations.functions";
 
 type Visibility = "private" | "workspace" | "conversation";
+type Mode = "blank" | "fromMessages";
 
 const MAX_TITLE = 50;
+const FROM_MESSAGES_TEMPLATE = "from-messages";
+const FROM_MESSAGES_TEMPLATE_LABEL =
+  "New conversation page from message selection";
 
 function graphemeLength(value: string) {
   return Array.from(value).length;
@@ -36,20 +43,32 @@ export function NewPageDialog({
   onOpenChange,
   workspaceId,
   conversationId,
+  mode = "blank",
+  presetTitle,
+  messageIds,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workspaceId: string;
   conversationId?: string;
+  mode?: Mode;
+  presetTitle?: string;
+  messageIds?: string[];
   onCreated?: (pageId: string) => void;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createBlank = useServerFn(createBlankPage);
   const createInConv = useServerFn(createConversationPage);
+  const createFromMessages = useServerFn(createPageFromMessages);
 
-  const defaultVisibility: Visibility = conversationId ? "conversation" : "private";
+  const isFromMessages = mode === "fromMessages" && !!conversationId;
+  const defaultVisibility: Visibility = isFromMessages
+    ? "conversation"
+    : conversationId
+      ? "conversation"
+      : "private";
 
   const [title, setTitle] = useState("");
   const [visibility, setVisibility] = useState<Visibility>(defaultVisibility);
@@ -58,11 +77,11 @@ export function NewPageDialog({
   // Reset state every time the dialog opens
   useEffect(() => {
     if (open) {
-      setTitle("");
+      setTitle(isFromMessages && presetTitle ? presetTitle : "");
       setVisibility(defaultVisibility);
       setSubmitting(false);
     }
-  }, [open, defaultVisibility]);
+  }, [open, defaultVisibility, isFromMessages, presetTitle]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
@@ -75,8 +94,22 @@ export function NewPageDialog({
     try {
       const trimmed = title.trim();
       let pageId: string;
-      if (conversationId) {
-        // From a conversation: visibility cannot be "private"
+      if (isFromMessages && messageIds && messageIds.length > 0) {
+        const v: "workspace" | "conversation" =
+          visibility === "workspace" ? "workspace" : "conversation";
+        const res = await createFromMessages({
+          data: {
+            conversationId: conversationId!,
+            messageIds,
+            ...(trimmed ? { title: trimmed } : {}),
+            visibility: v,
+          },
+        });
+        pageId = res.pageId;
+        queryClient.invalidateQueries({
+          queryKey: ["conversation-pages", conversationId],
+        });
+      } else if (conversationId) {
         const v: "workspace" | "conversation" =
           visibility === "workspace" ? "workspace" : "conversation";
         const res = await createInConv({
@@ -182,12 +215,18 @@ export function NewPageDialog({
             <label className="text-xs font-semibold text-muted-foreground">
               Page template
             </label>
-            <Select disabled value="none">
+            <Select
+              disabled
+              value={isFromMessages ? FROM_MESSAGES_TEMPLATE : "none"}
+            >
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="No templates available" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No templates available</SelectItem>
+                <SelectItem value={FROM_MESSAGES_TEMPLATE}>
+                  {FROM_MESSAGES_TEMPLATE_LABEL}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
