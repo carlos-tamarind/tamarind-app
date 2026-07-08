@@ -621,7 +621,11 @@ export function ConversationWindow({
                 ) : (
                   <div className="grid grid-cols-3 items-center">
                     <div className="justify-self-start">
-                      <Button size="sm" variant="ghost" disabled>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCreatePageFromSelection}
+                      >
                         New page
                       </Button>
                     </div>
