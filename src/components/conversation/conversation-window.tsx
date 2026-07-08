@@ -463,7 +463,29 @@ export function ConversationWindow({
     }
   };
 
-  const handleNewPage = () => setNewPageOpen(true);
+  const handleNewPage = () => {
+    setNewPageFromMessages(false);
+    setNewPagePresetTitle("");
+    setNewPageMessageIds([]);
+    setNewPageOpen(true);
+  };
+
+  const handleCreatePageFromSelection = () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    // Preserve chronological order using current messages list.
+    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
+    ids.sort(
+      (a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0),
+    );
+    const now = new Date();
+    const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+    const preset = `Messages from ${displayTitle} on ${stamp}`.slice(0, 50);
+    setNewPageMessageIds(ids);
+    setNewPagePresetTitle(preset);
+    setNewPageFromMessages(true);
+    setNewPageOpen(true);
+  };
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest(
