@@ -276,6 +276,9 @@ export function ConversationWindow({
   const [addOpen, setAddOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [newPageOpen, setNewPageOpen] = useState(false);
+  const [newPageFromMessages, setNewPageFromMessages] = useState(false);
+  const [newPagePresetTitle, setNewPagePresetTitle] = useState<string>("");
+  const [newPageMessageIds, setNewPageMessageIds] = useState<string[]>([]);
   const [isEmpty, setIsEmpty] = useState(true);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
