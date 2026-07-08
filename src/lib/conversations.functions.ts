@@ -562,3 +562,325 @@ export const renameConversation = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// -------- Create page from selected messages --------
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function fmtDateTimeMinute(d: Date) {
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(
+    d.getUTCDate(),
+  )} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
+
+function fmtDateOnly(d: Date) {
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(
+    d.getUTCDate(),
+  )}`;
+}
+
+function fmtRfc2822NoTz(d: Date) {
+  // "Wed, 08 Jul 2026 14:03:00 GMT" -> strip trailing " GMT"
+  return d.toUTCString().replace(/\sGMT$/, "");
+}
+
+// Very small HTML -> plain-text-paragraph converter. Splits on block-ish
+// separators, strips remaining tags, decodes minimal entities.
+function htmlToParagraphs(html: string): string[] {
+  if (!html) return [];
+  const normalized = html
+    .replace(/\r\n?/g, "\n")
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+  const decoded = normalized
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return decoded
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+function paragraph(text?: string) {
+  return text && text.length > 0
+    ? { type: "paragraph", content: [{ type: "text", text }] }
+    : { type: "paragraph" };
+}
+
+export const createPageFromMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        messageIds: z.array(z.string().uuid()).min(1).max(500),
+        title: z.string().trim().max(200).optional(),
+        visibility: z.enum(["workspace", "conversation"]).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId, workspaceId } = await assertParticipant(
+      data.conversationId,
+      context.userId,
+    );
+
+    // Conversation (title + type)
+    const { data: convRow, error: cErr } = await supabaseAdmin
+      .from("conversations")
+      .select("id, title, type")
+      .eq("id", data.conversationId)
+      .single();
+    if (cErr || !convRow) throw new Error(cErr?.message ?? "Conversation not found");
+
+    // Participants (label + wu id + user id)
+    const { data: partsRaw } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("workspace_users!inner(id, display_name, user_id)")
+      .eq("conversation_id", data.conversationId);
+    const partRows = (partsRaw ?? []).map((p: any) => p.workspace_users);
+    const partEmails = await fetchEmailsForUserIds(
+      partRows
+        .filter((wu: any) => !((wu.display_name ?? "") as string).trim())
+        .map((wu: any) => wu.user_id as string),
+    );
+    const participants = partRows.map((wu: any) => ({
+      workspaceUserId: wu.id as string,
+      label: resolveLabel(
+        { display_name: wu.display_name, user_id: wu.user_id },
+        partEmails,
+      ),
+    }));
+
+    // Me label
+    const meRow = partRows.find((wu: any) => wu.id === meWuId) as any;
+    const meLabel = meRow
+      ? resolveLabel(
+          { display_name: meRow.display_name, user_id: meRow.user_id },
+          partEmails,
+        )
+      : "Me";
+
+    // Conversation display title (fallback like getConversation)
+    const convTitle =
+      (convRow.title as string | null) ||
+      (participants
+        .filter((p) => p.workspaceUserId !== meWuId)
+        .slice(0, 3)
+        .map((p) => p.label)
+        .join(", ") ||
+        "Conversation");
+
+    // Messages (chronological, restricted to given ids AND this conversation)
+    const { data: msgs, error: mErr } = await supabaseAdmin
+      .from("messages")
+      .select("id, raw_text, author_workspace_user_id, created_at")
+      .eq("conversation_id", data.conversationId)
+      .in("id", data.messageIds)
+      .order("created_at", { ascending: true });
+    if (mErr) throw new Error(mErr.message);
+    if (!msgs || msgs.length === 0) {
+      throw new Error("No messages found for selection");
+    }
+
+    // Author labels
+    const authorIds = Array.from(
+      new Set(
+        msgs
+          .map((m) => m.author_workspace_user_id as string | null)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    const authorLabels = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const { data: wus } = await supabaseAdmin
+        .from("workspace_users")
+        .select("id, user_id, display_name")
+        .in("id", authorIds);
+      const rows = wus ?? [];
+      const emails = await fetchEmailsForUserIds(
+        rows
+          .filter((r) => !((r.display_name ?? "") as string).trim())
+          .map((r) => r.user_id as string),
+      );
+      for (const r of rows) {
+        authorLabels.set(
+          r.id as string,
+          resolveLabel(
+            { display_name: r.display_name as any, user_id: r.user_id as any },
+            emails,
+          ),
+        );
+      }
+    }
+
+    const now = new Date();
+    const canonicalTitle = `Messages from ${convTitle} on ${fmtDateTimeMinute(now)}`;
+    const finalTitle =
+      data.title && data.title.trim().length > 0 ? data.title.trim() : canonicalTitle;
+
+    // ---- Build ProseMirror content ----
+
+    const participantMentionSpans: any[] = [];
+    participants.forEach((p, idx) => {
+      if (idx > 0)
+        participantMentionSpans.push({ type: "text", text: ", " });
+      participantMentionSpans.push({
+        type: "mention",
+        attrs: { id: p.workspaceUserId, label: p.label },
+      });
+    });
+
+    const propsList = {
+      type: "bulletList",
+      content: [
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Original conversation: " },
+                {
+                  type: "conversationMention",
+                  attrs: { id: data.conversationId, label: convTitle },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Original participants: " },
+                ...participantMentionSpans,
+              ],
+            },
+          ],
+        },
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: `Creation date: ${fmtRfc2822NoTz(now)}`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Created by: " },
+                {
+                  type: "mention",
+                  attrs: { id: meWuId, label: meLabel },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Group messages into contiguous runs by author.
+    type Run = {
+      authorWuId: string | null;
+      authorLabel: string;
+      dateKey: string;
+      messages: typeof msgs;
+    };
+    const runs: Run[] = [];
+    for (const m of msgs) {
+      const authorWuId = (m.author_workspace_user_id as string | null) ?? null;
+      const authorLabel = authorWuId
+        ? authorLabels.get(authorWuId) ?? "Archived user"
+        : "Unknown user";
+      const dateKey = fmtDateOnly(new Date(m.created_at as string));
+      const last = runs[runs.length - 1];
+      if (last && last.authorWuId === authorWuId && last.dateKey === dateKey) {
+        last.messages.push(m);
+      } else {
+        runs.push({ authorWuId, authorLabel, dateKey, messages: [m] });
+      }
+    }
+
+    const contentNodes: any[] = [
+      {
+        type: "heading",
+        attrs: { level: 1 },
+        content: [{ type: "text", text: finalTitle }],
+      },
+      propsList,
+      { type: "paragraph" },
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "Contents" }],
+      },
+      { type: "horizontalRule" },
+    ];
+
+    runs.forEach((run, i) => {
+      if (i > 0) contentNodes.push({ type: "paragraph" });
+      contentNodes.push({
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            marks: [{ type: "bold" }],
+            text: `${run.authorLabel} on ${run.dateKey}`,
+          },
+        ],
+      });
+      for (const msg of run.messages) {
+        const paragraphs = htmlToParagraphs((msg.raw_text as string) ?? "");
+        if (paragraphs.length === 0) {
+          contentNodes.push(paragraph(""));
+        } else {
+          for (const p of paragraphs) contentNodes.push(paragraph(p));
+        }
+      }
+    });
+
+    const doc = { type: "doc", content: contentNodes };
+
+    const visibility = data.visibility ?? "conversation";
+    const linksConversation = visibility === "conversation";
+
+    const { data: page, error: insErr } = await supabaseAdmin
+      .from("pages")
+      .insert({
+        workspace_id: workspaceId,
+        created_by_workspace_user_id: meWuId,
+        owner_workspace_user_id: meWuId,
+        visibility,
+        page_type: "standard",
+        origin_type: "conversation",
+        origin_source_id: data.conversationId,
+        ...(linksConversation ? { conversation_id: data.conversationId } : {}),
+        title: finalTitle,
+        content: doc,
+      })
+      .select("id")
+      .single();
+    if (insErr || !page) throw new Error(insErr?.message ?? "Create failed");
+    return { pageId: page.id as string };
+  });

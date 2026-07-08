@@ -1,54 +1,62 @@
-## Bug
+## Goal
 
-When a page has been idle for 5+ minutes and the user opens it while another page is currently open, the page's title AND content are wiped in the database. Owner, visibility, collaborators are intact — which means an UPDATE is being issued that sets `title` and `content` to empty values.
+Wire the conversation MCM "Create new page" (both folded "New page" and expanded "Create new page") into a preset flow that opens the new-page dialog and, on confirm, creates a Conversation-scoped page pre-populated with the selected messages using the schema in the prompt.
 
-## Likely cause
+## 1. Server function — `createPageFromMessages`
 
-Two suspect code paths in `src/components/page/page-window.tsx` combine with React Query's 5-minute `gcTime` to explain the symptom:
+New server function in `src/lib/conversations.functions.ts`:
 
-1. **Local-draft hydration can apply an empty draft and immediately save it.**
-   `hydration effect` reads `mento:page-draft:{pageId}` from `localStorage`. If a draft exists whose `updatedAt > data.lastModifiedAt`, it overwrites `nextTitle` / `nextContent` with the draft's values, bumps the pending versions, and calls `scheduleFlushRef.current()` — which will POST that draft (potentially `title = ""`, `content = { type: "doc", content: [] }`) back to the server. A stale draft ends up in `localStorage` whenever an earlier save failed silently (the unmount flush runs with `{ silent: true }`, and on failure it does NOT clear the draft; it also has no live component to retry from). After 5+ minutes the query cache is gc'd, so `getPage` re-runs from scratch and hydration re-triggers the draft path.
+- Input: `{ conversationId, messageIds: string[] (min 1), title?, visibility: "workspace" | "conversation" (default "conversation") }`.
+- `assertParticipant`, then fetch:
+  - conversation (title, workspace_id) + all participants (label + workspace_user_id)
+  - messages by id, filtered to this conversation, ordered `created_at asc` (author label + raw HTML/text + createdAt)
+  - creator label = current workspace user
+- Build page **title** (server-side, canonical): `Messages from <conv title> on YYYY-MM-DD HH:MM` (UTC, minute precision). If client sent a non-empty `title`, use it verbatim (user edits allowed).
+- Build ProseMirror **content** doc:
+  1. `heading level 1` = title.
+  2. `bulletList` with 4 `listItem > paragraph` entries:
+     - "Original conversation: " + `conversationMention {id: conversationId, label: convTitle}`
+     - "Original participants: " + participants joined with ", " as `mention {id: workspaceUserId, label}` nodes
+     - "Creation date: <RFC 2822 without timezone suffix>" (e.g. `Wed, 08 Jul 2026 14:03:00`)
+     - "Created by: " + `mention {id: meWuId, label: meLabel}`
+  3. Empty `paragraph` (line break).
+  4. `heading level 2` = "Contents".
+  5. `horizontalRule`.
+  6. For each **contiguous run** of messages by the same author (chronological), emit:
+     - `paragraph` with text `<author> on YYYY-MM-DD` (bold via mark if easy; else plain).
+     - Then, for each message in the run, parse `raw_text` (HTML) into ProseMirror nodes and append. Fallback: one `paragraph` per message containing the plain text.
+     - `paragraph` empty separator between runs.
+- Insert into `pages` with `workspace_id`, `created_by_workspace_user_id = meWuId`, `owner_workspace_user_id = meWuId`, `visibility` (default `conversation`), `page_type = "standard"`, `origin_type = "conversation"`, `origin_source_id = conversationId`, `conversation_id = conversationId` (when visibility is `conversation`), `title`, `content`.
+- Return `{ pageId }`.
 
-2. **`writeLocalDraft` can persist a draft with `content = null`.**
-   `latestContentRef.current` is initialised to `null` and only set to a real doc when hydration runs OR `onUpdate` fires. If the user types in the title *before* hydration finishes (fast switch into an idle page), `handleTitleChange` bumps the dirty flags and calls `writeLocalDraft`, which writes `{ title, content: null }` to `localStorage`. Later, hydration applies that draft → editor content becomes empty → a save wipes DB `content`.
+HTML→ProseMirror: use a lightweight conversion (existing `sendMessage` stores raw HTML). Reasonable approach: split on `<br>`/block tags into paragraphs, strip HTML tags for text content in this iteration. We can iterate later; the important guarantee is content is never empty.
 
-Both paths ultimately reach `updatePage` / `/api/pages/save`, which currently accept whatever is sent (`if (title !== undefined) patch.title = title; if (content !== undefined) patch.content = content;`), so an empty payload is written verbatim.
+## 2. Dialog — extend `NewPageDialog`
 
-## Fix
+Add optional props: `mode?: "blank" | "fromMessages"`, `presetTitle?: string`, `messageIds?: string[]`.
 
-Defence in depth: guard on the client, the local draft, and the server. No functional changes to editing or collaboration.
+When `mode === "fromMessages"`:
+- Initial `title` = `presetTitle` (editable, still 50-char cap).
+- Force `visibility` default to `"conversation"`; keep the select behavior for conversation contexts (Workspace / Conversation).
+- Template select: keep `disabled`, but change the visible value to `"New conversation page from message selection"` (add a hidden `SelectItem` with that value so the label renders inside the trigger).
+- On Create: call the new `createPageFromMessages` server fn instead of `createConversationPage`. Invalidate `["conversation-pages", conversationId]` and `["pages-list", workspaceId]`. Navigate to the new page (same behavior as blank).
 
-### 1. `src/components/page/page-window.tsx`
+## 3. Conversation window wiring
 
-- **Never treat a draft as valid unless its content is a well-formed doc.** In the hydration effect, when reading `draft`, only accept `draft.content` if it is an object with `type === "doc"` and an `Array.isArray(content)`. Otherwise ignore `draftHasContent`. Same guard for `draft.title` (must be a non-null string; empty string only allowed if the user genuinely cleared it, i.e. draft is newer than server AND title was already empty on the server).
-- **Never write a draft that would represent a page wipe.** In `writeLocalDraft`, skip writing if `latestContentRef.current` is `null`/`undefined` AND `latestTitleValueRef.current` is empty. Also skip the whole write if hydration has not yet completed (`hydratedForPageRef.current !== pageId`) — nothing the user typed before hydration should be persisted, since we don't yet know the server baseline.
-- **Clear the draft even after silent unmount flush failure.** In the unmount cleanup, if `flushNowRef.current({ silent: true })` rejects/returns false and no live component will retry, still leave a draft only if the pending content is a valid doc (uses the same validator as above). Simpler: reuse the guard so a bad draft can never persist across a reload.
-- **Guard `flushNowRef.current` against no-op wipes.** Before building `patch`, if `contentDirty` and `latestContentRef.current` is not a valid doc, drop `content` from the patch (and leave `contentPendingVersion` alone so a future real edit will save). Same for `titleDirty` when `latestTitleRef.current === null`.
+In `src/components/conversation/conversation-window.tsx`:
+- Compute preset title client-side for display: `Messages from ${displayTitle} on YYYY-MM-DD HH:MM` (local time; server re-derives canonical value if the user leaves it unchanged — acceptable minor drift, since the field is editable anyway).
+- Replace `noop` on the expanded "Create new page" button and enable the folded "New page" button to open `NewPageDialog` in `fromMessages` mode with `messageIds = Array.from(selectedIds)` and the preset title.
+- After successful create (via `onCreated`), call `clearSelection()` and navigate to the new page (existing default nav from the dialog does this; wire `onCreated` only if we need extra cleanup).
 
-### 2. `src/lib/pages.functions.ts` (`updatePage`)
+## 4. Notes / non-goals
 
-Add a server-side safety net so a buggy client can't wipe a page:
-
-- Fetch the current row inside the handler (already done by `assertCanEditPage`; extend it or add a follow-up read for `title`, `content`).
-- If the incoming `content` is an "empty doc" (`{ type: "doc", content: [] }` or missing/empty `content` array) AND the stored `content` is non-empty, drop `content` from the patch and log a warning with `pageId` + caller `userId`. Do the same for `title === ""` when the stored title is non-empty.
-- If after this filtering the patch is empty (only `last_modified_at`), skip the UPDATE and return `{ ok: true, skipped: true }`.
-
-### 3. `src/routes/api/pages.save.ts` (beacon endpoint)
-
-Apply the exact same "don't overwrite non-empty with empty" guard as `updatePage`. The beacon runs at tab-close / hide time and is the highest-risk path because there is no UI feedback if it wipes the row.
-
-### 4. Small telemetry
-
-Add a single `console.warn("[pages] blocked empty-content overwrite", { pageId, userId })` in both server paths whenever the guard trips, so if this recurs we can trace which client path fired.
-
-## Out of scope
-
-- Real collaborative editing (still a future prompt).
-- Any change to visibility, collaborators, presence, or the conversation panel.
-- Any change to how successful edits are debounced/saved — only the "empty overwrite" edge is closed.
+- "Original conversation" link scroll-to-first-message is best-effort: `conversationMention` currently just opens the conversation. Deep-scroll-to-message is deferred (not blocking).
+- "Add to page", "Quote", "Copy", "Delete" MCM options stay as placeholders.
+- No DB migration required (uses existing `pages` schema).
+- No changes to page-save guards from previous fix.
 
 ## Verification
 
-1. Manual: open Page A with content, open Page B, wait 6 minutes, click Page A → content and title still present. Repeat with the tab hidden during the wait (exercises the beacon).
-2. Manual: type in a page, force a network failure (offline), navigate away → confirm the draft written to `localStorage` is either a valid doc or absent; reload the page → confirm no empty save occurs.
-3. DB check via read query on `pages.title` / `pages.content` before and after the reopen to confirm no wipe.
+- Select 1 message → folded MCM "New page" opens dialog with preset title + Conversation visibility + disabled template showing "New conversation page from message selection". Create → new page renders with schema.
+- Select 3+ messages from 2 authors interleaved → runs group correctly by contiguous author.
+- Non-participant workspace member cannot see the page (visibility=conversation, RLS via `conversation_id`).
