@@ -866,11 +866,12 @@ export function ConversationWindow({
                         )}
                         <li
                           key={m.id}
+                          data-message-id={m.id}
                           onClick={(e) => {
+                            const t = e.target as HTMLElement;
                             if (
-                              (e.target as HTMLElement).closest(
-                                "span.mention-page",
-                              )
+                              t.closest("span.mention-page") ||
+                              t.closest("div.msg-quote")
                             )
                               return;
                             toggleSelected(m.id);
