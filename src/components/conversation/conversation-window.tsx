@@ -707,7 +707,7 @@ export function ConversationWindow({
                       </Button>
                     </div>
                     <div className="justify-self-center">
-                      <Button size="sm" variant="ghost" disabled>
+                      <Button size="sm" variant="ghost" onClick={handleQuoteSelection}>
                         Quote
                       </Button>
                     </div>
