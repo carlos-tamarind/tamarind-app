@@ -55,6 +55,7 @@ import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
+import { QuoteBlock } from "@/components/editor/quote-node";
 
 type Message = {
   id: string;
