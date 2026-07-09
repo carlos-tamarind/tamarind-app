@@ -123,6 +123,7 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "CODE",
   "BR",
   "SPAN",
+  "DIV",
   "SVG",
   "CIRCLE",
   "PATH",
@@ -135,6 +136,12 @@ const ALLOWED_MESSAGE_TAGS = new Set([
 
 const ALLOWED_MENTION_CLASSES = new Set(["mention-member", "mention-page"]);
 const KEEP_ATTRS_ON_MENTION = new Set(["class", "data-id", "data-label"]);
+const KEEP_ATTRS_ON_QUOTE = new Set([
+  "class",
+  "data-quote-id",
+  "data-author",
+  "data-created-at",
+]);
 // Drop event handlers and href-like attributes; allow svg/path geometry attrs.
 const DROP_ATTRS = new Set(["onclick", "onmouseover", "href", "xlink:href", "style"]);
 
