@@ -564,10 +564,29 @@ export function ConversationWindow({
     setNewPageOpen(true);
   };
 
-  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = (e.target as HTMLElement).closest(
-      "span.mention-page",
+  const flashMessage = (id: string) => {
+    const el = scrollerRef.current?.querySelector(
+      `[data-message-id="${CSS.escape(id)}"]`,
     ) as HTMLElement | null;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("msg-flash");
+    window.setTimeout(() => el.classList.remove("msg-flash"), 1400);
+  };
+
+  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const targetEl = e.target as HTMLElement;
+    const quoteEl = targetEl.closest("div.msg-quote") as HTMLElement | null;
+    if (quoteEl) {
+      const qid = quoteEl.getAttribute("data-quote-id");
+      if (qid) {
+        e.preventDefault();
+        e.stopPropagation();
+        flashMessage(qid);
+        return;
+      }
+    }
+    const target = targetEl.closest("span.mention-page") as HTMLElement | null;
     if (!target) return;
     const id = target.getAttribute("data-id");
     if (!id) return;
