@@ -657,7 +657,7 @@ export function ConversationWindow({
                           size="sm"
                           variant="ghost"
                           className="w-full justify-start"
-                          onClick={noop}
+                          onClick={handleQuoteSelection}
                         >
                           <Quote className="size-4" />
                           Quote {plural}
