@@ -171,6 +171,24 @@ function sanitizeMessageHtml(html: string): string {
         el.replaceWith(document.createTextNode(el.textContent ?? ""));
         continue;
       }
+      if (tag === "DIV") {
+        if (!el.classList.contains("msg-quote")) {
+          // Unwrap unknown divs but keep their children.
+          const frag = document.createDocumentFragment();
+          while (el.firstChild) frag.appendChild(el.firstChild);
+          el.replaceWith(frag);
+          walk(frag);
+          continue;
+        }
+        for (const attr of Array.from(el.attributes)) {
+          if (!KEEP_ATTRS_ON_QUOTE.has(attr.name)) {
+            el.removeAttribute(attr.name);
+          }
+        }
+        el.setAttribute("class", "msg-quote");
+        walk(el);
+        continue;
+      }
       if (tag === "SPAN") {
         const mentionClass = Array.from(el.classList).find((cls) =>
           ALLOWED_MENTION_CLASSES.has(cls),
