@@ -474,8 +474,7 @@ export function ConversationWindow({
 
   const handleSend = async () => {
     if (!editor || sending) return;
-    const plain = editor.getText().trim();
-    if (!plain) return;
+    if (!hasSendableContent(editor)) return;
     const html = editor.getHTML();
     setSending(true);
     try {
@@ -488,6 +487,35 @@ export function ConversationWindow({
     } finally {
       setSending(false);
     }
+  };
+
+  const handleQuoteSelection = () => {
+    if (!editor || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
+    ids.sort((a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0));
+    const byId = new Map(messages.map((m) => [m.id, m]));
+    const nodes: string[] = [];
+    for (const id of ids) {
+      const m = byId.get(id);
+      if (!m) continue;
+      const author = escapeAttr(
+        conv?.participants.find((p) => p.workspaceUserId === m.authorWorkspaceUserId)
+          ?.label ??
+          m.authorLabel ??
+          "Archived user",
+      );
+      const createdAt = escapeAttr(m.createdAt);
+      const inner = sanitizeMessageHtml(m.rawText || "") || "<p></p>";
+      nodes.push(
+        `<div class="msg-quote" data-quote-id="${escapeAttr(m.id)}" data-author="${author}" data-created-at="${createdAt}">${inner}</div>`,
+      );
+    }
+    if (nodes.length === 0) return;
+    // Append trailing empty paragraph so caret lands somewhere writable.
+    const html = nodes.join("") + "<p></p>";
+    editor.chain().focus("end").insertContent(html).run();
+    clearSelection();
   };
 
   const handleNewPage = () => {
