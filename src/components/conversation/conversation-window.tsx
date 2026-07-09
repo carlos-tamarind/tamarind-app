@@ -450,6 +450,7 @@ export function ConversationWindow({
         HTMLAttributes: { class: "mention-page" },
         suggestion: pageSuggestion,
       }),
+      QuoteBlock,
     ],
     content: "",
     immediatelyRender: false,
