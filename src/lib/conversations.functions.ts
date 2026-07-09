@@ -595,23 +595,111 @@ function htmlToParagraphs(html: string): string[] {
     .replace(/<\s*br\s*\/?\s*>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "");
-  const decoded = normalized
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+  const decoded = decodeEntities(normalized);
   return decoded
     .split("\n")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
 
+function decodeEntities(s: string) {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
 function paragraph(text?: string) {
   return text && text.length > 0
     ? { type: "paragraph", content: [{ type: "text", text }] }
     : { type: "paragraph" };
+}
+
+type HtmlChunk =
+  | { kind: "text"; html: string }
+  | { kind: "quote"; author: string | null; createdAt: string | null; inner: string };
+
+// Split HTML into top-level text chunks and msg-quote blocks. Handles nested
+// <div> tags inside quotes by tracking depth.
+function splitQuotes(html: string): HtmlChunk[] {
+  const out: HtmlChunk[] = [];
+  const openRe = /<div\b[^>]*\bclass="[^"]*\bmsg-quote\b[^"]*"[^>]*>/gi;
+  let i = 0;
+  while (i < html.length) {
+    openRe.lastIndex = i;
+    const m = openRe.exec(html);
+    if (!m) {
+      const rest = html.slice(i);
+      if (rest) out.push({ kind: "text", html: rest });
+      break;
+    }
+    if (m.index > i) out.push({ kind: "text", html: html.slice(i, m.index) });
+    const divRe = /<\/?div\b[^>]*>/gi;
+    divRe.lastIndex = m.index + m[0].length;
+    let depth = 1;
+    let closeStart = -1;
+    let after = html.length;
+    let dm: RegExpExecArray | null;
+    while ((dm = divRe.exec(html))) {
+      if (dm[0].startsWith("</")) {
+        depth--;
+        if (depth === 0) {
+          closeStart = dm.index;
+          after = dm.index + dm[0].length;
+          break;
+        }
+      } else {
+        depth++;
+      }
+    }
+    if (closeStart === -1) {
+      out.push({ kind: "text", html: html.slice(m.index) });
+      break;
+    }
+    const inner = html.slice(m.index + m[0].length, closeStart);
+    const authorMatch = /data-author="([^"]*)"/i.exec(m[0]);
+    const dateMatch = /data-created-at="([^"]*)"/i.exec(m[0]);
+    out.push({
+      kind: "quote",
+      author: authorMatch ? decodeEntities(authorMatch[1]) : null,
+      createdAt: dateMatch ? decodeEntities(dateMatch[1]) : null,
+      inner,
+    });
+    i = after;
+  }
+  return out;
+}
+
+function htmlToBlocks(html: string): any[] {
+  const chunks = splitQuotes(html);
+  const nodes: any[] = [];
+  for (const c of chunks) {
+    if (c.kind === "text") {
+      for (const p of htmlToParagraphs(c.html)) nodes.push(paragraph(p));
+    } else {
+      const dateShort = c.createdAt
+        ? fmtDateOnly(new Date(c.createdAt))
+        : "";
+      const headerText = [c.author, dateShort].filter(Boolean).join(" on ");
+      const bqContent: any[] = [];
+      if (headerText) {
+        bqContent.push({
+          type: "paragraph",
+          content: [
+            { type: "text", marks: [{ type: "bold" }], text: `${headerText}:` },
+          ],
+        });
+      }
+      const innerNodes = htmlToBlocks(c.inner);
+      if (innerNodes.length === 0) bqContent.push({ type: "paragraph" });
+      else bqContent.push(...innerNodes);
+      nodes.push({ type: "blockquote", content: bqContent });
+    }
+  }
+  return nodes;
 }
 
 export const createPageFromMessages = createServerFn({ method: "POST" })
@@ -851,11 +939,11 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
         ],
       });
       for (const msg of run.messages) {
-        const paragraphs = htmlToParagraphs((msg.raw_text as string) ?? "");
-        if (paragraphs.length === 0) {
+        const blocks = htmlToBlocks((msg.raw_text as string) ?? "");
+        if (blocks.length === 0) {
           contentNodes.push(paragraph(""));
         } else {
-          for (const p of paragraphs) contentNodes.push(paragraph(p));
+          for (const b of blocks) contentNodes.push(b);
         }
       }
     });

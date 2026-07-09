@@ -55,6 +55,7 @@ import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
+import { QuoteBlock } from "@/components/editor/quote-node";
 
 type Message = {
   id: string;
@@ -122,6 +123,7 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "CODE",
   "BR",
   "SPAN",
+  "DIV",
   "SVG",
   "CIRCLE",
   "PATH",
@@ -134,6 +136,12 @@ const ALLOWED_MESSAGE_TAGS = new Set([
 
 const ALLOWED_MENTION_CLASSES = new Set(["mention-member", "mention-page"]);
 const KEEP_ATTRS_ON_MENTION = new Set(["class", "data-id", "data-label"]);
+const KEEP_ATTRS_ON_QUOTE = new Set([
+  "class",
+  "data-quote-id",
+  "data-author",
+  "data-created-at",
+]);
 // Drop event handlers and href-like attributes; allow svg/path geometry attrs.
 const DROP_ATTRS = new Set(["onclick", "onmouseover", "href", "xlink:href", "style"]);
 
@@ -163,6 +171,24 @@ function sanitizeMessageHtml(html: string): string {
         el.replaceWith(document.createTextNode(el.textContent ?? ""));
         continue;
       }
+      if (tag === "DIV") {
+        if (!el.classList.contains("msg-quote")) {
+          // Unwrap unknown divs but keep their children.
+          const frag = document.createDocumentFragment();
+          while (el.firstChild) frag.appendChild(el.firstChild);
+          el.replaceWith(frag);
+          walk(frag);
+          continue;
+        }
+        for (const attr of Array.from(el.attributes)) {
+          if (!KEEP_ATTRS_ON_QUOTE.has(attr.name)) {
+            el.removeAttribute(attr.name);
+          }
+        }
+        el.setAttribute("class", "msg-quote");
+        walk(el);
+        continue;
+      }
       if (tag === "SPAN") {
         const mentionClass = Array.from(el.classList).find((cls) =>
           ALLOWED_MENTION_CLASSES.has(cls),
@@ -188,6 +214,28 @@ function sanitizeMessageHtml(html: string): string {
   };
   walk(tpl.content);
   return tpl.innerHTML;
+}
+
+function escapeAttr(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function hasSendableContent(editor: { state: any; getText: () => string }) {
+  if (editor.getText().trim().length > 0) return true;
+  let found = false;
+  editor.state.doc.descendants((n: any) => {
+    if (found) return false;
+    if (n.type?.name === "quoteBlock") {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[]) {
@@ -424,6 +472,7 @@ export function ConversationWindow({
         HTMLAttributes: { class: "mention-page" },
         suggestion: pageSuggestion,
       }),
+      QuoteBlock,
     ],
     content: "",
     immediatelyRender: false,
@@ -441,14 +490,13 @@ export function ConversationWindow({
         return false;
       },
     },
-    onCreate: ({ editor }) => setIsEmpty(editor.isEmpty),
-    onUpdate: ({ editor }) => setIsEmpty(editor.isEmpty),
+    onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
+    onUpdate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
   });
 
   const handleSend = async () => {
     if (!editor || sending) return;
-    const plain = editor.getText().trim();
-    if (!plain) return;
+    if (!hasSendableContent(editor)) return;
     const html = editor.getHTML();
     setSending(true);
     try {
@@ -461,6 +509,35 @@ export function ConversationWindow({
     } finally {
       setSending(false);
     }
+  };
+
+  const handleQuoteSelection = () => {
+    if (!editor || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
+    ids.sort((a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0));
+    const byId = new Map(messages.map((m) => [m.id, m]));
+    const nodes: string[] = [];
+    for (const id of ids) {
+      const m = byId.get(id);
+      if (!m) continue;
+      const author = escapeAttr(
+        conv?.participants.find((p) => p.workspaceUserId === m.authorWorkspaceUserId)
+          ?.label ??
+          m.authorLabel ??
+          "Archived user",
+      );
+      const createdAt = escapeAttr(m.createdAt);
+      const inner = sanitizeMessageHtml(m.rawText || "") || "<p></p>";
+      nodes.push(
+        `<div class="msg-quote" data-quote-id="${escapeAttr(m.id)}" data-author="${author}" data-created-at="${createdAt}">${inner}</div>`,
+      );
+    }
+    if (nodes.length === 0) return;
+    // Append trailing empty paragraph so caret lands somewhere writable.
+    const html = nodes.join("") + "<p></p>";
+    editor.chain().focus("end").insertContent(html).run();
+    clearSelection();
   };
 
   const handleNewPage = () => {
@@ -487,10 +564,29 @@ export function ConversationWindow({
     setNewPageOpen(true);
   };
 
-  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = (e.target as HTMLElement).closest(
-      "span.mention-page",
+  const flashMessage = (id: string) => {
+    const el = scrollerRef.current?.querySelector(
+      `[data-message-id="${CSS.escape(id)}"]`,
     ) as HTMLElement | null;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("msg-flash");
+    window.setTimeout(() => el.classList.remove("msg-flash"), 1400);
+  };
+
+  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const targetEl = e.target as HTMLElement;
+    const quoteEl = targetEl.closest("div.msg-quote") as HTMLElement | null;
+    if (quoteEl) {
+      const qid = quoteEl.getAttribute("data-quote-id");
+      if (qid) {
+        e.preventDefault();
+        e.stopPropagation();
+        flashMessage(qid);
+        return;
+      }
+    }
+    const target = targetEl.closest("span.mention-page") as HTMLElement | null;
     if (!target) return;
     const id = target.getAttribute("data-id");
     if (!id) return;
@@ -580,7 +676,7 @@ export function ConversationWindow({
                           size="sm"
                           variant="ghost"
                           className="w-full justify-start"
-                          onClick={noop}
+                          onClick={handleQuoteSelection}
                         >
                           <Quote className="size-4" />
                           Quote {plural}
@@ -630,7 +726,7 @@ export function ConversationWindow({
                       </Button>
                     </div>
                     <div className="justify-self-center">
-                      <Button size="sm" variant="ghost" disabled>
+                      <Button size="sm" variant="ghost" onClick={handleQuoteSelection}>
                         Quote
                       </Button>
                     </div>
@@ -770,11 +866,12 @@ export function ConversationWindow({
                         )}
                         <li
                           key={m.id}
+                          data-message-id={m.id}
                           onClick={(e) => {
+                            const t = e.target as HTMLElement;
                             if (
-                              (e.target as HTMLElement).closest(
-                                "span.mention-page",
-                              )
+                              t.closest("span.mention-page") ||
+                              t.closest("div.msg-quote")
                             )
                               return;
                             toggleSelected(m.id);
