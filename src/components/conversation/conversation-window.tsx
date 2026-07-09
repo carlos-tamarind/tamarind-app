@@ -468,8 +468,8 @@ export function ConversationWindow({
         return false;
       },
     },
-    onCreate: ({ editor }) => setIsEmpty(editor.isEmpty),
-    onUpdate: ({ editor }) => setIsEmpty(editor.isEmpty),
+    onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
+    onUpdate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
   });
 
   const handleSend = async () => {
