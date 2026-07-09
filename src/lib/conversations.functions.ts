@@ -939,11 +939,11 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
         ],
       });
       for (const msg of run.messages) {
-        const paragraphs = htmlToParagraphs((msg.raw_text as string) ?? "");
-        if (paragraphs.length === 0) {
+        const blocks = htmlToBlocks((msg.raw_text as string) ?? "");
+        if (blocks.length === 0) {
           contentNodes.push(paragraph(""));
         } else {
-          for (const p of paragraphs) contentNodes.push(paragraph(p));
+          for (const b of blocks) contentNodes.push(b);
         }
       }
     });
