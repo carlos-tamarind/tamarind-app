@@ -216,6 +216,28 @@ function sanitizeMessageHtml(html: string): string {
   return tpl.innerHTML;
 }
 
+function escapeAttr(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function hasSendableContent(editor: { state: any; getText: () => string }) {
+  if (editor.getText().trim().length > 0) return true;
+  let found = false;
+  editor.state.doc.descendants((n: any) => {
+    if (found) return false;
+    if (n.type?.name === "quoteBlock") {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
 function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[]) {
   const names = participants
     .filter((p) => !p.isMe)
