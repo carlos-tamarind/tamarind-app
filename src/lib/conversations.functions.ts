@@ -1019,5 +1019,14 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr || !page) throw new Error(insErr?.message ?? "Create failed");
+
+    await postPageAnnouncementMessage({
+      conversationId: data.conversationId,
+      workspaceId,
+      authorWuId: meWuId,
+      pageId: page.id as string,
+      pageTitle: finalTitle,
+    });
+
     return { pageId: page.id as string };
   });
