@@ -36,6 +36,46 @@ async function assertParticipant(conversationId: string, userId: string) {
   return { meWuId, workspaceId: conv.workspace_id as string };
 }
 
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function postPageAnnouncementMessage(params: {
+  conversationId: string;
+  workspaceId: string;
+  authorWuId: string;
+  pageId: string;
+  pageTitle: string;
+}) {
+  try {
+    const title = params.pageTitle && params.pageTitle.trim().length > 0
+      ? params.pageTitle
+      : "Untitled";
+    const safeTitle = escapeHtml(title);
+    const html =
+      `<p>Hey! I just created this page:</p>` +
+      `<p><span class="mention-page" data-id="${escapeHtml(params.pageId)}" data-label="${safeTitle}">${safeTitle}</span></p>`;
+    const { error } = await supabaseAdmin.from("messages").insert({
+      conversation_id: params.conversationId,
+      workspace_id: params.workspaceId,
+      author_workspace_user_id: params.authorWuId,
+      raw_text: html,
+    });
+    if (error) throw error;
+    await supabaseAdmin
+      .from("conversations")
+      .update({ last_modified_at: new Date().toISOString() })
+      .eq("id", params.conversationId);
+  } catch (e) {
+    console.warn("[conversations] failed to post page announcement", e);
+  }
+}
+
 export const listWorkspaceMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -493,9 +533,18 @@ export const createConversationPage = createServerFn({ method: "POST" })
         ...(linksConversation ? { conversation_id: data.conversationId } : {}),
         ...(data.title ? { title: data.title } : {}),
       })
-      .select("id")
+      .select("id, title")
       .single();
     if (error || !page) throw new Error(error?.message ?? "Create failed");
+
+    await postPageAnnouncementMessage({
+      conversationId: data.conversationId,
+      workspaceId,
+      authorWuId: meWuId,
+      pageId: page.id as string,
+      pageTitle: (page.title as string | null) ?? data.title ?? "Untitled",
+    });
+
     return { pageId: page.id as string };
   });
 
@@ -970,5 +1019,14 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr || !page) throw new Error(insErr?.message ?? "Create failed");
+
+    await postPageAnnouncementMessage({
+      conversationId: data.conversationId,
+      workspaceId,
+      authorWuId: meWuId,
+      pageId: page.id as string,
+      pageTitle: finalTitle,
+    });
+
     return { pageId: page.id as string };
   });
