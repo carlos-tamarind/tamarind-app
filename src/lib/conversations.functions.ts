@@ -533,9 +533,18 @@ export const createConversationPage = createServerFn({ method: "POST" })
         ...(linksConversation ? { conversation_id: data.conversationId } : {}),
         ...(data.title ? { title: data.title } : {}),
       })
-      .select("id")
+      .select("id, title")
       .single();
     if (error || !page) throw new Error(error?.message ?? "Create failed");
+
+    await postPageAnnouncementMessage({
+      conversationId: data.conversationId,
+      workspaceId,
+      authorWuId: meWuId,
+      pageId: page.id as string,
+      pageTitle: (page.title as string | null) ?? data.title ?? "Untitled",
+    });
+
     return { pageId: page.id as string };
   });
 
