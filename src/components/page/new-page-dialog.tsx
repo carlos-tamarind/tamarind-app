@@ -109,6 +109,8 @@ export function NewPageDialog({
         queryClient.invalidateQueries({
           queryKey: ["conversation-pages", conversationId],
         });
+        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
       } else if (conversationId) {
         const v: "workspace" | "conversation" =
           visibility === "workspace" ? "workspace" : "conversation";
@@ -123,6 +125,8 @@ export function NewPageDialog({
         queryClient.invalidateQueries({
           queryKey: ["conversation-pages", conversationId],
         });
+        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
       } else {
         const v: "private" | "workspace" =
           visibility === "workspace" ? "workspace" : "private";
