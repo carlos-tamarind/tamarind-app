@@ -809,6 +809,7 @@ export function PageWindow({
         onTitleCommit={handleTitleBlur}
         ownerDisplayName={data?.ownerDisplayName ?? null}
         visibility={visibility}
+        isOwner={data?.isOwner ?? false}
         onVisibilityChange={handleVisibilityChange}
         collaborators={data?.collaborators ?? []}
       />
