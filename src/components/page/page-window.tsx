@@ -705,20 +705,26 @@ export function PageWindow({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
+              disabled={visibility !== "private"}
               onSelect={() => handleVisibilityChange("private")}
             >
               <Lock className="size-3.5" /> Private
             </DropdownMenuItem>
             <DropdownMenuItem
+              disabled={
+                !(
+                  visibility === "workspace" ||
+                  (visibility === "private" &&
+                    (data?.isOwner ?? false))
+                )
+              }
               onSelect={() => handleVisibilityChange("workspace")}
             >
               <Globe className="size-3.5" /> Workspace
             </DropdownMenuItem>
-            {visibility === "conversation" && (
-              <DropdownMenuItem disabled>
-                <MessageSquare className="size-3.5" /> Conversation
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem disabled>
+              <MessageSquare className="size-3.5" /> Conversation
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
