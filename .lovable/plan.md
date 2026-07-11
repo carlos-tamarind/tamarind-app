@@ -1,54 +1,50 @@
-## Goal
+# Page visibility rules
 
-When a user creates a new page from inside a conversation (either a blank conversation page or a page built from selected messages), automatically post an announcement message in that conversation. The message is authored by the page creator, contains a link/mention to the freshly created page, and behaves like any other message (selectable, quotable, sanitized on render, clickable page chip navigates to the page).
+Align the new-page dialog, page-settings dialog, and the `setPageVisibility` server function with the rules you described. The Pages list already relies on RLS, which already matches ("my private" + "workspace" + "conversations I participate in"), so no listing changes needed.
 
-## Message shape
+## 1. New page dialog (`src/components/page/new-page-dialog.tsx`)
 
-`raw_text` HTML written directly to the `messages` table:
+Visibility select behavior:
 
-```html
-<p>Hey! I just created this page:</p>
-<p><span class="mention-page" data-id="{PAGE_ID}" data-label="{TITLE}">{TITLE}</span></p>
-```
+- Outside a conversation (no `conversationId`): options are **Private** (default) and **Workspace**. **Conversation** is rendered as a disabled item so users see it exists but can't pick it.
+- Inside a conversation: default and only enabled option is **Conversation**. **Private** and **Workspace** are rendered as disabled items.
 
-This matches the DOM produced by `PageMention.renderHTML` (minus the inline SVG, which is optional decoration — the `mention-page` chip styling and the existing click handler in `conversation-window.tsx` at line 589 work off `data-id` alone).
+Implementation: always render all three `SelectItem`s, mark the non-applicable ones `disabled`, and pin the default in `useEffect` accordingly. Drop the current "workspace switch" branch inside conversations.
 
-The sanitizer (`sanitizeMessageHtml`) already allows this exact structure (`mention-page` is in `ALLOWED_MENTION_CLASSES`, and `data-id` / `data-label` are in `KEEP_ATTRS_ON_MENTION`), so it round-trips unchanged if a user later quotes it.
+## 2. Page settings dialog (`src/components/page/page-settings-dialog.tsx` + `page-window.tsx`)
 
-## Server changes — `src/lib/conversations.functions.ts`
+Replace the current "conversation → read-only box, else Private/Workspace select" logic with a single always-rendered Select whose items are enabled/disabled per rules:
 
-1. Add a small helper `postPageAnnouncementMessage({ conversationId, workspaceId, authorWuId, pageId, pageTitle })` that:
-   - HTML-escapes the title (small local `escapeHtml`).
-   - Builds the announcement HTML above.
-   - Inserts into `messages` with `author_workspace_user_id = authorWuId` and `raw_text = html`.
-   - Bumps `conversations.last_modified_at`.
-   - Wrapped in `try/catch` so a failure never rolls back a successful page creation (just logs a `console.warn`).
+- `visibility === "private"` and viewer is the owner: **Private** selected, **Workspace** enabled (promote), **Conversation** disabled.
+- `visibility === "private"` and viewer is not the owner: all options disabled (safety).
+- `visibility === "workspace"`: **Workspace** selected, **Private** and **Conversation** disabled (locked).
+- `visibility === "conversation"`: **Conversation** selected, **Private** and **Workspace** disabled (locked).
+- `visibility === "external"`: leave as today (all disabled).
 
-2. In `createConversationPage`'s handler:
-   - After the successful page insert, resolve the final title used (`data.title?.trim() || "Untitled"` to match the DB default when title is omitted — we already have `data.title` locally, and read back the row's `title` if omitted so the announcement label matches what the sidebar shows).
-   - Call `postPageAnnouncementMessage`.
+Pass `isOwner` (compare `ownerWorkspaceUserId` with current workspace user) from `page-window.tsx` into the dialog to gate the Private→Workspace promotion. The existing `onVisibilityChange` signature (`"private" | "workspace"`) stays; it will only ever be called for the Private→Workspace transition.
 
-3. In `createPageFromMessages`'s handler:
-   - After the successful page insert, call `postPageAnnouncementMessage` with `finalTitle` (already computed).
+Helper text under the select when locked:
 
-No schema changes, no new server functions, no changes to message read/write pipelines.
+- Workspace pages: "Visibility on Workspace pages cannot be changed back. Duplicate to make a private copy."
+- Conversation pages: "Visibility on Conversation pages cannot be changed. Duplicate to make a private copy."
 
-## Client changes — `src/components/page/new-page-dialog.tsx`
+## 3. Server enforcement (`src/lib/pages.functions.ts`)
 
-In `handleCreate`, after either `createInConv` or `createFromMessages` resolves, also invalidate the messages query so the announcement appears immediately if the user stays in / returns to the conversation:
+Harden `setPageVisibility` so the UI rules can't be bypassed:
 
-```ts
-queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
-queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
-```
+- Load the page's current `visibility`, `owner_workspace_user_id`, `workspace_id`.
+- Resolve the caller's workspace_user_id via `getCurrentWorkspaceUser`.
+- Allow **only** `private → workspace` when the caller is the owner. Reject everything else with a clear error (`"Only the owner can promote a private page to workspace"` / `"This page's visibility is locked"`).
 
-No other client changes are needed:
-- Existing rendering of `raw_text` will render the `<p>` blocks and the `mention-page` chip.
-- Existing click handler navigates to the page when the chip is clicked.
-- Selection / quoting / MCM behavior already keys off `<li data-message-id="...">`, so the auto-message is treated exactly like any other.
+`createBlankPage` already restricts input to `private | workspace` — fine. `createConversationPage` / `createPageFromMessages` already force `conversation` (or `workspace` when explicitly chosen at creation time); no change.
 
-## Out of scope
+## 4. Out of scope
 
-- No new realtime broadcast — messages appear on next fetch (invalidation covers the common case where the user comes back to the conversation).
-- No i18n of the "Hey! I just created this page:" string (matches existing copy style).
-- No change to the blank-workspace / private page flow (that path has no conversation to announce into).
+- Page duplication (private copy of a conversation/workspace page) — tracked for later per your note.
+- No DB migration; existing RLS already matches the listing rules.
+
+## Technical notes
+
+- shadcn `SelectItem` supports `disabled`; the trigger still shows the selected value even if that item is disabled.
+- `PageVisibility` type stays as-is; only the dialog's rendering logic changes.
+- Server errors from `setPageVisibility` should be surfaced via the existing toast/error path in `page-window.tsx`.
