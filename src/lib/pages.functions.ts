@@ -135,6 +135,20 @@ export const getPage = createServerFn({ method: "GET" })
       };
     });
 
+    const { getCurrentWorkspaceUser } = await import("@/lib/pages.server");
+    let viewerWorkspaceUserId: string | null = null;
+    try {
+      viewerWorkspaceUserId = await getCurrentWorkspaceUser(
+        page.workspace_id as string,
+        context.userId,
+      );
+    } catch {
+      viewerWorkspaceUserId = null;
+    }
+    const isOwner =
+      !!viewerWorkspaceUserId &&
+      viewerWorkspaceUserId === (page.owner_workspace_user_id as string | null);
+
     return {
       id: page.id as string,
       title: page.title as string,
@@ -146,6 +160,7 @@ export const getPage = createServerFn({ method: "GET" })
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
       ownerDisplayName: ownerLabel,
       ownerLabel,
+      isOwner,
       collaborators,
     };
   });
