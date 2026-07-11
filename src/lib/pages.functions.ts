@@ -135,6 +135,20 @@ export const getPage = createServerFn({ method: "GET" })
       };
     });
 
+    const { getCurrentWorkspaceUser } = await import("@/lib/pages.server");
+    let viewerWorkspaceUserId: string | null = null;
+    try {
+      viewerWorkspaceUserId = await getCurrentWorkspaceUser(
+        page.workspace_id as string,
+        context.userId,
+      );
+    } catch {
+      viewerWorkspaceUserId = null;
+    }
+    const isOwner =
+      !!viewerWorkspaceUserId &&
+      viewerWorkspaceUserId === (page.owner_workspace_user_id as string | null);
+
     return {
       id: page.id as string,
       title: page.title as string,
@@ -146,6 +160,7 @@ export const getPage = createServerFn({ method: "GET" })
       ownerWorkspaceUserId: page.owner_workspace_user_id as string | null,
       ownerDisplayName: ownerLabel,
       ownerLabel,
+      isOwner,
       collaborators,
     };
   });
@@ -254,7 +269,40 @@ export const setPageVisibility = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getCurrentWorkspaceUser } = await import("@/lib/pages.server");
     const { supabase } = context;
+
+    const { data: page, error: readErr } = await supabaseAdmin
+      .from("pages")
+      .select("visibility, owner_workspace_user_id, workspace_id")
+      .eq("id", data.pageId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!page) throw new Error("Page not found");
+
+    const meWuId = await getCurrentWorkspaceUser(
+      page.workspace_id as string,
+      context.userId,
+    );
+
+    const current = page.visibility as
+      | "private"
+      | "workspace"
+      | "conversation"
+      | "external";
+
+    // Only allowed transition: private -> workspace, by the owner.
+    if (current === data.visibility) {
+      return { ok: true, skipped: true as const };
+    }
+    if (current !== "private" || data.visibility !== "workspace") {
+      throw new Error("This page's visibility is locked");
+    }
+    if (page.owner_workspace_user_id !== meWuId) {
+      throw new Error("Only the owner can promote a private page to workspace");
+    }
+
     const { error } = await supabase
       .from("pages")
       .update({ visibility: data.visibility, last_modified_at: new Date().toISOString() })

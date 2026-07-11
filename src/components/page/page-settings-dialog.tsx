@@ -32,6 +32,7 @@ export function PageSettingsDialog({
   onTitleCommit,
   ownerDisplayName,
   visibility,
+  isOwner,
   onVisibilityChange,
   collaborators,
 }: {
@@ -43,11 +44,27 @@ export function PageSettingsDialog({
   onTitleCommit: () => void;
   ownerDisplayName: string | null;
   visibility: PageVisibility;
+  isOwner: boolean;
   onVisibilityChange: (value: "private" | "workspace") => void;
   collaborators: Collaborator[];
 }) {
-  const selectValue =
-    visibility === "workspace" ? "workspace" : "private";
+  const selectValue: PageVisibility = visibility;
+
+  // Enable rules:
+  // - private + owner: can promote to workspace
+  // - everything else: locked
+  const canPromoteToWorkspace = visibility === "private" && isOwner;
+
+  const privateDisabled = visibility !== "private";
+  const workspaceDisabled = !(visibility === "workspace" || canPromoteToWorkspace);
+  const conversationDisabled = visibility !== "conversation";
+
+  const helperText =
+    visibility === "workspace"
+      ? "Visibility on Workspace pages cannot be changed back. Duplicate to make a private copy."
+      : visibility === "conversation"
+        ? "Visibility on Conversation pages cannot be changed. Duplicate to make a private copy."
+        : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,33 +106,37 @@ export function PageSettingsDialog({
             <label className="text-xs font-semibold text-muted-foreground">
               Who can see this page?
             </label>
-            {visibility === "conversation" ? (
-              <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                <MessageSquare className="size-3.5" /> Conversation participants
-              </div>
-            ) : (
-              <Select
-                value={selectValue}
-                onValueChange={(v) =>
-                  onVisibilityChange(v as "private" | "workspace")
+            <Select
+              value={selectValue}
+              onValueChange={(v) => {
+                if (v === "private" || v === "workspace") {
+                  onVisibilityChange(v);
                 }
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">
-                    <span className="flex items-center gap-2">
-                      <Lock className="size-3.5" /> Private
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="workspace">
-                    <span className="flex items-center gap-2">
-                      <Globe className="size-3.5" /> Workspace
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              }}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private" disabled={privateDisabled}>
+                  <span className="flex items-center gap-2">
+                    <Lock className="size-3.5" /> Private
+                  </span>
+                </SelectItem>
+                <SelectItem value="workspace" disabled={workspaceDisabled}>
+                  <span className="flex items-center gap-2">
+                    <Globe className="size-3.5" /> Workspace
+                  </span>
+                </SelectItem>
+                <SelectItem value="conversation" disabled={conversationDisabled}>
+                  <span className="flex items-center gap-2">
+                    <MessageSquare className="size-3.5" /> Conversation
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {helperText && (
+              <p className="text-xs text-muted-foreground">{helperText}</p>
             )}
           </div>
 
