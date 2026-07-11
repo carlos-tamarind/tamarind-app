@@ -632,7 +632,12 @@ export function PageWindow({
   const applyVisibility = async (value: "private" | "workspace") => {
     const saved = await flushNowRef.current({ silent: false });
     if (!saved) return;
-    await setVis({ data: { pageId, visibility: value } });
+    try {
+      await setVis({ data: { pageId, visibility: value } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not change visibility");
+      return;
+    }
     queryClient.setQueryData(["page", pageId], (prev: any) =>
       prev ? { ...prev, visibility: value } : prev,
     );
