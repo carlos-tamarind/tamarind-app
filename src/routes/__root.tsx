@@ -12,6 +12,8 @@ import { useEffect } from "react";
 import { AuthProvider } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { VersionBadge } from "@/components/version-badge";
+import { logVersionBanner } from "@/lib/log-version";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -117,12 +119,17 @@ function AuthSync() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    logVersionBanner();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthSync />
         <Outlet />
         <Toaster />
+        <VersionBadge />
       </AuthProvider>
     </QueryClientProvider>
   );
