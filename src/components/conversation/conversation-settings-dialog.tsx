@@ -106,6 +106,14 @@ export function ConversationSettingsDialog({
           </div>
 
           <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Created by</h3>
+            <div className="rounded-md border bg-muted/30 p-2 text-sm">
+              <div className="px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
+            </div>
+          </div>
+
+
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Participants</h3>
               <Button size="sm" variant="ghost" onClick={() => setAddOpen(true)}>
