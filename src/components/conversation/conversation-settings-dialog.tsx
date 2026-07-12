@@ -29,6 +29,7 @@ export function ConversationSettingsDialog({
   title,
   isGroup,
   participants,
+  createdBy,
   open,
   onOpenChange,
   onRename,
@@ -38,10 +39,12 @@ export function ConversationSettingsDialog({
   title: string;
   isGroup: boolean;
   participants: Participant[];
+  createdBy: { label: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRename: (title: string) => Promise<void>;
 }) {
+
   const navigate = useNavigate();
   const fetchPages = useServerFn(listConversationPages);
   const [addOpen, setAddOpen] = useState(false);
