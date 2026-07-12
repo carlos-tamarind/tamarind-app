@@ -1030,6 +1030,8 @@ export function ConversationWindow({
           title={displayTitle}
           isGroup={isGroup}
           participants={conv.participants}
+          createdBy={conv.createdBy ?? null}
+
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           onRename={handleRename}

@@ -279,7 +279,7 @@ export const getConversation = createServerFn({ method: "GET" })
 
     const { data: conv, error } = await supabaseAdmin
       .from("conversations")
-      .select("id, title, type, image_url, workspace_id")
+      .select("id, title, type, image_url, workspace_id, created_by_workspace_user_id")
       .eq("id", data.conversationId)
       .single();
     if (error || !conv) throw new Error(error?.message ?? "Not found");
@@ -290,11 +290,45 @@ export const getConversation = createServerFn({ method: "GET" })
       .eq("conversation_id", data.conversationId);
 
     const rawParts = (parts ?? []).map((p: any) => p.workspace_users);
-    const emails = await fetchEmailsForUserIds(
-      rawParts
-        .filter((wu: any) => !((wu.display_name ?? "") as string).trim())
-        .map((wu: any) => wu.user_id as string),
-    );
+
+    const creatorWuId = (conv.created_by_workspace_user_id as string | null) ?? null;
+    let creatorRow: { id: string; display_name: string | null; user_id: string | null } | null =
+      null;
+    if (creatorWuId) {
+      const fromParts = rawParts.find((wu: any) => wu.id === creatorWuId);
+      if (fromParts) {
+        creatorRow = {
+          id: fromParts.id,
+          display_name: fromParts.display_name ?? null,
+          user_id: fromParts.user_id ?? null,
+        };
+      } else {
+        const { data: wu } = await supabaseAdmin
+          .from("workspace_users")
+          .select("id, display_name, user_id")
+          .eq("id", creatorWuId)
+          .maybeSingle();
+        if (wu) {
+          creatorRow = {
+            id: wu.id as string,
+            display_name: (wu.display_name as string | null) ?? null,
+            user_id: (wu.user_id as string | null) ?? null,
+          };
+        }
+      }
+    }
+
+    const emailUserIds = rawParts
+      .filter((wu: any) => !((wu.display_name ?? "") as string).trim())
+      .map((wu: any) => wu.user_id as string);
+    if (
+      creatorRow &&
+      !((creatorRow.display_name ?? "") as string).trim() &&
+      creatorRow.user_id
+    ) {
+      emailUserIds.push(creatorRow.user_id);
+    }
+    const emails = await fetchEmailsForUserIds(emailUserIds);
 
     const participants = rawParts.map((wu: any) => {
       const label = resolveLabel(
@@ -310,6 +344,16 @@ export const getConversation = createServerFn({ method: "GET" })
       };
     });
 
+    const createdBy = creatorRow
+      ? {
+          workspaceUserId: creatorRow.id,
+          label: resolveLabel(
+            { display_name: creatorRow.display_name, user_id: creatorRow.user_id },
+            emails,
+          ),
+        }
+      : null;
+
     let title = conv.title as string | null;
     if (!title) {
       const others = participants.filter((p) => !p.isMe).map((p) => p.label);
@@ -324,8 +368,10 @@ export const getConversation = createServerFn({ method: "GET" })
       imageUrl: (conv.image_url as string | null) ?? null,
       workspaceId: conv.workspace_id as string,
       participants,
+      createdBy,
     };
   });
+
 
 export const listMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

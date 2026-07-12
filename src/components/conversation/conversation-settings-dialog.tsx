@@ -29,6 +29,7 @@ export function ConversationSettingsDialog({
   title,
   isGroup,
   participants,
+  createdBy,
   open,
   onOpenChange,
   onRename,
@@ -38,10 +39,12 @@ export function ConversationSettingsDialog({
   title: string;
   isGroup: boolean;
   participants: Participant[];
+  createdBy: { label: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRename: (title: string) => Promise<void>;
 }) {
+
   const navigate = useNavigate();
   const fetchPages = useServerFn(listConversationPages);
   const [addOpen, setAddOpen] = useState(false);
@@ -101,6 +104,14 @@ export function ConversationSettingsDialog({
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Created by</h3>
+            <div className="rounded-md border bg-muted/30 p-2 text-sm">
+              <div className="px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
+            </div>
+          </div>
+
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

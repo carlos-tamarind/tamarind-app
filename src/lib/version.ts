@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.1.12";
+export const APP_VERSION = "0.1.22";
 export const ENVIRONMENT = "Development";
 
 declare const __APP_BUILT_AT__: string | undefined;
