@@ -897,7 +897,7 @@ function htmlToBlocks(html: string): any[] {
   const nodes: any[] = [];
   for (const c of chunks) {
     if (c.kind === "text") {
-      for (const p of htmlToParagraphs(c.html)) nodes.push(paragraph(p));
+      for (const p of htmlToInlineParagraphs(c.html)) nodes.push(p);
     } else {
       const dateShort = c.createdAt
         ? fmtDateOnly(new Date(c.createdAt))
