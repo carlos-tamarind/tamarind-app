@@ -1132,9 +1132,10 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
     const contentNodes: any[] = [
       {
         type: "heading",
-        attrs: { level: 1 },
-        content: [{ type: "text", text: finalTitle }],
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "Page properties" }],
       },
+      { type: "horizontalRule" },
       propsList,
       { type: "paragraph" },
       {
