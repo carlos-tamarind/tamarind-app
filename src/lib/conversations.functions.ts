@@ -683,18 +683,142 @@ function fmtRfc2822NoTz(d: Date) {
 
 // Very small HTML -> plain-text-paragraph converter. Splits on block-ish
 // separators, strips remaining tags, decodes minimal entities.
-function htmlToParagraphs(html: string): string[] {
+type InlineNode = any;
+
+// Hand-rolled HTML tokenizer -> ProseMirror inline nodes. Supports basic
+// marks (bold/italic/underline/strike/code/link) and custom mention spans
+// emitted by src/components/editor/custom-mentions.ts.
+function htmlToInlineParagraphs(html: string): any[] {
   if (!html) return [];
-  const normalized = html
-    .replace(/\r\n?/g, "\n")
-    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, "");
-  const decoded = decodeEntities(normalized);
-  return decoded
-    .split("\n")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+
+  const paragraphs: InlineNode[][] = [[]];
+  const markStack: Array<{ type: string; attrs?: any }> = [];
+  const tagStack: string[] = []; // parallel: what mark/tag pushed, or "" for structural
+
+  const pushText = (raw: string) => {
+    if (!raw) return;
+    const text = decodeEntities(raw);
+    if (!text) return;
+    const marks = markStack.map((m) =>
+      m.attrs ? { type: m.type, attrs: m.attrs } : { type: m.type },
+    );
+    paragraphs[paragraphs.length - 1].push(
+      marks.length > 0
+        ? { type: "text", text, marks }
+        : { type: "text", text },
+    );
+  };
+
+  const breakParagraph = () => {
+    if (paragraphs[paragraphs.length - 1].length > 0) {
+      paragraphs.push([]);
+    }
+  };
+
+  const tokenRe = /<!--[\s\S]*?-->|<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(html))) {
+    if (m.index > last) pushText(html.slice(last, m.index));
+    last = m.index + m[0].length;
+    const full = m[0];
+    if (full.startsWith("<!--")) continue;
+    const tag = (m[1] || "").toLowerCase();
+    const attrs = m[2] || "";
+    const isClose = full.startsWith("</");
+    const isSelfClose = /\/\s*>$/.test(full);
+
+    // Block-level break tags
+    if (tag === "br") {
+      breakParagraph();
+      continue;
+    }
+    const blockTags = new Set(["p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6"]);
+    if (blockTags.has(tag)) {
+      if (isClose) breakParagraph();
+      continue;
+    }
+
+    // Inline mention span?
+    if (tag === "span" && !isClose) {
+      const classMatch = /class="([^"]*)"/i.exec(attrs);
+      const cls = classMatch ? classMatch[1] : "";
+      let mentionType: string | null = null;
+      if (/\bmention-member\b/.test(cls)) mentionType = "mention";
+      else if (/\bmention-page\b/.test(cls)) mentionType = "pageMention";
+      else if (/\bmention-conversation\b/.test(cls)) mentionType = "conversationMention";
+      if (mentionType) {
+        const idMatch = /data-id="([^"]*)"/i.exec(attrs);
+        const labelMatch = /data-label="([^"]*)"/i.exec(attrs);
+        const id = idMatch ? decodeEntities(idMatch[1]) : "";
+        const label = labelMatch ? decodeEntities(labelMatch[1]) : id;
+        paragraphs[paragraphs.length - 1].push({
+          type: mentionType,
+          attrs: { id, label },
+        });
+        // Skip content until matching </span>
+        const closeIdx = html.toLowerCase().indexOf("</span>", last);
+        if (closeIdx !== -1) {
+          tokenRe.lastIndex = closeIdx + "</span>".length;
+          last = tokenRe.lastIndex;
+        }
+        continue;
+      }
+    }
+
+    // Inline mark tags
+    const markMap: Record<string, { type: string; attrs?: any } | null> = {
+      strong: { type: "bold" },
+      b: { type: "bold" },
+      em: { type: "italic" },
+      i: { type: "italic" },
+      u: { type: "underline" },
+      s: { type: "strike" },
+      strike: { type: "strike" },
+      del: { type: "strike" },
+      code: { type: "code" },
+    };
+    if (tag === "a") {
+      if (isClose) {
+        // pop last matching
+        for (let i = markStack.length - 1; i >= 0; i--) {
+          if (markStack[i].type === "link") {
+            markStack.splice(i, 1);
+            break;
+          }
+        }
+      } else if (!isSelfClose) {
+        const hrefMatch = /href="([^"]*)"/i.exec(attrs);
+        markStack.push({
+          type: "link",
+          attrs: { href: hrefMatch ? decodeEntities(hrefMatch[1]) : "" },
+        });
+      }
+      continue;
+    }
+    if (tag in markMap) {
+      const mk = markMap[tag]!;
+      if (isClose) {
+        for (let i = markStack.length - 1; i >= 0; i--) {
+          if (markStack[i].type === mk.type) {
+            markStack.splice(i, 1);
+            break;
+          }
+        }
+      } else if (!isSelfClose) {
+        markStack.push(mk);
+      }
+      continue;
+    }
+    // Unknown tag: ignore, keep text flow.
+  }
+  if (last < html.length) pushText(html.slice(last));
+
+  return paragraphs.map((inline) =>
+    inline.length === 0
+      ? { type: "paragraph" }
+      : { type: "paragraph", content: inline },
+  );
 }
 
 function decodeEntities(s: string) {
@@ -773,7 +897,7 @@ function htmlToBlocks(html: string): any[] {
   const nodes: any[] = [];
   for (const c of chunks) {
     if (c.kind === "text") {
-      for (const p of htmlToParagraphs(c.html)) nodes.push(paragraph(p));
+      for (const p of htmlToInlineParagraphs(c.html)) nodes.push(p);
     } else {
       const dateShort = c.createdAt
         ? fmtDateOnly(new Date(c.createdAt))
@@ -1008,9 +1132,10 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
     const contentNodes: any[] = [
       {
         type: "heading",
-        attrs: { level: 1 },
-        content: [{ type: "text", text: finalTitle }],
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "Page properties" }],
       },
+      { type: "horizontalRule" },
       propsList,
       { type: "paragraph" },
       {
