@@ -742,12 +742,30 @@ export function PageWindow({
       {/* Page body */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-8 py-6">
-          <input
+          <textarea
             value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
+            onChange={(e) => {
+              handleTitleChange(e.target.value);
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
             onBlur={handleTitleBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.currentTarget as HTMLTextAreaElement).blur();
+              }
+            }}
+            ref={(el) => {
+              if (el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }
+            }}
+            rows={1}
             placeholder="Untitled"
-            className="mb-6 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-muted-foreground"
+            className="mb-6 w-full resize-none overflow-hidden bg-transparent text-4xl font-bold leading-tight outline-none placeholder:text-muted-foreground break-words"
           />
           <EditorContent editor={editor} />
 
