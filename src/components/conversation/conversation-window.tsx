@@ -937,7 +937,7 @@ export function ConversationWindow({
             minSize="22%"
             maxSize="45%"
           >
-            <div className="flex h-full min-h-[140px] flex-col border-t bg-background">
+            <div className="flex h-full flex-col border-t bg-background">
               <div className="flex items-center gap-1 border-b px-2 py-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
