@@ -705,28 +705,22 @@ export function PageWindow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              disabled={visibility !== "private"}
-              onSelect={() => handleVisibilityChange("private")}
-            >
-              <Lock className="size-3.5" /> Private
+            {visibility === "private" && (
+              <DropdownMenuItem
+                title="Makes the page public for the whole workspace"
+                onSelect={() => setPublishOpen(true)}
+              >
+                <Globe className="size-3.5" /> Publish
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={() => { /* TODO: Share */ }}>
+              <Share2 className="size-3.5" /> Share
             </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={
-                !(
-                  visibility === "workspace" ||
-                  (visibility === "private" &&
-                    (data?.isOwner ?? false))
-                )
-              }
-              onSelect={() => handleVisibilityChange("workspace")}
-            >
-              <Globe className="size-3.5" /> Workspace
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled>
-              <MessageSquare className="size-3.5" /> Conversation
+            <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
+              <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
           </DropdownMenuContent>
+
         </DropdownMenu>
 
         <Button
