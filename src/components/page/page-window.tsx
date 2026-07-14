@@ -645,13 +645,6 @@ export function PageWindow({
     queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
   };
 
-  const handleVisibilityChange = (value: "private" | "workspace") => {
-    if (value === "workspace" && data?.visibility !== "workspace") {
-      setPublishOpen(true);
-      return;
-    }
-    void applyVisibility(value);
-  };
 
   if (isLoading) {
     return (
