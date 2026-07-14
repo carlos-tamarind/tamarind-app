@@ -1,71 +1,44 @@
-## 1. Remove redundant H1 in pages built from messages
+## Revamp the Visibility Dropdown Menu (VDM)
 
-In `src/lib/conversations.functions.ts` → `createPageFromMessages`, the doc content currently starts with an `<h1>` matching the page title. Drop that first heading node so the doc opens directly with the properties list. The `title` field on the page row is unchanged.
+Scope: only the page-header dropdown in `src/components/page/page-window.tsx`. No backend, schema, or business-logic changes. Bump patch version.
 
-## 2. Restructure the properties block
+### 1. Replace VDM contents
 
-Still in `createPageFromMessages`, replace the plain bullet list with:
-- An `<h2>` **Page properties**
-- A `horizontalRule`
-- The existing bullet list (Original conversation / Original participants / Creation date / Created by)
+In `src/components/page/page-window.tsx`, replace the current three visibility items (Private / Workspace / Conversation) in the `DropdownMenuContent` (around lines 706–728) with up to three new items: **Publish**, **Share**, **Duplicate**.
 
-Then continue with the existing `Contents` H2 + divider + message runs.
+Visibility rules for each item (only render when condition is true — hidden items are not shown at all, not disabled):
 
-Resulting top-of-doc order:
-```text
-H2 "Page properties"
----
-• Original conversation: …
-• Original participants: …
-• Creation date: …
-• Created by: …
-(empty paragraph)
-H2 "Contents"
----
-<messages…>
-```
+- **Publish** — visible only when `visibility === "private"`. (Owner-only enforcement stays on the server via `setPageVisibility`; per spec the item itself is visible whenever the page is private.)
+- **Share** — always visible. No-op `onSelect` for now.
+- **Duplicate** — always visible. No-op `onSelect` for now.
 
-## 3. Preserve message formatting and inline mentions
+Each item shows an icon + label; add a `title` tooltip on Publish with the hint "Makes the page public for the whole workspace".
 
-Today `htmlToParagraphs` strips every tag, so bold/italic/underline/strike/code and inline mentions (member / page / conversation) are lost when messages get pasted into the page. Quotes (`msg-quote` divs) already survive because `splitQuotes` handles them, but their inner text is also flattened.
+Icons:
+- Publish → `Globe` (lucide, already imported)
+- Share → `Share2` (lucide)
+- Duplicate → `Copy` (lucide)
 
-Rewrite the plain-text path so message HTML converts to real ProseMirror inline content:
+### 2. Publish behavior
 
-- Add a small hand-rolled HTML tokenizer (open tag / close tag / text) in `conversations.functions.ts` — no new dependency, matches the existing "no-DOM on the server" style already used by `splitQuotes`.
-- Map block boundaries `<p>`, `<div>`, `<br>`, `<h1..6>`, `<li>` to paragraph splits (as today).
-- Map inline tags to ProseMirror marks:
-  - `<strong>`/`<b>` → `bold`
-  - `<em>`/`<i>` → `italic`
-  - `<u>` → `underline`
-  - `<s>`/`<strike>`/`<del>` → `strike`
-  - `<code>` → `code`
-  - `<a href="…">` → `link` with the href
-- Map mention spans to inline nodes using the classes emitted by `custom-mentions.ts` (`mention-member` → `mention`, `mention-page` → `pageMention`, `mention-conversation` → `conversationMention`), reading `data-id` and `data-label`.
-- Unknown/unsupported tags: ignore the tag, keep the inner text.
-- Entities decoded via the existing `decodeEntities` helper.
+Wire the Publish item's `onSelect` to `setPublishOpen(true)`, reusing the existing "Publish page" confirmation dialog already present (lines 796–819) and its existing `applyVisibility("workspace")` call. No changes to that dialog.
 
-Replace `htmlToParagraphs` with a `htmlToInlineParagraphs(html)` returning `paragraph`-shaped nodes with `content: inline[]`. Update `htmlToBlocks` to use it for `kind: "text"` chunks; the quote branch keeps recursing so nested formatting inside quotes is preserved too.
+### 3. Keep the trigger button as-is
 
-Empty paragraphs are still emitted as `{ type: "paragraph" }` (no empty text nodes — ProseMirror rejects those).
+The dropdown trigger button (icon reflecting current visibility, positioned left of the page options button) stays unchanged, including `VisibilityIcon`.
 
-## 4. Wrap long page titles (applies to every page)
+### 4. Dead-code cleanup (minimal)
 
-In `src/components/page/page-window.tsx` (lines ~745-751), replace the single-line `<input>` with a `<textarea>` that auto-grows so titles always fit within the page width without horizontal scrolling:
-- `rows={1}`, `resize-none`, `overflow-hidden`
-- On each `onChange` / on mount, set `el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'`
-- Prevent Enter from inserting a newline (`onKeyDown` — blur instead), keeping title semantics one-line-conceptually but visually wrapped
-- Keep existing classes (`text-4xl font-bold`, `mb-6 w-full bg-transparent outline-none placeholder:text-muted-foreground`) plus `whitespace-pre-wrap break-words leading-tight`
+`handleVisibilityChange` is no longer referenced after removing the old items — remove it. Keep `applyVisibility` (still used by the Publish confirmation dialog) and keep `setPageVisibility` import.
 
-Handlers (`handleTitleChange`, `handleTitleBlur`, value binding) stay the same.
+The `PageSettingsDialog` visibility selector is out of scope for this prompt (a later prompt will reuse the VDM there); leave it untouched.
 
-## 5. Bump app version to 0.1.23
+### 5. Version bump
 
-Per the corrected patch rule (increment by 1), update `src/lib/version.ts`:
-- `APP_VERSION = "0.1.23"`
+Update `src/lib/version.ts` `APP_VERSION` from `"0.1.23"` to `"0.1.24"` per the patch-increment rule.
 
-That satisfies the extra check: after rebuild both the on-screen `VersionBadge` and the console banner from `log-version.ts` will read `0.1.23`. The `Last commit` row still self-hides because `LAST_COMMIT` is `""` (no build-time SHA wired yet).
+### Out of scope
 
-## Out of scope
-- Wiring a real git SHA into the build.
-- Any change to how message HTML is *stored* (still raw HTML in `messages.raw_text`).
-- Any DB schema changes.
+- Share and Duplicate implementations (later prompts).
+- Reusing the VDM inside the Page details modal (later prompt).
+- Collaborator management, ownership transfer, conversation participant removal.
