@@ -876,7 +876,7 @@ export function ConversationWindow({
                               return;
                             toggleSelected(m.id);
                           }}
-                          className={`-mx-4 cursor-pointer rounded-sm px-4 py-1 transition-colors ${
+                          className={`-mx-6 cursor-pointer rounded-sm px-6 py-1 transition-colors ${
                             isSelected ? "bg-muted/60" : "hover:bg-muted/40"
                           }`}
                         >
