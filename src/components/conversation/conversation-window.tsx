@@ -827,7 +827,7 @@ export function ConversationWindow({
           <ResizablePanel id="messages" defaultSize="80%" minSize="65%">
             <div
               ref={scrollerRef}
-              className="h-full overflow-y-auto px-4 py-4"
+              className="h-full overflow-y-auto overflow-x-hidden px-6 py-4"
               onClick={handleMessageClick}
             >
               {messages.length === 0 ? (
