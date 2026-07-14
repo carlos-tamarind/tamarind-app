@@ -11,7 +11,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import { Globe, Link2, Lock, MessageSquare, MoreHorizontal } from "lucide-react";
+import { Copy, Globe, Link2, Lock, MessageSquare, MoreHorizontal, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -653,6 +653,7 @@ export function PageWindow({
     void applyVisibility(value);
   };
 
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -704,28 +705,22 @@ export function PageWindow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              disabled={visibility !== "private"}
-              onSelect={() => handleVisibilityChange("private")}
-            >
-              <Lock className="size-3.5" /> Private
+            {visibility === "private" && (
+              <DropdownMenuItem
+                title="Makes the page public for the whole workspace"
+                onSelect={() => setPublishOpen(true)}
+              >
+                <Globe className="size-3.5" /> Publish
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={() => { /* TODO: Share */ }}>
+              <Share2 className="size-3.5" /> Share
             </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={
-                !(
-                  visibility === "workspace" ||
-                  (visibility === "private" &&
-                    (data?.isOwner ?? false))
-                )
-              }
-              onSelect={() => handleVisibilityChange("workspace")}
-            >
-              <Globe className="size-3.5" /> Workspace
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled>
-              <MessageSquare className="size-3.5" /> Conversation
+            <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
+              <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
           </DropdownMenuContent>
+
         </DropdownMenu>
 
         <Button
