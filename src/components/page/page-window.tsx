@@ -144,6 +144,7 @@ export function PageWindow({
   const [title, setTitle] = useState("");
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -713,9 +714,14 @@ export function PageWindow({
                 <Globe className="size-3.5" /> Publish
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={() => { /* TODO: Share */ }}>
-              <Share2 className="size-3.5" /> Share
-            </DropdownMenuItem>
+            {(visibility === "private" || visibility === "conversation") && (
+              <DropdownMenuItem
+                title="Shares this page with other users or groups"
+                onSelect={() => setShareOpen(true)}
+              >
+                <MessageSquareShare className="size-3.5" /> Share
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
               <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
