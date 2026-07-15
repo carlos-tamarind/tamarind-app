@@ -11,7 +11,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import { Copy, Globe, Link2, Lock, MessageSquare, MoreHorizontal, Share2 } from "lucide-react";
+import { Copy, Globe, Link2, Lock, MessageSquare, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import {
