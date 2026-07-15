@@ -56,16 +56,33 @@ export async function assertCanEditPage(pageId: string, userId: string) {
   }
 
   if (visibility === "conversation") {
-    if (!page.conversation_id) throw new Error("Page is not linked to a conversation");
-    const { data: participant, error: participantError } = await supabaseAdmin
-      .from("conversation_participants")
-      .select("workspace_user_id")
-      .eq("conversation_id", page.conversation_id as string)
-      .eq("workspace_user_id", meWuId)
-      .maybeSingle();
-    if (participantError) throw new Error(participantError.message);
-    if (!participant) throw new Error("You cannot edit this page");
+    // A user may edit a conversation-scoped page if they either participate
+    // in the linked conversation OR were explicitly added as a collaborator
+    // (e.g. via the Share flow, when the page ended up linked to a different
+    // conversation than theirs).
+    let allowed = false;
+    if (page.conversation_id) {
+      const { data: participant, error: participantError } = await supabaseAdmin
+        .from("conversation_participants")
+        .select("workspace_user_id")
+        .eq("conversation_id", page.conversation_id as string)
+        .eq("workspace_user_id", meWuId)
+        .maybeSingle();
+      if (participantError) throw new Error(participantError.message);
+      if (participant) allowed = true;
+    }
+    if (!allowed) {
+      const { data: collab } = await supabaseAdmin
+        .from("page_collaborators")
+        .select("workspace_user_id")
+        .eq("page_id", pageId)
+        .eq("workspace_user_id", meWuId)
+        .maybeSingle();
+      if (collab) allowed = true;
+    }
+    if (!allowed) throw new Error("You cannot edit this page");
   }
+
 
   return {
     workspaceId: page.workspace_id as string,

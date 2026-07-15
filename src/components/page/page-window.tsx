@@ -11,7 +11,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import { Copy, Globe, Link2, Lock, MessageSquare, MoreHorizontal, Share2 } from "lucide-react";
+import { Copy, Globe, Link2, Lock, MessageSquare, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -46,6 +46,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
+import { SharePageDialog } from "@/components/page/share-page-dialog";
 
 function buildMentionSuggestion(
   char: string,
@@ -144,6 +145,7 @@ export function PageWindow({
   const [title, setTitle] = useState("");
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -713,9 +715,14 @@ export function PageWindow({
                 <Globe className="size-3.5" /> Publish
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={() => { /* TODO: Share */ }}>
-              <Share2 className="size-3.5" /> Share
-            </DropdownMenuItem>
+            {(visibility === "private" || visibility === "conversation") && (
+              <DropdownMenuItem
+                title="Shares this page with other users or groups"
+                onSelect={() => setShareOpen(true)}
+              >
+                <MessageSquareShare className="size-3.5" /> Share
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
               <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
@@ -825,6 +832,13 @@ export function PageWindow({
         isOwner={data?.isOwner ?? false}
         onVisibilityChange={handleVisibilityChange}
         collaborators={data?.collaborators ?? []}
+      />
+
+      <SharePageDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        pageId={pageId}
+        workspaceId={workspaceId}
       />
     </div>
   );
