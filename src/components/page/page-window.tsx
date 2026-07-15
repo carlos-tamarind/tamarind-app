@@ -46,6 +46,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
+import { SharePageDialog } from "@/components/page/share-page-dialog";
 
 function buildMentionSuggestion(
   char: string,
