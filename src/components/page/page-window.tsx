@@ -833,6 +833,13 @@ export function PageWindow({
         onVisibilityChange={handleVisibilityChange}
         collaborators={data?.collaborators ?? []}
       />
+
+      <SharePageDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        pageId={pageId}
+        workspaceId={workspaceId}
+      />
     </div>
   );
 }
