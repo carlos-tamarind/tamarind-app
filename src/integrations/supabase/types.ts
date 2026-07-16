@@ -732,6 +732,7 @@ export type Database = {
         Args: { _conversation_id: string }
         Returns: boolean
       }
+      is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
       tiptap_to_plaintext: { Args: { doc: Json }; Returns: string }
     }
