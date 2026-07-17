@@ -848,6 +848,14 @@ export function PageWindow({
         pageId={pageId}
         workspaceId={workspaceId}
       />
+
+      <DuplicatePageDialog
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        pageId={pageId}
+        workspaceId={workspaceId}
+        currentTitle={title || "Untitled"}
+      />
     </div>
   );
 }
