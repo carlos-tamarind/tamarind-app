@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
 import { SharePageDialog } from "@/components/page/share-page-dialog";
+import { DuplicatePageDialog } from "@/components/page/duplicate-page-dialog";
 
 function buildMentionSuggestion(
   char: string,
@@ -146,6 +147,7 @@ export function PageWindow({
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -723,7 +725,13 @@ export function PageWindow({
                 <MessageSquareShare className="size-3.5" /> Share
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
+            <DropdownMenuItem
+              title="Creates a copy of this page and also lets you share it with other users"
+              onSelect={() => {
+                void flushNowRef.current({ silent: true });
+                setDuplicateOpen(true);
+              }}
+            >
               <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -839,6 +847,14 @@ export function PageWindow({
         onOpenChange={setShareOpen}
         pageId={pageId}
         workspaceId={workspaceId}
+      />
+
+      <DuplicatePageDialog
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        pageId={pageId}
+        workspaceId={workspaceId}
+        currentTitle={title || "Untitled"}
       />
     </div>
   );
