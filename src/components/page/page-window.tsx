@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
 import { SharePageDialog } from "@/components/page/share-page-dialog";
+import { DuplicatePageDialog } from "@/components/page/duplicate-page-dialog";
 
 function buildMentionSuggestion(
   char: string,
