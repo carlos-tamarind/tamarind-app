@@ -472,24 +472,18 @@ export const duplicatePage = createServerFn({ method: "POST" })
     let firstConvId: string | null = null;
 
     // 2) Insert the new page.
-    const insertRow: Record<string, unknown> = {
-      workspace_id: workspaceId,
-      created_by_workspace_user_id: meWuId,
-      owner_workspace_user_id: meWuId,
-      page_type: "standard",
-      origin_type: "user",
-      title: data.title,
-      content: source.content,
-      visibility: data.visibility,
-    };
-
-    // For conversation visibility, we need firstConvId before insert — but
-    // shareToConversations also posts announcement messages that reference the
-    // new page id. Insert with conversation_id=null first, then run
-    // shareToConversations, then patch conversation_id.
     const { data: created, error: insErr } = await supabaseAdmin
       .from("pages")
-      .insert(insertRow)
+      .insert({
+        workspace_id: workspaceId,
+        created_by_workspace_user_id: meWuId,
+        owner_workspace_user_id: meWuId,
+        page_type: "standard",
+        origin_type: "user",
+        title: data.title,
+        content: source.content,
+        visibility: data.visibility,
+      })
       .select("id")
       .single();
     if (insErr || !created) throw new Error(insErr?.message ?? "Duplicate failed");
