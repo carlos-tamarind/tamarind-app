@@ -147,6 +147,7 @@ export function PageWindow({
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
