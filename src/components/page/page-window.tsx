@@ -725,7 +725,13 @@ export function PageWindow({
                 <MessageSquareShare className="size-3.5" /> Share
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={() => { /* TODO: Duplicate */ }}>
+            <DropdownMenuItem
+              title="Creates a copy of this page and also lets you share it with other users"
+              onSelect={() => {
+                void flushNowRef.current({ silent: true });
+                setDuplicateOpen(true);
+              }}
+            >
               <Copy className="size-3.5" /> Duplicate
             </DropdownMenuItem>
           </DropdownMenuContent>
