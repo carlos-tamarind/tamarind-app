@@ -448,7 +448,8 @@ export function ConversationWindow({
             id: m.workspaceUserId,
             label: m.label,
           }));
-      }),
+      }, mentionOpenRef),
+
 
     [workspaceId, fetchMembers],
   );
