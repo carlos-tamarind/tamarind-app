@@ -259,6 +259,7 @@ function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[
 function buildMentionSuggestion(
   char: string,
   getItems: (query: string) => Promise<MentionItem[]>,
+  openCounter?: { current: number },
 ) {
   return {
     char,
@@ -266,6 +267,7 @@ function buildMentionSuggestion(
     render: () => {
       let component: ReactRenderer | null = null;
       let popup: TippyInstance | null = null;
+      let counted = false;
       return {
         onStart: (props: any) => {
           component = new ReactRenderer(MentionList, {
@@ -281,6 +283,10 @@ function buildMentionSuggestion(
             trigger: "manual",
             placement: "top-start",
           });
+          if (openCounter) {
+            openCounter.current += 1;
+            counted = true;
+          }
         },
         onUpdate: (props: any) => {
           component?.updateProps(props);
@@ -294,6 +300,10 @@ function buildMentionSuggestion(
           return (component?.ref as any)?.onKeyDown(props) ?? false;
         },
         onExit: () => {
+          if (openCounter && counted) {
+            openCounter.current = Math.max(0, openCounter.current - 1);
+            counted = false;
+          }
           popup?.destroy();
           component?.destroy();
         },
@@ -301,6 +311,7 @@ function buildMentionSuggestion(
     },
   };
 }
+
 
 export function ConversationWindow({
   workspaceId,
