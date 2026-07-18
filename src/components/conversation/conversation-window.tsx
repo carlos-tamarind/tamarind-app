@@ -499,12 +499,14 @@ export function ConversationWindow({
       },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
+          if (mentionOpenRef.current > 0) return false;
           event.preventDefault();
           handleSend();
           return true;
         }
         return false;
       },
+
     },
     onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
     onUpdate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
