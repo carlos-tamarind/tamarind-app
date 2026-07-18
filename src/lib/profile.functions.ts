@@ -33,17 +33,22 @@ export const updateMyDisplayName = createServerFn({ method: "POST" })
     z
       .object({
         workspaceId: z.string().uuid(),
-        displayName: z.string().trim().min(1).max(120),
+        displayName: z.string().trim().min(3).max(40),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("workspace_users")
       .update({ display_name: data.displayName })
       .eq("workspace_id", data.workspaceId)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!updated || updated.length === 0) {
+      throw new Error("Failed to update display name");
+    }
     return { ok: true as const };
   });
+
