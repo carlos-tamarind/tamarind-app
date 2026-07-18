@@ -193,21 +193,26 @@ export function NewPageDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="private" disabled={!!conversationId}>
-                  <span className="flex items-center gap-2">
-                    <Lock className="size-3.5" /> Private
-                  </span>
-                </SelectItem>
-                <SelectItem value="workspace" disabled={!!conversationId}>
-                  <span className="flex items-center gap-2">
-                    <Globe className="size-3.5" /> Workspace
-                  </span>
-                </SelectItem>
-                <SelectItem value="conversation" disabled={!conversationId}>
-                  <span className="flex items-center gap-2">
-                    <MessageSquare className="size-3.5" /> Conversation
-                  </span>
-                </SelectItem>
+                {conversationId ? (
+                  <SelectItem value="conversation">
+                    <span className="flex items-center gap-2">
+                      <MessageSquare className="size-3.5" /> Conversation
+                    </span>
+                  </SelectItem>
+                ) : (
+                  <>
+                    <SelectItem value="private">
+                      <span className="flex items-center gap-2">
+                        <Lock className="size-3.5" /> Private
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="workspace">
+                      <span className="flex items-center gap-2">
+                        <Globe className="size-3.5" /> Workspace
+                      </span>
+                    </SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
