@@ -434,7 +434,10 @@ export function ConversationWindow({
     el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
+  const mentionOpenRef = useRef(0);
+
   const memberSuggestion = useMemo(
+
     () =>
       buildMentionSuggestion("@", async (query) => {
         const members = await fetchMembers({ data: { workspaceId } });
