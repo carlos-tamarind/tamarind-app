@@ -90,13 +90,26 @@ export function ProfileDialog({
 
         <div className="space-y-2">
           <Label htmlFor="profile-display-name">Display name</Label>
-          <Input
-            id="profile-display-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={120}
-            placeholder="Your name"
-          />
+          <div className="relative">
+            <Input
+              id="profile-display-name"
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 40))}
+              placeholder="Your name"
+              className="pr-14"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70 tabular-nums"
+            >
+              {name.length}/40
+            </span>
+          </div>
+          {name.trim().length < 3 ? (
+            <p className="text-xs text-muted-foreground">
+              Display name must be at least 3 characters.
+            </p>
+          ) : null}
           <div className="flex justify-end gap-2 pt-1">
             <Button
               variant="ghost"
@@ -109,7 +122,7 @@ export function ProfileDialog({
             <Button
               size="sm"
               onClick={() => renameMut.mutate(name.trim())}
-              disabled={!dirty || renameMut.isPending}
+              disabled={!dirty || renameMut.isPending || name.trim().length < 3}
             >
               {renameMut.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -118,6 +131,7 @@ export function ProfileDialog({
             </Button>
           </div>
         </div>
+
 
         <div className="mt-4 flex justify-center border-t pt-4">
           <Button onClick={handleLogout} className="min-w-32">
