@@ -5,14 +5,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Collaborator = {
@@ -32,9 +27,10 @@ export function PageSettingsDialog({
   onTitleCommit,
   ownerDisplayName,
   visibility,
-  isOwner,
-  onVisibilityChange,
   collaborators,
+  onPublish,
+  onShare,
+  onDuplicate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,27 +40,30 @@ export function PageSettingsDialog({
   onTitleCommit: () => void;
   ownerDisplayName: string | null;
   visibility: PageVisibility;
-  isOwner: boolean;
-  onVisibilityChange: (value: "private" | "workspace") => void;
+  isOwner?: boolean;
   collaborators: Collaborator[];
+  onPublish: () => void;
+  onShare: () => void;
+  onDuplicate: () => void;
 }) {
-  const selectValue: PageVisibility = visibility;
+  const visibilityLabel =
+    visibility === "private" ? (
+      <>
+        <Lock className="size-3.5" /> Only you can access this page.
+      </>
+    ) : visibility === "conversation" ? (
+      <>
+        <MessageSquare className="size-3.5" /> You and all collaborators can access this page.
+      </>
+    ) : (
+      <>
+        <Globe className="size-3.5" /> All members from this workspace can access this page.
+      </>
+    );
 
-  // Enable rules:
-  // - private + owner: can promote to workspace
-  // - everything else: locked
-  const canPromoteToWorkspace = visibility === "private" && isOwner;
-
-  const privateDisabled = visibility !== "private";
-  const workspaceDisabled = !(visibility === "workspace" || canPromoteToWorkspace);
-  const conversationDisabled = visibility !== "conversation";
-
-  const helperText =
-    visibility === "workspace"
-      ? "Visibility on Workspace pages cannot be changed back. Duplicate to make a private copy."
-      : visibility === "conversation"
-        ? "Visibility on Conversation pages cannot be changed. Duplicate to make a private copy."
-        : null;
+  const showCollaborators = visibility === "conversation" || visibility === "external";
+  const showPublish = visibility === "private";
+  const showShare = visibility !== "workspace";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,62 +102,51 @@ export function PageSettingsDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">
+            <div className="text-xs font-semibold text-muted-foreground">
               Who can see this page?
-            </label>
-            <Select
-              value={selectValue}
-              onValueChange={(v) => {
-                if (v === "private" || v === "workspace") {
-                  onVisibilityChange(v);
-                }
-              }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="private" disabled={privateDisabled}>
-                  <span className="flex items-center gap-2">
-                    <Lock className="size-3.5" /> Private
-                  </span>
-                </SelectItem>
-                <SelectItem value="workspace" disabled={workspaceDisabled}>
-                  <span className="flex items-center gap-2">
-                    <Globe className="size-3.5" /> Workspace
-                  </span>
-                </SelectItem>
-                <SelectItem value="conversation" disabled={conversationDisabled}>
-                  <span className="flex items-center gap-2">
-                    <MessageSquare className="size-3.5" /> Conversation
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {helperText && (
-              <p className="text-xs text-muted-foreground">{helperText}</p>
-            )}
+            </div>
+            <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+              {visibilityLabel}
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="text-xs font-semibold text-muted-foreground">
-              Collaborators
-            </div>
-            <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
-              {collaborators.length === 0 ? (
-                <li className="px-1 py-1 text-muted-foreground">
-                  No collaborators yet.
-                </li>
-              ) : (
-                collaborators.map((c) => (
-                  <li key={c.workspaceUserId} className="px-1 py-1">
-                    {c.displayName}
+          {showCollaborators && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-semibold text-muted-foreground">
+                Collaborators
+              </div>
+              <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
+                {collaborators.length === 0 ? (
+                  <li className="px-1 py-1 text-muted-foreground">
+                    No collaborators yet.
                   </li>
-                ))
-              )}
-            </ul>
-          </div>
+                ) : (
+                  collaborators.map((c) => (
+                    <li key={c.workspaceUserId} className="px-1 py-1">
+                      {c.displayName}
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          )}
         </div>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-between">
+          {showPublish && (
+            <Button variant="secondary" className="flex-1" onClick={onPublish}>
+              <Globe className="size-3.5" /> Publish
+            </Button>
+          )}
+          {showShare && (
+            <Button variant="secondary" className="flex-1" onClick={onShare}>
+              <MessageSquare className="size-3.5" /> Share
+            </Button>
+          )}
+          <Button variant="secondary" className="flex-1" onClick={onDuplicate}>
+            Duplicate
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
