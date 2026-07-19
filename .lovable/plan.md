@@ -1,52 +1,44 @@
-## 1. Mention dropdown swallows Enter (bug)
+## Update Page Settings Dialog
 
-**File:** `src/components/conversation/conversation-window.tsx`
+Refresh `src/components/page/page-settings-dialog.tsx` and its call site in `src/components/page/page-window.tsx` to align the details modal with the new VDM.
 
-The composer's `editorProps.handleKeyDown` intercepts Enter and calls `handleSend()` before the mention Suggestion plugin sees the key, so choosing a highlighted member/page never happens.
+### Changes in `page-settings-dialog.tsx`
 
-Fix: in `handleKeyDown`, only send on Enter when no suggestion popup is active. Track open suggestions via a ref set from each mention suggestion's `onStart`/`onExit` (in `buildMentionSuggestion`), or check for a visible tippy popup rendered by the mention (e.g. `document.querySelector('[data-tippy-root]')` created by the mention render). Simplest robust approach: keep a shared `mentionOpenRef = useRef(0)` (counter), increment on `onStart`, decrement on `onExit`, and short-circuit Enter when `mentionOpenRef.current > 0`. Return `false` so ProseMirror/Suggestion handles Enter and inserts the mention.
+1. **Replace the visibility `<Select>`** in the "Who can see this page?" section with a read-only label styled like the Page ID box:
+   - Classes: `rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground` plus a flex row for icon + text.
+   - Content by current visibility:
+     - `private` → `<Lock />` "Only you can access this page."
+     - `conversation` → `<MessageSquare />` "You and all collaborators can access this page."
+     - `workspace` → `<Globe />` "All members from this workspace can access this page."
+     - `external` → keep a sensible fallback (reuse workspace copy).
+   - Keep the "Who can see this page?" heading.
+   - Remove the "Visibility on Workspace/Conversation pages cannot be changed…" helper text entirely.
 
-Also verify the slash command menu behaves the same (it already handles Enter internally via `SlashMenu.onKeyDown`, but same guard covers it if we extend to slash — check quickly and include if needed).
+2. **Hide the Collaborators section** when `visibility === "private" || visibility === "workspace"`. Only render it for `conversation` (and `external` if applicable).
 
-## 2. Display name change doesn't persist (bug)
+3. **Add a footer with three secondary CTAs**, horizontally aligned (single row, evenly spaced, e.g. `flex gap-2` with each button `flex-1`):
+   - Left **Publish**: only rendered when `visibility === "private"`. Calls a new `onPublish` prop.
+   - Middle **Share**: rendered when `visibility !== "workspace"`. Calls a new `onShare` prop.
+   - Right **Duplicate**: always rendered. Calls a new `onDuplicate` prop.
+   - All use `<Button variant="secondary">`.
+   - Each handler should close the settings dialog before opening the target dialog (handled in `page-window.tsx`).
 
-**Root cause:** `public.workspace_users` has no RLS UPDATE policy for regular members. Only `"Admins can manage members"` covers UPDATE. `updateMyDisplayName` runs under `requireSupabaseAuth` (user-scoped client), so `.update()` affects 0 rows silently, returns no error, and the mutation reports success — but nothing changed.
+4. **Drop now-unused props/imports**: remove `onVisibilityChange` prop, `Select*` imports, and the `Input`-based visibility select. Keep `Lock`, `Globe`, `MessageSquare` for the label icons.
 
-Fix (migration): add a policy allowing an authenticated user to update their own `workspace_users` row.
+### Changes in `page-window.tsx`
 
-```sql
-CREATE POLICY "Users can update their own membership profile"
-ON public.workspace_users
-FOR UPDATE
-TO authenticated
-USING (user_id = auth.uid())
-WITH CHECK (user_id = auth.uid());
-```
+- Update the `<PageSettingsDialog>` usage:
+  - Remove `onVisibilityChange`.
+  - Add `onPublish={() => { setSettingsOpen(false); setPublishOpen(true); }}`.
+  - Add `onShare={() => { setSettingsOpen(false); setShareOpen(true); }}`.
+  - Add `onDuplicate={() => { setSettingsOpen(false); setDuplicateOpen(true); }}`.
+- Leave the VDM (header) and all existing publish/share/duplicate flows untouched — the modal simply reuses the same handlers.
 
-No column-level restriction needed for now (server function only sets `display_name`); admin-only fields like `role_id` remain protected because non-admin UPDATEs are checked against the `USING`/`CHECK` predicates but admins already have their own policy for role changes. If we want to be stricter, we can also add a trigger to prevent `role_id` changes from this policy — flag for later, not needed now.
+### Versioning
 
-Also make `updateMyDisplayName` verify a row was actually updated (use `.select('id').single()` on the update) so future silent-failures throw.
+- Bump app version patch by 0.01 in `src/lib/version.ts` (0.1.30 → 0.1.31).
 
-## 3. Display name length limits (feature)
+### Out of scope
 
-**File:** `src/components/profile/profile-dialog.tsx`
-
-- Constants: `MIN = 3`, `MAX = 40`.
-- Input: cap value length via `onChange` (`e.target.value.slice(0, MAX)`); remove `maxLength` reliance so paste is also clamped consistently.
-- Layout: wrap input in `relative` container; place a dimmed, non-interactive counter `<span>` absolutely on the right (`pointer-events-none`, `text-muted-foreground`), right-padded on the input (`pr-14`) so text never overlaps the hint. Counter text: `${name.trim().length}/${MAX}`.
-- Below the input, when `name.trim().length < MIN`, render a small helper: `"Display name must be at least 3 characters."` (muted/destructive text-xs).
-- Disable Confirm when `name.trim().length < MIN` OR not dirty OR mutation pending. Cancel button and dialog close remain unaffected.
-
-**Server tightening** (defense in depth): update `updateMyDisplayName` zod schema in `src/lib/profile.functions.ts` from `min(1).max(120)` to `min(3).max(40)`.
-
-## 4. Versioning
-
-Bump `APP_VERSION` in `src/lib/version.ts` from `0.1.29` → `0.1.30` and update `.lovable/plan.md`.
-
-## Files touched
-
-- `src/components/conversation/conversation-window.tsx` — mention-open ref + guarded Enter
-- `supabase/migrations/<new>.sql` — self-update policy on `workspace_users`
-- `src/lib/profile.functions.ts` — stricter zod (3–40), assert row updated
-- `src/components/profile/profile-dialog.tsx` — counter, min-length hint, disabled state, clamp
-- `src/lib/version.ts`, `.lovable/plan.md` — version bump
+- No server, RLS, or visibility-transition logic changes.
+- No changes to VDM behavior or to the Publish/Share/Duplicate dialogs themselves.
