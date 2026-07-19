@@ -838,8 +838,19 @@ export function PageWindow({
         ownerDisplayName={data?.ownerDisplayName ?? null}
         visibility={visibility}
         isOwner={data?.isOwner ?? false}
-        onVisibilityChange={handleVisibilityChange}
         collaborators={data?.collaborators ?? []}
+        onPublish={() => {
+          setSettingsOpen(false);
+          setPublishOpen(true);
+        }}
+        onShare={() => {
+          setSettingsOpen(false);
+          setShareOpen(true);
+        }}
+        onDuplicate={() => {
+          setSettingsOpen(false);
+          setDuplicateOpen(true);
+        }}
       />
 
       <SharePageDialog
