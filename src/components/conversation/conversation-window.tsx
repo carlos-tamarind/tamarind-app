@@ -559,6 +559,31 @@ export function ConversationWindow({
     clearSelection();
   };
 
+  const handleCopySelection = async () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
+    ids.sort((a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0));
+    const byId = new Map(messages.map((m) => [m.id, m]));
+    const parts: string[] = [];
+    for (const id of ids) {
+      const m = byId.get(id);
+      if (!m) continue;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = m.rawText || "";
+      const text = (tmp.innerText || tmp.textContent || "").trim();
+      if (text) parts.push(text);
+    }
+    try {
+      await navigator.clipboard.writeText(parts.join("\n\n"));
+      toast("Messages copied successfully.");
+      clearSelection();
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not copy to clipboard.");
+    }
+  };
+
   const handleNewPage = () => {
     setNewPageFromMessages(false);
     setNewPagePresetTitle("");
