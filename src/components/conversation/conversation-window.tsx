@@ -22,6 +22,7 @@ import {
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
