@@ -734,7 +734,7 @@ export function ConversationWindow({
                       size="sm"
                       variant="ghost"
                       className="w-full justify-start"
-                      onClick={noop}
+                      onClick={handleCopySelection}
                     >
                       <Copy className="size-4" />
                       Copy {plural} to clipboard
