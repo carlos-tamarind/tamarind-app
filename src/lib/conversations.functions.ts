@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { DebugLogger } from "@/lib/debugLogger";
 import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
 
 
@@ -169,7 +170,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
     }
 
 
-    return convs.map((c: any) => ({
+    const results = convs.map((c: any) => ({
       id: c.id as string,
       title:
         (c.title as string | null) ??
@@ -178,6 +179,20 @@ export const listMyConversations = createServerFn({ method: "GET" })
       type: (c.type as "direct" | "group" | "channel") ?? "direct",
       lastModifiedAt: c.last_modified_at as string,
     }));
+
+    DebugLogger.table({
+      scope: "conversations",
+      event: "listMyConversations",
+      collapsed: true,
+      data: Object.fromEntries(
+        results.map((c) => [
+          c.id,
+          { title: c.title, type: c.type, lastModifiedAt: c.lastModifiedAt },
+        ]),
+      ),
+    });
+
+    return results;
   });
 
 export const findOrCreateConversation = createServerFn({ method: "POST" })
