@@ -26,19 +26,19 @@ export async function insertMessageSemantics(
   input: InsertMessageSemanticsInput,
 ): Promise<MessageSemantics> {
   const supabase = await getAdmin();
-  const payload = stripUndefined({
+  const payload: Record<string, unknown> = {
     message_id: input.message_id,
     normalized_text: input.normalized_text,
     checksum: input.checksum,
-    language: input.language,
-    quality_score: input.quality_score,
-    processable: input.processable,
-    embedding_status: input.embedding_status,
-  });
+  };
+  if (input.language !== undefined) payload.language = input.language;
+  if (input.quality_score !== undefined) payload.quality_score = input.quality_score;
+  if (input.processable !== undefined) payload.processable = input.processable;
+  if (input.embedding_status !== undefined) payload.embedding_status = input.embedding_status;
 
   const { data, error } = await supabase
     .from("message_semantics")
-    .insert(payload)
+    .insert(payload as never)
     .select("*")
     .single();
 
