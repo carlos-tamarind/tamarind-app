@@ -319,6 +319,59 @@ export type Database = {
         }
         Relationships: []
       }
+      message_semantics: {
+        Row: {
+          checksum: string
+          created_at: string
+          embedding_status: Database["public"]["Enums"]["embedding_status"]
+          id: string
+          language: string
+          last_error: string | null
+          last_processed_at: string | null
+          message_id: string
+          normalized_text: string
+          processable: boolean
+          quality_score: number
+          updated_at: string
+        }
+        Insert: {
+          checksum: string
+          created_at?: string
+          embedding_status?: Database["public"]["Enums"]["embedding_status"]
+          id?: string
+          language?: string
+          last_error?: string | null
+          last_processed_at?: string | null
+          message_id: string
+          normalized_text: string
+          processable?: boolean
+          quality_score?: number
+          updated_at?: string
+        }
+        Update: {
+          checksum?: string
+          created_at?: string
+          embedding_status?: Database["public"]["Enums"]["embedding_status"]
+          id?: string
+          language?: string
+          last_error?: string | null
+          last_processed_at?: string | null
+          message_id?: string
+          normalized_text?: string
+          processable?: boolean
+          quality_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_semantics_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           author_workspace_user_id: string | null
@@ -745,6 +798,13 @@ export type Database = {
         | "semantic_hint"
       conversation_role: "admin" | "member" | "viewer"
       conversation_type: "direct" | "group" | "channel"
+      embedding_status:
+        | "NEW"
+        | "QUEUED"
+        | "PROCESSING"
+        | "EMBEDDED"
+        | "FAILED"
+        | "SKIPPED"
       page_origin: "user" | "conversation" | "import" | "ai"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
@@ -893,6 +953,14 @@ export const Constants = {
       ],
       conversation_role: ["admin", "member", "viewer"],
       conversation_type: ["direct", "group", "channel"],
+      embedding_status: [
+        "NEW",
+        "QUEUED",
+        "PROCESSING",
+        "EMBEDDED",
+        "FAILED",
+        "SKIPPED",
+      ],
       page_origin: ["user", "conversation", "import", "ai"],
       page_type: ["standard", "template", "generated", "imported"],
       page_visibility: ["private", "conversation", "workspace", "external"],
