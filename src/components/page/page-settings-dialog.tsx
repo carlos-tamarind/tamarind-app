@@ -89,7 +89,7 @@ export function PageSettingsDialog({
             <div className="text-xs font-semibold text-muted-foreground">
               Page ID
             </div>
-            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+            <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground break-all">
               {pageId}
             </div>
           </div>
@@ -98,14 +98,14 @@ export function PageSettingsDialog({
             <div className="text-xs font-semibold text-muted-foreground">
               Owner
             </div>
-            <div className="text-sm">{ownerDisplayName ?? "—"}</div>
+            <div className="text-sm break-words">{ownerDisplayName ?? "—"}</div>
           </div>
 
           <div className="space-y-1.5">
             <div className="text-xs font-semibold text-muted-foreground">
               Who can see this page?
             </div>
-            <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground [&>svg]:shrink-0">
               {visibilityLabel}
             </div>
           </div>
