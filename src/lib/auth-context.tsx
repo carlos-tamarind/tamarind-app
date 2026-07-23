@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
+import { DebugLogger } from "@/lib/debugLogger";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextValue {
@@ -20,11 +21,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      DebugLogger.log({
+        scope: "auth",
+        event: "sessionChange",
+        message: `${event} · ${s?.user?.id ?? "no user"}`,
+      });
       setSession(s);
       setLoading(false);
     });
     supabase.auth.getSession().then(({ data }) => {
+      DebugLogger.log({
+        scope: "auth",
+        event: "sessionInit",
+        message: data.session?.user?.id ?? "no session",
+      });
       setSession(data.session);
       setLoading(false);
     });

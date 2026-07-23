@@ -1,3 +1,4 @@
+import { DebugLogger } from "./debugLogger";
 import { APP_VERSION, BUILD_TIME, ENVIRONMENT, LAST_COMMIT } from "./version";
 
 let hasLogged = false;
@@ -22,6 +23,9 @@ export function logVersionBanner() {
   }
   lines.push(`//  Environment : ${ENVIRONMENT}`);
   lines.push("// ======================================================= //");
-  // eslint-disable-next-line no-console
-  console.log(lines.join("\n"));
+  DebugLogger.log({
+    scope: "app",
+    event: "startup",
+    message: lines.join("\n"),
+  });
 }

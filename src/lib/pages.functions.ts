@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { DebugLogger } from "@/lib/debugLogger";
 
 
 export const createBlankPage = createServerFn({ method: "POST" })
@@ -63,6 +64,7 @@ export const getPage = createServerFn({ method: "GET" })
     z.object({ pageId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const timer = DebugLogger.time("pages", "getPage");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { fetchEmailsForUserIds, resolveLabel } = await import(
       "@/lib/user-label.server"
@@ -150,6 +152,7 @@ export const getPage = createServerFn({ method: "GET" })
       !!viewerWorkspaceUserId &&
       viewerWorkspaceUserId === (page.owner_workspace_user_id as string | null);
 
+    timer.end();
     return {
       id: page.id as string,
       title: page.title as string,
