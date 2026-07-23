@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { enqueueMessageSemanticsProcessing } from "@/semantic/enqueueMessageSemanticsProcessing";
 
 // A ProseMirror doc is "empty" when it's null/undefined, not a doc, or a doc
 // with no non-empty children. Used server-side to refuse overwrites that
@@ -246,13 +247,17 @@ export async function shareToConversations(params: {
     `<p><span class="mention-page" data-id="${escapeHtml(pageId)}" data-label="${safeTitle}">${safeTitle}</span></p>`;
 
   for (const cid of targetConvIds) {
-    const { error: mErr } = await supabaseAdmin.from("messages").insert({
+    const { data: msg, error: mErr } = await supabaseAdmin.from("messages").insert({
       conversation_id: cid,
       workspace_id: workspaceId,
       author_workspace_user_id: meWuId,
       raw_text: html,
+    }).select("id").single();
+    if (mErr || !msg) throw new Error(mErr?.message ?? "Insert failed");
+    enqueueMessageSemanticsProcessing({
+      messageId: msg.id as string,
+      rawMessage: html,
     });
-    if (mErr) throw new Error(mErr.message);
     await supabaseAdmin
       .from("conversations")
       .update({ last_modified_at: new Date().toISOString() })
