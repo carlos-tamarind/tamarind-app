@@ -122,7 +122,7 @@ export function ConversationSettingsDialog({
             </div>
             <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
               {participants.map((p) => (
-                <li key={p.workspaceUserId} className="px-1 py-1">
+                <li key={p.workspaceUserId} className="min-w-0 break-words px-1 py-1">
                   {p.displayName}
                   {p.isMe && (
                     <span className="ml-1 text-xs text-muted-foreground">(you)</span>
