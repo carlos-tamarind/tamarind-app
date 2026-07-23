@@ -108,7 +108,7 @@ export function ConversationSettingsDialog({
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Created by</h3>
             <div className="rounded-md border bg-muted/30 p-2 text-sm">
-              <div className="px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
+              <div className="min-w-0 break-words px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
             </div>
           </div>
 
