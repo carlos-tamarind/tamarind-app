@@ -122,7 +122,7 @@ export function PageSettingsDialog({
                   </li>
                 ) : (
                   collaborators.map((c) => (
-                    <li key={c.workspaceUserId} className="px-1 py-1">
+                    <li key={c.workspaceUserId} className="min-w-0 break-words px-1 py-1">
                       {c.displayName}
                     </li>
                   ))
