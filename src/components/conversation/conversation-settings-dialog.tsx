@@ -144,10 +144,10 @@ export function ConversationSettingsDialog({
                 <li className="px-1 py-1 text-muted-foreground">No pages yet.</li>
               ) : (
                 (pages ?? []).map((p) => (
-                  <li key={p.id}>
+                  <li key={p.id} className="min-w-0">
                     <button
                       onClick={() => handleOpenPage(p.id)}
-                      className="block w-full truncate rounded px-1 py-1 text-left hover:bg-accent"
+                      className="block w-full whitespace-normal break-words rounded px-1 py-1 text-left hover:bg-accent"
                     >
                       {p.title || "Untitled"}
                     </button>
