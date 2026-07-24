@@ -16,13 +16,5 @@ export default defineConfig({
     define: {
       __APP_BUILT_AT__: JSON.stringify(new Date().toISOString()),
     },
-    build: {
-      rollupOptions: {
-        external: ["cloudflare:workers"],
-      },
-    },
-    ssr: {
-      external: ["cloudflare:workers"],
-    },
   },
 });
