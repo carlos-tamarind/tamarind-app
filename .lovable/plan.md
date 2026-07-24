@@ -1,55 +1,54 @@
-# Task 1 — Message Semantics schema, checksum, and persistence
+# Task 2 — Embeddings storage schema
 
-Foundational storage + utilities for the Message Embedding pipeline. No normalization logic yet.
+Single migration covering the new table, the two new columns on `message_semantics`, and all indexes.
 
-## 1. Database migration (`create_message_semantics_table`)
+## 1. Extend `message_semantics`
 
-- Create enum `embedding_status` with values: `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED`.
-- Create table `public.message_semantics`:
-  - `id UUID PK DEFAULT gen_random_uuid()`
-  - `message_id UUID NOT NULL UNIQUE REFERENCES public.messages(id) ON DELETE CASCADE`
-  - `normalized_text TEXT NOT NULL`
-  - `checksum VARCHAR(64) NOT NULL UNIQUE`
-  - `language TEXT NOT NULL DEFAULT 'en'`
-  - `quality_score NUMERIC(3,2) NOT NULL DEFAULT 0.0` + `CHECK (quality_score >= 0 AND quality_score <= 1)`
-  - `processable BOOLEAN NOT NULL DEFAULT TRUE`
-  - `embedding_status embedding_status NOT NULL DEFAULT 'NEW'`
-  - `last_error TEXT NULL`
-  - `last_processed_at TIMESTAMPTZ NULL`
-  - `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
-  - `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
-- Unique indexes on `message_id` and `checksum` (implicit); explicit btree on `embedding_status` for future queue queries.
-- `set_updated_at()` function + BEFORE UPDATE trigger.
-- Grants: `SELECT, INSERT, UPDATE, DELETE` to `authenticated`; `ALL` to `service_role`.
-- Enable RLS. Policies:
-  - SELECT for `authenticated` gated by an `EXISTS` check against `messages` matching the existing message-visibility predicate (confirmed during implementation).
-  - No direct INSERT/UPDATE/DELETE for `authenticated` — pipeline writes via `supabaseAdmin`.
+Add columns:
+- `retry_count INT NOT NULL DEFAULT 0`
+- `next_retry_at TIMESTAMPTZ NULL`
 
-## 2. Checksum utility
+## 2. Create `message_embeddings`
 
-`src/semantic/checksum/computeMessageChecksum.ts` — pure sync function using Node `crypto.createHash("sha256")` (works in Worker SSR via `nodejs_compat`), returns 64-char hex digest. Matches the spec's sync signature exactly.
+Columns exactly as specified:
+- `id UUID PK DEFAULT gen_random_uuid()`
+- `message_semantics_id UUID NOT NULL REFERENCES message_semantics(id) ON DELETE CASCADE`
+- `model TEXT NOT NULL`
+- `dimensions INTEGER NOT NULL`
+- `embedding_vector VECTOR(1536) NOT NULL`
+- `token_count INTEGER NOT NULL`
+- `is_active BOOLEAN NOT NULL DEFAULT TRUE`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
 
-## 3. Persistence layer
+Relationship: `message_semantics 1 — n message_embeddings`.
 
-- `src/semantic/persistence/types.ts` — exports `EmbeddingStatus`, `MessageSemantics`, `InsertMessageSemanticsInput` per spec.
-- `src/semantic/persistence/messageSemanticsRepository.ts` — server-only; loads `supabaseAdmin` via dynamic import inside each function to keep it out of any client bundle:
-  - `insertMessageSemantics(input)` — omits undefined optionals so DB defaults apply; returns the inserted row.
-  - `findMessageSemanticsByMessageId(messageId)` — row or null.
-  - `findMessageSemanticsByChecksum(checksum)` — row or null.
-  - Throws on unexpected DB errors; "no rows" returns null.
+## 3. Grants + RLS
 
-## 4. Version bump
+Following project rules — all writes/reads server-side via `supabaseAdmin` (embeddings pipeline). Grants:
+- `GRANT ALL ON public.message_embeddings TO service_role`
+- No `authenticated`/`anon` grants (never accessed from the browser)
 
-`src/lib/version.ts` → `0.1.33`.
+Enable RLS with no policies (locked to service role only), matching how `message_semantics` is treated.
 
-## Out of scope
+## 4. Indexes
 
-Normalization, PII sanitization, logging, `/src/semantic/normalization/`, background jobs, message-send integration.
+On `message_embeddings`:
+- `idx_message_embeddings_semantic` on `(message_semantics_id)`
+- `idx_message_embeddings_vector` HNSW on `(embedding_vector vector_cosine_ops)`
+- `idx_message_embeddings_active` on `(is_active)`
 
-## Acceptance
+On `message_semantics`:
+- `idx_message_semantics_queue` on `(next_retry_at, created_at) WHERE embedding_status = 'QUEUED'`
+- `idx_message_semantics_message` UNIQUE on `(message_id)` — created only if no equivalent unique constraint/index already exists (will verify via `pg_indexes` in the same migration using `CREATE UNIQUE INDEX IF NOT EXISTS`)
 
-- Migration applies cleanly (enum, table, trigger, grants, RLS).
-- `computeMessageChecksum("hello")` returns deterministic 64-char hex.
-- Repository insert/lookup functions work via `supabaseAdmin`.
-- Types exported and usable.
-- Version bumped.
+## 5. Version bump
+
+Bump app version 0.1.35 → 0.1.36 after migration succeeds.
+
+## Out of scope (deferred to later tasks)
+
+- Repository/service layer for embeddings
+- Queue worker / retry orchestration
+- OpenAI embedding calls
+
+Confirm and I'll run the migration.

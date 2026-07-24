@@ -319,6 +319,47 @@ export type Database = {
         }
         Relationships: []
       }
+      message_embeddings: {
+        Row: {
+          created_at: string
+          dimensions: number
+          embedding_vector: string
+          id: string
+          is_active: boolean
+          message_semantics_id: string
+          model: string
+          token_count: number
+        }
+        Insert: {
+          created_at?: string
+          dimensions: number
+          embedding_vector: string
+          id?: string
+          is_active?: boolean
+          message_semantics_id: string
+          model: string
+          token_count: number
+        }
+        Update: {
+          created_at?: string
+          dimensions?: number
+          embedding_vector?: string
+          id?: string
+          is_active?: boolean
+          message_semantics_id?: string
+          model?: string
+          token_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_embeddings_message_semantics_id_fkey"
+            columns: ["message_semantics_id"]
+            isOneToOne: false
+            referencedRelation: "message_semantics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_semantics: {
         Row: {
           checksum: string
@@ -329,9 +370,11 @@ export type Database = {
           last_error: string | null
           last_processed_at: string | null
           message_id: string
+          next_retry_at: string | null
           normalized_text: string
           processable: boolean
           quality_score: number
+          retry_count: number
           updated_at: string
         }
         Insert: {
@@ -343,9 +386,11 @@ export type Database = {
           last_error?: string | null
           last_processed_at?: string | null
           message_id: string
+          next_retry_at?: string | null
           normalized_text: string
           processable?: boolean
           quality_score?: number
+          retry_count?: number
           updated_at?: string
         }
         Update: {
@@ -357,9 +402,11 @@ export type Database = {
           last_error?: string | null
           last_processed_at?: string | null
           message_id?: string
+          next_retry_at?: string | null
           normalized_text?: string
           processable?: boolean
           quality_score?: number
+          retry_count?: number
           updated_at?: string
         }
         Relationships: [

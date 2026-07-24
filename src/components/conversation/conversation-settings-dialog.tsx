@@ -108,7 +108,7 @@ export function ConversationSettingsDialog({
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Created by</h3>
             <div className="rounded-md border bg-muted/30 p-2 text-sm">
-              <div className="px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
+              <div className="min-w-0 break-words px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ export function ConversationSettingsDialog({
             </div>
             <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
               {participants.map((p) => (
-                <li key={p.workspaceUserId} className="px-1 py-1">
+                <li key={p.workspaceUserId} className="min-w-0 break-words px-1 py-1">
                   {p.displayName}
                   {p.isMe && (
                     <span className="ml-1 text-xs text-muted-foreground">(you)</span>
@@ -144,10 +144,10 @@ export function ConversationSettingsDialog({
                 <li className="px-1 py-1 text-muted-foreground">No pages yet.</li>
               ) : (
                 (pages ?? []).map((p) => (
-                  <li key={p.id}>
+                  <li key={p.id} className="min-w-0">
                     <button
                       onClick={() => handleOpenPage(p.id)}
-                      className="block w-full truncate rounded px-1 py-1 text-left hover:bg-accent"
+                      className="block w-full whitespace-normal break-words rounded px-1 py-1 text-left hover:bg-accent"
                     >
                       {p.title || "Untitled"}
                     </button>
