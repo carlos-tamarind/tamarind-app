@@ -61,13 +61,20 @@ async function postPageAnnouncementMessage(params: {
     const html =
       `<p>Hey! I just created this page:</p>` +
       `<p><span class="mention-page" data-id="${escapeHtml(params.pageId)}" data-label="${safeTitle}">${safeTitle}</span></p>`;
-    const { error } = await supabaseAdmin.from("messages").insert({
+    const { data: msg, error } = await supabaseAdmin.from("messages").insert({
       conversation_id: params.conversationId,
       workspace_id: params.workspaceId,
       author_workspace_user_id: params.authorWuId,
       raw_text: html,
+    }).select("id").single();
+    if (error || !msg) throw error;
+    const { enqueueMessageSemanticsProcessing } = await import(
+      "@/semantic/enqueueMessageSemanticsProcessing"
+    );
+    enqueueMessageSemanticsProcessing({
+      messageId: msg.id as string,
+      rawMessage: html,
     });
-    if (error) throw error;
     await supabaseAdmin
       .from("conversations")
       .update({ last_modified_at: new Date().toISOString() })
@@ -478,6 +485,14 @@ export const sendMessage = createServerFn({ method: "POST" })
       .select("id, created_at")
       .single();
     if (error || !msg) throw new Error(error?.message ?? "Send failed");
+
+    const { enqueueMessageSemanticsProcessing } = await import(
+      "@/semantic/enqueueMessageSemanticsProcessing"
+    );
+    enqueueMessageSemanticsProcessing({
+      messageId: msg.id as string,
+      rawMessage: data.rawText,
+    });
 
     await supabaseAdmin
       .from("conversations")
