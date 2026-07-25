@@ -1,5 +1,3 @@
-import { waitUntil } from "cloudflare:workers";
-
 import { DebugLogger } from "@/lib/debugLogger";
 
 import { processAndPersistMessageSemantics } from "./normalization/normalizer";
@@ -21,5 +19,5 @@ export function enqueueMessageSemanticsProcessing(params: {
     });
   });
 
-  waitUntil(task);
+  void task;
 }
