@@ -8,7 +8,7 @@ import { SCORING_CONFIG } from "./config";
  */
 export interface NormalizedMessage {
   id: string;
-  authorId: string;
+  authorId: string | null;
   original: string;
   normalized: string;
 }

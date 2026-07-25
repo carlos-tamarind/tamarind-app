@@ -1,4 +1,6 @@
 import { DebugLogger } from "@/lib/debugLogger";
+import { buildScoringInput } from "@/semantic/message-scoring/buildScoringInput";
+import { calculateScore } from "@/semantic/message-scoring/models/mvp-v1/scorer";
 import { persistMessageSemantics } from "@/semantic/persistence/persistMessageSemantics";
 
 import { normalizeMessage } from "./normalizeMessage";
@@ -45,10 +47,24 @@ export async function processAndPersistMessageSemantics(
       return;
     }
 
-    const persistResult = await persistMessageSemantics(
-      options.messageId,
-      result.normalizedText,
-    );
+    const scoringInput = await buildScoringInput(options.messageId, result.normalizedText);
+
+    if (!scoringInput) {
+      DebugLogger.log({
+        scope: "message-semantics",
+        event: "backgroundError",
+        message: `${options.messageId} · message not found for scoring context`,
+        level: "error",
+      });
+      return;
+    }
+
+    const scoringResult = calculateScore(scoringInput.message, scoringInput.context);
+
+    const persistResult = await persistMessageSemantics(options.messageId, result.normalizedText, {
+      normalizedScore: scoringResult.normalizedScore,
+      shouldEmbed: scoringResult.shouldEmbed,
+    });
 
     DebugLogger.table({
       scope: "message-semantics",
@@ -57,6 +73,14 @@ export async function processAndPersistMessageSemantics(
         messageId: options.messageId,
         reason: persistResult.persisted ? "—" : persistResult.reason,
         shouldPersist: true,
+        ...(persistResult.persisted
+          ? {
+              normalizedScore: scoringResult.normalizedScore,
+              qualityScore: persistResult.qualityScore,
+              shouldEmbed: scoringResult.shouldEmbed,
+              embeddingStatus: persistResult.embeddingStatus,
+            }
+          : {}),
       },
     });
   } catch (error) {

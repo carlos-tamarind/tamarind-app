@@ -124,10 +124,15 @@ function evaluateSameAuthorWindow(
   context: ScoringContext,
   previousMessageCount: number,
 ): RuleEvaluation {
+  if (!message.authorId) return notMatched();
+
   const previous = context.previousMessages.slice(-previousMessageCount);
   const sameAuthor =
     previous.length === previousMessageCount &&
-    previous.every((previousMessage) => previousMessage.authorId === message.authorId);
+    previous.every(
+      (previousMessage) =>
+        previousMessage.authorId !== null && previousMessage.authorId === message.authorId,
+    );
 
   return sameAuthor
     ? matched(`Same author for previous ${previousMessageCount} messages`)
