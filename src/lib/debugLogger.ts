@@ -2,9 +2,8 @@
 
 export class DebugLogger {
   static enabled =
-    typeof import.meta !== "undefined" && import.meta.env
-      ? import.meta.env.DEV
-      : process.env.NODE_ENV !== "production";
+    import.meta.env.DEV ||
+    import.meta.env.VITE_DEBUG_LOGS === "true";
 
   static table(params: {
     scope: string;
