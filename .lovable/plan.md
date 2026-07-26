@@ -1,54 +1,43 @@
-# Task 2 — Embeddings storage schema
+## Goal
 
-Single migration covering the new table, the two new columns on `message_semantics`, and all indexes.
+Dividers become plain straight lines, and all panel header bars (plus the workspaces/navigation footer bar) line up at the same height.
 
-## 1. Extend `message_semantics`
+## 1. Remove the grip icons from panel dividers
 
-Add columns:
-- `retry_count INT NOT NULL DEFAULT 0`
-- `next_retry_at TIMESTAMPTZ NULL`
+Three resizable dividers currently render a centered grip pill:
 
-## 2. Create `message_embeddings`
+- Workspaces rail | Navigation → main split (`src/routes/_authenticated.w.$workspaceId.tsx`, the `<ResizableHandle withHandle={!folded} />`)
+- Conversation | Pages split (same file, the split-view `<ResizableHandle withHandle />`)
+- Conversation history | new message box (`src/components/conversation/conversation-window.tsx`, `<ResizableHandle withHandle />`)
 
-Columns exactly as specified:
-- `id UUID PK DEFAULT gen_random_uuid()`
-- `message_semantics_id UUID NOT NULL REFERENCES message_semantics(id) ON DELETE CASCADE`
-- `model TEXT NOT NULL`
-- `dimensions INTEGER NOT NULL`
-- `embedding_vector VECTOR(1536) NOT NULL`
-- `token_count INTEGER NOT NULL`
-- `is_active BOOLEAN NOT NULL DEFAULT TRUE`
-- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+Fix: drop the `withHandle` prop from all three so only the 1px line renders. Drag behaviour and the invisible wider hit area stay untouched.
 
-Relationship: `message_semantics 1 — n message_embeddings`.
+## 2. Level the panel header dividers
 
-## 3. Grants + RLS
+Today each header sizes itself from its padding, so the bottom borders sit at different heights:
 
-Following project rules — all writes/reads server-side via `supabaseAdmin` (embeddings pipeline). Grants:
-- `GRANT ALL ON public.message_embeddings TO service_role`
-- No `authenticated`/`anon` grants (never accessed from the browser)
+```text
+workspaces rail   h-10           -> 40px
+navigation        px-3 py-2      -> ~40px
+conversation      px-4 py-3      -> ~56px
+pages             px-3 py-1.5    -> ~36px
+```
 
-Enable RLS with no policies (locked to service role only), matching how `message_semantics` is treated.
+Fix: give every header a single shared height — `h-14` (56px), matching the tallest (conversation) so nothing gets cramped, as suggested. Concretely, replace vertical padding with `h-14 shrink-0 items-center` on:
 
-## 4. Indexes
+- rail header spacer (`h-10 border-b`)
+- navigation header, both folded and expanded variants
+- conversation header (no-selection state)
+- pages header
 
-On `message_embeddings`:
-- `idx_message_embeddings_semantic` on `(message_semantics_id)`
-- `idx_message_embeddings_vector` HNSW on `(embedding_vector vector_cosine_ops)`
-- `idx_message_embeddings_active` on `(is_active)`
+Horizontal padding stays as-is per panel.
 
-On `message_semantics`:
-- `idx_message_semantics_queue` on `(next_retry_at, created_at) WHERE embedding_status = 'QUEUED'`
-- `idx_message_semantics_message` UNIQUE on `(message_id)` — created only if no equivalent unique constraint/index already exists (will verify via `pg_indexes` in the same migration using `CREATE UNIQUE INDEX IF NOT EXISTS`)
+## 3. Level the footer divider
 
-## 5. Version bump
+The workspaces rail footer (`border-t py-2`) and the navigation footer (`border-t px-2 py-2`) also differ. Both get the same fixed height (`h-14 shrink-0`) so the top border of each footer sits on one continuous line.
 
-Bump app version 0.1.35 → 0.1.36 after migration succeeds.
+## Notes
 
-## Out of scope (deferred to later tasks)
-
-- Repository/service layer for embeddings
-- Queue worker / retry orchestration
-- OpenAI embedding calls
-
-Confirm and I'll run the migration.
+- Only presentation classes change; no logic, data, or layout structure changes.
+- App version bumped one patch step per project convention.
+- Result verified in the preview with a screenshot at the current viewport.
