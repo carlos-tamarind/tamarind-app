@@ -672,7 +672,7 @@ export function PageWindow({
   return (
     <div className="flex h-full flex-col">
       {/* Thin top header */}
-      <div className="flex items-center justify-end gap-1 border-b px-3 py-1.5">
+      <div className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-3">
         <div className="mr-2 flex items-center gap-1">
           {others.slice(0, 5).map((p) => (
             <div

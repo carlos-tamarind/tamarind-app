@@ -182,7 +182,7 @@ function WorkspaceShell() {
           }`}
         >
           <div className="flex h-full w-14 flex-col">
-            <div className="h-10 border-b" />
+            <div className="h-14 shrink-0 border-b" />
             <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
               {(workspaces ?? []).map((w) => (
                 <button
@@ -204,7 +204,7 @@ function WorkspaceShell() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center justify-center border-t py-2">
+            <div className="flex h-14 shrink-0 items-center justify-center border-t">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
@@ -247,7 +247,7 @@ function WorkspaceShell() {
           >
             {folded ? (
               <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
-                <div className="flex w-full items-center justify-center border-b py-2">
+                <div className="flex h-14 w-full shrink-0 items-center justify-center border-b">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -277,7 +277,7 @@ function WorkspaceShell() {
                   <TooltipContent side="right">Open Navigation panel</TooltipContent>
                 </Tooltip>
 
-                <div className="flex w-full items-center justify-center border-t py-2">
+                <div className="flex h-14 w-full shrink-0 items-center justify-center border-t">
                   <DropdownMenu>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -304,7 +304,7 @@ function WorkspaceShell() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <div className="flex w-full items-center justify-center py-2">
+                <div className="flex h-14 w-full shrink-0 items-center justify-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -326,7 +326,7 @@ function WorkspaceShell() {
               </aside>
             ) : (
             <aside className="flex h-full w-full flex-col border-r">
-              <div className="flex items-center gap-2 border-b px-3 py-2">
+              <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -492,7 +492,7 @@ function WorkspaceShell() {
                 </div>
               </Tabs>
 
-              <div className="flex items-center gap-2 border-t px-2 py-2">
+              <div className="flex h-14 shrink-0 items-center gap-2 border-t px-2">
                 <button
                   onClick={() => setProfileOpen(true)}
                   className="flex flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-accent"
@@ -526,7 +526,7 @@ function WorkspaceShell() {
             )}
           </ResizablePanel>
 
-          <ResizableHandle withHandle={!folded} />
+          <ResizableHandle />
 
           <ResizablePanel id="main" minSize="40%">
             <main className="h-full overflow-hidden">
@@ -549,7 +549,7 @@ function WorkspaceShell() {
                       conversationId={conversationId!}
                     />
                   </ResizablePanel>
-                  <ResizableHandle withHandle />
+                  <ResizableHandle />
                   <ResizablePanel id="page" defaultSize="50%" minSize="10%">
                     <PageWindow
                       key={pageId}
