@@ -304,7 +304,7 @@ function WorkspaceShell() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <div className="flex w-full items-center justify-center py-2">
+                <div className="flex h-14 w-full shrink-0 items-center justify-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
