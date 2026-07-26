@@ -1,3 +1,5 @@
+import { waitUntil } from "cloudflare:workers";
+
 import { DebugLogger } from "@/lib/debugLogger";
 
 import { processAndPersistMessageSemantics } from "./normalization/normalizer";
@@ -7,6 +9,12 @@ export function enqueueMessageSemanticsProcessing(params: {
   rawMessage: string;
   messageType?: string;
 }): void {
+  DebugLogger.log({
+    scope: "message-semantics",
+    event: "ENQUEUED",
+    message: params.messageId,
+  });
+
   const task = processAndPersistMessageSemantics(params.rawMessage, {
     messageId: params.messageId,
     messageType: params.messageType,
@@ -19,5 +27,5 @@ export function enqueueMessageSemanticsProcessing(params: {
     });
   });
 
-  void task;
+  waitUntil(task);
 }
