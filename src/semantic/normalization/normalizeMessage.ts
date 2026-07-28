@@ -1,4 +1,6 @@
 import { acknowledgements } from "./acknowledgements";
+import { convertMarkdownFencesToCodeBlocks } from "./convertMarkdownFences";
+import { normalizePlainTextLists } from "./normalizePlainTextLists";
 import { shortcuts } from "./shortcuts";
 import { transformHtmlToText } from "./stripHtml";
 import type { NormalizationResult } from "./types";
@@ -30,7 +32,10 @@ function isNonTextMessage(messageType?: string): boolean {
 }
 
 function removeEmojiJoiners(text: string): string {
-  return text.replace(/\u200d/g, "").replace(/\ufe0f/g, "");
+  return text
+    .replace(/\u200d/g, "")
+    .replace(/\ufe0f/g, "")
+    .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
 }
 
 function isEmojiOnly(text: string): boolean {
@@ -55,14 +60,8 @@ function removeEmojis(text: string): string {
 }
 
 function stripMarkdown(text: string): string {
-  const codeBlocks: string[] = [];
-  let result = text.replace(/```[\s\S]*?```/g, (match) => {
-    codeBlocks.push(match);
-    return `__MD_CODE_${codeBlocks.length - 1}__`;
-  });
-
   const inlineCodes: string[] = [];
-  result = result.replace(/`[^`\n]+`/g, (match) => {
+  let result = text.replace(/`[^`\n]+`/g, (match) => {
     inlineCodes.push(match);
     return `__MD_INLINE_${inlineCodes.length - 1}__`;
   });
@@ -78,10 +77,6 @@ function stripMarkdown(text: string): string {
 
   result = result.replace(/__MD_INLINE_(\d+)__/g, (_, index) => {
     return inlineCodes[Number(index)] ?? "";
-  });
-
-  result = result.replace(/__MD_CODE_(\d+)__/g, (_, index) => {
-    return codeBlocks[Number(index)] ?? "";
   });
 
   return result;
@@ -223,16 +218,18 @@ export function normalizeMessage(rawMessage: string, messageType?: string): Norm
   }
 
   const htmlStripped = transformHtmlToText(rawMessage);
+  const withCodeBlocks = convertMarkdownFencesToCodeBlocks(htmlStripped);
+  const withLists = normalizePlainTextLists(withCodeBlocks);
 
-  if (isEmojiOnly(htmlStripped)) {
+  if (isEmojiOnly(withLists)) {
     return skipResult(rawMessage, "emoji_only");
   }
 
-  if (isPunctuationOnly(htmlStripped)) {
+  if (isPunctuationOnly(withLists)) {
     return skipResult(rawMessage, "punctuation_only");
   }
 
-  const cleaned = cleanupText(htmlStripped);
+  const cleaned = cleanupText(withLists);
   const expanded = expandShortcuts(cleaned);
   const sanitized = sanitizePii(expanded);
 

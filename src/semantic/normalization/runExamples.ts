@@ -1,4 +1,6 @@
 import { normalizeMessage } from "./normalizeMessage";
+import { SCORING_RULES } from "../message-scoring/models/mvp-v1/rules";
+import type { NormalizedMessage, ScoringContext } from "../message-scoring/models/mvp-v1/types";
 
 type ExampleCase = {
   label: string;
@@ -293,6 +295,64 @@ const cases: ExampleCase[] = [
     expectNormalizedContains: ["lorem ipsum"],
     expectNormalizedExcludes: ["<p>", "<strong>", "<em>"],
   },
+
+  // v3 normalization
+  {
+    label: "v3_skin_tone_removed",
+    rawMessage: "great work 👍🏻",
+    expectPersist: true,
+    expectNormalizedContains: ["great work"],
+    expectNormalizedExcludes: ["🏻", "👍"],
+  },
+  {
+    label: "v3_html_br_markdown_fence",
+    rawMessage:
+      "<p>I suggest checking this snippet of code. It is interesting bc it fixes the bug we were discussing the other day:<br>```<br>asasd asfasafj adfjhsakd<br>sdjbfkdsjbf<br>asdgadsgf<br>``` <br><br>It tackles the following items: aaa, bbb, ccc.<br>Ah! Btw, add it to this ticket: <code>ASD-1234</code> </p>",
+    expectPersist: true,
+    expectNormalizedContains: [
+      "[[CODE_BLOCK]]",
+      "asasd asfasafj adfjhsakd",
+      "[[/CODE_BLOCK]]",
+      "[[CODE]]ASD-1234[[/CODE]]",
+    ],
+    expectNormalizedExcludes: ["_mdcode", "__MD_CODE", "```"],
+  },
+  {
+    label: "v3_plain_list_numbered_dot",
+    rawMessage: "1. first item\n2. second item\n3. third item",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+    expectNormalizedExcludes: ["1. first"],
+  },
+  {
+    label: "v3_plain_list_numbered_paren",
+    rawMessage: "1) alpha\n2) beta\n3) gamma",
+    expectPersist: true,
+    expectNormalizedContains: ["- alpha", "- beta", "- gamma"],
+  },
+  {
+    label: "v3_plain_list_alpha",
+    rawMessage: "a. one\nb. two\nc. three",
+    expectPersist: true,
+    expectNormalizedContains: ["- one", "- two", "- three"],
+  },
+  {
+    label: "v3_plain_list_roman",
+    rawMessage: "I. intro\nII. body\nIII. outro",
+    expectPersist: true,
+    expectNormalizedContains: ["- intro", "- body", "- outro"],
+  },
+  {
+    label: "v3_html_p_numbered_list",
+    rawMessage:
+      "<p>1. stripped html tags</p><p>2. optimized rule config weights</p><p>3. enforce msg normalization lifecycle gateways</p>",
+    expectPersist: true,
+    expectNormalizedContains: [
+      "- stripped html tags",
+      "- optimized rule config weights",
+      "- enforce message normalization lifecycle gateways",
+    ],
+  },
 ];
 
 function assertCase(example: ExampleCase): void {
@@ -329,6 +389,60 @@ function assertCase(example: ExampleCase): void {
   }
 }
 
+type ScoringCase = {
+  label: string;
+  normalized: string;
+  expectRuleMatches: string[];
+  expectRuleMisses?: string[];
+};
+
+const scoringCases: ScoringCase[] = [
+  {
+    label: "v3_comma_list_qualifies",
+    normalized: "shopping list: tomatoes, carrots, apple juice, rice.",
+    expectRuleMatches: ["HEUR_MSG_LISTS"],
+  },
+  {
+    label: "v3_comma_list_conversational_reject",
+    normalized: "hi there,\nmy name is carlos, what's yours?",
+    expectRuleMisses: ["HEUR_MSG_LISTS"],
+  },
+  {
+    label: "v3_proposal_mid_message",
+    normalized: "i think we should review this. what if we try another approach?",
+    expectRuleMatches: ["HEUR_MSG_PROPOSAL"],
+  },
+  {
+    label: "v3_command_mid_message",
+    normalized: "looks good — please add tests before merge.",
+    expectRuleMatches: ["HEUR_MSG_COMMANDS"],
+  },
+];
+
+function assertScoringCase(example: ScoringCase): void {
+  const message: NormalizedMessage = {
+    id: example.label,
+    authorId: null,
+    original: example.normalized,
+    normalized: example.normalized,
+  };
+  const context: ScoringContext = { previousMessages: [] };
+
+  for (const ruleId of example.expectRuleMatches ?? []) {
+    const rule = SCORING_RULES.find((entry) => entry.id === ruleId);
+    if (!rule?.evaluate(message, context).matched) {
+      throw new Error(`[${example.label}] expected rule ${ruleId} to match`);
+    }
+  }
+
+  for (const ruleId of example.expectRuleMisses ?? []) {
+    const rule = SCORING_RULES.find((entry) => entry.id === ruleId);
+    if (rule?.evaluate(message, context).matched) {
+      throw new Error(`[${example.label}] expected rule ${ruleId} to NOT match`);
+    }
+  }
+}
+
 export function runNormalizationExamples(): void {
   console.log("Running message normalization examples...\n");
 
@@ -337,7 +451,16 @@ export function runNormalizationExamples(): void {
     console.log(`✓ ${example.label}`);
   }
 
-  console.log(`\nAll ${cases.length} examples passed.`);
+  console.log(`\nAll ${cases.length} normalization examples passed.`);
+
+  console.log("\nRunning scoring rule examples...\n");
+
+  for (const example of scoringCases) {
+    assertScoringCase(example);
+    console.log(`✓ ${example.label}`);
+  }
+
+  console.log(`\nAll ${scoringCases.length} scoring examples passed.`);
 }
 
 const isDirectRun = typeof process !== "undefined" && process.argv[1]?.includes("runExamples");
