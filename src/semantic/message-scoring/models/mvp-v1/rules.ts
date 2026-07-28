@@ -50,11 +50,23 @@ function evaluateExplanationWords(message: NormalizedMessage): RuleEvaluation {
 
 function evaluateLists(message: NormalizedMessage): RuleEvaluation {
   const config = SCORING_CONFIG.RULES.HEUR_MSG_LISTS;
-  const commaCount = message.normalized.match(/,/g)?.length ?? 0;
-  const itemCount = commaCount + 1;
+  const segmentPattern = /(?:[^,\n.!?;:]+,\s*){2,}[^,\n.!?;:]+/g;
+  let maxItemCount = 0;
 
-  return commaCount > 0 && itemCount >= config.MIN_ITEMS
-    ? matched(`${itemCount} comma-separated items`)
+  for (const line of message.normalized.split("\n")) {
+    for (const match of line.matchAll(segmentPattern)) {
+      const items = match[0]
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (items.length > maxItemCount) {
+        maxItemCount = items.length;
+      }
+    }
+  }
+
+  return maxItemCount >= config.MIN_ITEMS
+    ? matched(`${maxItemCount} comma-separated items`)
     : notMatched();
 }
 
