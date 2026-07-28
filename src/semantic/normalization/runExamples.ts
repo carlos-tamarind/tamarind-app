@@ -1,4 +1,4 @@
-import { processMessageNormalization } from "./normalizer";
+import { normalizeMessage } from "./normalizeMessage";
 
 type ExampleCase = {
   label: string;
@@ -180,13 +180,123 @@ const cases: ExampleCase[] = [
     expectPersist: true,
     expectNormalizedContains: ["reject"],
   },
+
+  // HTML transformations
+  {
+    label: "html_paragraph_breaks",
+    rawMessage: "<p>Hello</p><p>We should fix this</p>",
+    expectPersist: true,
+    expectNormalizedContains: ["hello", "we should fix this"],
+    expectNormalizedExcludes: ["<p>"],
+  },
+  {
+    label: "html_mention_page",
+    rawMessage:
+      '<p><span class="mention-page" data-id="abc" data-label="Workspace">Workspace</span></p>',
+    expectPersist: true,
+    expectNormalizedContains: ["[[PAGE: Workspace]]"],
+    expectNormalizedExcludes: ["<span", "mention-page"],
+  },
+  {
+    label: "html_mention_user",
+    rawMessage: '<span class="mention-user" data-id="u1">Carlos</span>',
+    expectPersist: true,
+    expectNormalizedContains: ["[[USER: Carlos]]"],
+    expectNormalizedExcludes: ["<span"],
+  },
+  {
+    label: "html_msg_quote_removed",
+    rawMessage:
+      '<p>Hello</p><div class="msg-quote" data-author="Bob">quoted text</div><p>After</p>',
+    expectPersist: true,
+    expectNormalizedContains: ["hello", "after"],
+    expectNormalizedExcludes: ["quoted text", "msg-quote"],
+  },
+  {
+    label: "html_blockquote_removed",
+    rawMessage: "<p>Before</p><blockquote>quoted</blockquote><p>After</p>",
+    expectPersist: true,
+    expectNormalizedContains: ["before", "after"],
+    expectNormalizedExcludes: ["quoted", "blockquote"],
+  },
+  {
+    label: "html_anchor_href",
+    rawMessage: '<a href="https://example.com/docs" class="link">click here</a>',
+    expectPersist: true,
+    expectNormalizedContains: ["https://example.com/docs"],
+    expectNormalizedExcludes: ["click here", "<a"],
+  },
+  {
+    label: "html_anchor_entity_href",
+    rawMessage: '<a href="https://example.com/caf&#233;">link</a>',
+    expectPersist: true,
+    expectNormalizedContains: ["https://example.com/café"],
+  },
+  {
+    label: "html_image_no_alt",
+    rawMessage: '<p>Look at this <img src="/pic.png" /></p>',
+    expectPersist: true,
+    expectNormalizedContains: ["[[IMAGE]]", "look at this"],
+    expectNormalizedExcludes: ["<img"],
+  },
+  {
+    label: "html_image_with_alt",
+    rawMessage: '<img src="/pic.png" alt="Screenshot" />',
+    expectPersist: true,
+    expectNormalizedContains: ["[[IMAGE: Screenshot]]"],
+  },
+  {
+    label: "html_list_items",
+    rawMessage: "<ul><li>first</li><li>second</li><li>third</li></ul>",
+    expectPersist: true,
+    expectNormalizedContains: ["- first", "- second", "- third"],
+    expectNormalizedExcludes: ["<ul", "<li"],
+  },
+  {
+    label: "html_table",
+    rawMessage: "<table><tr><td>Cell A</td><td>Cell B</td></tr></table>",
+    expectPersist: true,
+    expectNormalizedContains: ["cell a", "cell b"],
+    expectNormalizedExcludes: ["<table", "<td"],
+  },
+  {
+    label: "html_generic_span",
+    rawMessage: '<p>Hello <span class="highlight">world</span></p>',
+    expectPersist: true,
+    expectNormalizedContains: ["hello world"],
+    expectNormalizedExcludes: ["<span"],
+  },
+  {
+    label: "html_inline_code",
+    rawMessage: "<p>Use the <code>fetchData()</code> helper</p>",
+    expectPersist: true,
+    expectNormalizedContains: ["[[CODE]]fetchData()[[/CODE]]"],
+    expectNormalizedExcludes: ["<code"],
+  },
+  {
+    label: "html_code_block",
+    rawMessage: "<pre><code>const x = 1;\nconsole.log(x);</code></pre>",
+    expectPersist: true,
+    expectNormalizedContains: ["[[CODE_BLOCK]]", "const x = 1;", "[[/CODE_BLOCK]]"],
+    expectNormalizedExcludes: ["<pre", "<code"],
+  },
+  {
+    label: "html_emoji_only_skip",
+    rawMessage: "<p>😀🎉👍</p>",
+    expectPersist: false,
+    expectSkipReason: "emoji_only",
+  },
+  {
+    label: "html_no_tags_in_output",
+    rawMessage: "<p><strong>lorem</strong> ipsum</p>",
+    expectPersist: true,
+    expectNormalizedContains: ["lorem ipsum"],
+    expectNormalizedExcludes: ["<p>", "<strong>", "<em>"],
+  },
 ];
 
 function assertCase(example: ExampleCase): void {
-  const result = processMessageNormalization(example.rawMessage, {
-    messageType: example.messageType,
-    messageId: example.label,
-  });
+  const result = normalizeMessage(example.rawMessage, example.messageType);
 
   if (result.shouldPersist !== example.expectPersist) {
     throw new Error(

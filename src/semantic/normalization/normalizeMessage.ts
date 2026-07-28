@@ -1,5 +1,6 @@
 import { acknowledgements } from "./acknowledgements";
 import { shortcuts } from "./shortcuts";
+import { transformHtmlToText } from "./stripHtml";
 import type { NormalizationResult } from "./types";
 
 const EMOJI_REGEX = /\p{Extended_Pictographic}/gu;
@@ -86,23 +87,84 @@ function stripMarkdown(text: string): string {
   return result;
 }
 
+function protectCodeBlockRegions(text: string): { text: string; regions: string[] } {
+  const regions: string[] = [];
+  const protectedText = text.replace(
+    /\[\[CODE_BLOCK\]\][\s\S]*?\[\[\/CODE_BLOCK\]\]/g,
+    (match) => {
+      regions.push(match);
+      return `\u0000CB${regions.length - 1}\u0000`;
+    },
+  );
+  return { text: protectedText, regions };
+}
+
+function restoreCodeBlockRegions(text: string, regions: string[]): string {
+  return text.replace(/\u0000CB(\d+)\u0000/g, (_, index) => regions[Number(index)] ?? "");
+}
+
 function cleanupText(text: string): string {
-  let result = text.trim();
-  result = result.replace(/\s*\n+\s*/g, " ");
-  result = result.replace(/\s{2,}/g, " ");
+  const { text: protectedText, regions } = protectCodeBlockRegions(text);
+
+  let result = protectedText
+    .split("\n")
+    .map((line) => line.replace(/\s{2,}/g, " ").trim())
+    .join("\n");
+
+  result = result.replace(/\n{3,}/g, "\n\n");
   result = result.replace(/([!?.,:;])\1+/g, "$1");
   result = removeEmojis(result);
   result = stripMarkdown(result);
-  result = result.replace(/\s{2,}/g, " ").trim();
-  return result;
+  result = result
+    .split("\n")
+    .map((line) => line.replace(/\s{2,}/g, " ").trim())
+    .join("\n");
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  return restoreCodeBlockRegions(result, regions);
+}
+
+function protectMarkers(text: string): { text: string; markers: string[] } {
+  const markers: string[] = [];
+  let protectedText = text;
+
+  protectedText = protectedText.replace(/\[\[CODE_BLOCK\]\][\s\S]*?\[\[\/CODE_BLOCK\]\]/g, (match) => {
+    markers.push(match);
+    return `\u0000MK${markers.length - 1}\u0000`;
+  });
+
+  protectedText = protectedText.replace(/\[\[CODE\]\][\s\S]*?\[\[\/CODE\]\]/g, (match) => {
+    markers.push(match);
+    return `\u0000MK${markers.length - 1}\u0000`;
+  });
+
+  protectedText = protectedText.replace(/\[\[[^\]]*\]\]/g, (match) => {
+    markers.push(match);
+    return `\u0000MK${markers.length - 1}\u0000`;
+  });
+
+  return { text: protectedText, markers };
+}
+
+function restoreMarkers(text: string, markers: string[]): string {
+  return text.replace(/\u0000mk(\d+)\u0000/gi, (_, index) => markers[Number(index)] ?? "");
 }
 
 function expandShortcuts(text: string): string {
-  return text
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((token) => shortcuts[token.toLowerCase()] ?? token.toLowerCase())
-    .join(" ");
+  const { text: protectedText, markers } = protectMarkers(text);
+
+  const expanded = protectedText
+    .split("\n")
+    .map((line) =>
+      line
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((token) => shortcuts[token.toLowerCase()] ?? token.toLowerCase())
+        .join(" "),
+    )
+    .join("\n");
+
+  return restoreMarkers(expanded, markers);
 }
 
 function sanitizePii(text: string): string {
@@ -151,22 +213,32 @@ function isLowValueAcknowledgement(text: string): boolean {
   return acknowledgements.has(tokens[0].toLowerCase());
 }
 
+function isEmptyAfterNormalization(text: string): boolean {
+  return text.trim().length === 0;
+}
+
 export function normalizeMessage(rawMessage: string, messageType?: string): NormalizationResult {
   if (isNonTextMessage(messageType)) {
     return skipResult(rawMessage, "non_text");
   }
 
-  if (isEmojiOnly(rawMessage)) {
+  const htmlStripped = transformHtmlToText(rawMessage);
+
+  if (isEmojiOnly(htmlStripped)) {
     return skipResult(rawMessage, "emoji_only");
   }
 
-  if (isPunctuationOnly(rawMessage)) {
+  if (isPunctuationOnly(htmlStripped)) {
     return skipResult(rawMessage, "punctuation_only");
   }
 
-  const cleaned = cleanupText(rawMessage);
+  const cleaned = cleanupText(htmlStripped);
   const expanded = expandShortcuts(cleaned);
   const sanitized = sanitizePii(expanded);
+
+  if (isEmptyAfterNormalization(sanitized)) {
+    return skipResult(rawMessage, "empty_after_normalization");
+  }
 
   if (isLowValueAcknowledgement(sanitized)) {
     return {
