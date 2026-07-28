@@ -405,6 +405,7 @@ const scoringCases: ScoringCase[] = [
   {
     label: "v3_comma_list_conversational_reject",
     normalized: "hi there,\nmy name is carlos, what's yours?",
+    expectRuleMatches: [],
     expectRuleMisses: ["HEUR_MSG_LISTS"],
   },
   {

@@ -1,43 +1,21 @@
 ## Goal
 
-Dividers become plain straight lines, and all panel header bars (plus the workspaces/navigation footer bar) line up at the same height.
+In a conversation, pressing Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) in the new-message editor sends the message immediately — even in the cases where plain Enter stops sending (e.g. right after inserting a page/user mention).
 
-## 1. Remove the grip icons from panel dividers
+## Change
 
-Three resizable dividers currently render a centered grip pill:
+In `src/components/conversation/conversation-window.tsx`, the composer's `handleKeyDown` currently only handles plain `Enter` (and bails out when a mention dropdown is open via `mentionOpenRef`).
 
-- Workspaces rail | Navigation → main split (`src/routes/_authenticated.w.$workspaceId.tsx`, the `<ResizableHandle withHandle={!folded} />`)
-- Conversation | Pages split (same file, the split-view `<ResizableHandle withHandle />`)
-- Conversation history | new message box (`src/components/conversation/conversation-window.tsx`, `<ResizableHandle withHandle />`)
+Add a modifier branch that runs **before** the existing checks:
 
-Fix: drop the `withHandle` prop from all three so only the 1px line renders. Drag behaviour and the invisible wider hit area stay untouched.
+- If `event.key === "Enter"` and (`event.metaKey` or `event.ctrlKey`): prevent default and call `handleSend()`, returning `true`.
+- This branch ignores `mentionOpenRef` and the shift check, so it always sends regardless of mention-suggestion state — which is exactly the stuck case described.
+- Existing plain-Enter behaviour and Shift+Enter newline stay unchanged.
 
-## 2. Level the panel header dividers
-
-Today each header sizes itself from its padding, so the bottom borders sit at different heights:
-
-```text
-workspaces rail   h-10           -> 40px
-navigation        px-3 py-2      -> ~40px
-conversation      px-4 py-3      -> ~56px
-pages             px-3 py-1.5    -> ~36px
-```
-
-Fix: give every header a single shared height — `h-14` (56px), matching the tallest (conversation) so nothing gets cramped, as suggested. Concretely, replace vertical padding with `h-14 shrink-0 items-center` on:
-
-- rail header spacer (`h-10 border-b`)
-- navigation header, both folded and expanded variants
-- conversation header (no-selection state)
-- pages header
-
-Horizontal padding stays as-is per panel.
-
-## 3. Level the footer divider
-
-The workspaces rail footer (`border-t py-2`) and the navigation footer (`border-t px-2 py-2`) also differ. Both get the same fixed height (`h-14 shrink-0`) so the top border of each footer sits on one continuous line.
+`handleSend` already guards on empty content and in-flight sends, so no extra safety is needed.
 
 ## Notes
 
-- Only presentation classes change; no logic, data, or layout structure changes.
+- Presentation/interaction only; no server or data changes.
 - App version bumped one patch step per project convention.
-- Result verified in the preview with a screenshot at the current viewport.
+- Verified in the preview by typing a message and sending with Cmd/Ctrl+Enter.
