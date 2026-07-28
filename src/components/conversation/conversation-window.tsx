@@ -499,6 +499,11 @@ export function ConversationWindow({
           "prose prose-sm max-w-none min-h-full focus:outline-none px-3 py-2",
       },
       handleKeyDown: (_view, event) => {
+        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          handleSend();
+          return true;
+        }
         if (event.key === "Enter" && !event.shiftKey) {
           if (mentionOpenRef.current > 0) return false;
           event.preventDefault();
@@ -507,6 +512,7 @@ export function ConversationWindow({
         }
         return false;
       },
+
 
     },
     onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
