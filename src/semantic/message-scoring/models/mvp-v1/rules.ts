@@ -60,8 +60,11 @@ function evaluateLists(message: NormalizedMessage): RuleEvaluation {
 
 function evaluateBulletLists(message: NormalizedMessage): RuleEvaluation {
   const config = SCORING_CONFIG.RULES.HEUR_MSG_BULLET_LIST;
-  const itemCount =
+  const originalCount =
     message.original.match(/^\s*(?:[-*]|\d+[.)]|[a-zA-Z][.)]|[IVXLCDM]+[.)])\s+/gm)?.length ?? 0;
+  const normalizedCount =
+    message.normalized.match(/^\s*-\s+\S+/gm)?.length ?? 0;
+  const itemCount = Math.max(originalCount, normalizedCount);
 
   return itemCount >= config.MIN_ITEMS ? matched(`${itemCount} bullet-list items`) : notMatched();
 }
@@ -75,10 +78,22 @@ function evaluateUrls(message: NormalizedMessage): RuleEvaluation {
 }
 
 function evaluateCode(message: NormalizedMessage): RuleEvaluation {
-  const config = SCORING_CONFIG.RULES.HEUR_MSG_CODE;
-  const containsFencedCode = config.DETECT_FENCED_CODE && /```[\s\S]*?```/.test(message.original);
+  const containsInlineCode = /\[\[CODE\]\][\s\S]*?\[\[\/CODE\]\]/.test(message.normalized);
 
-  return containsFencedCode ? matched("Fenced code block detected") : notMatched();
+  return containsInlineCode ? matched("Inline code detected") : notMatched();
+}
+
+function evaluateCodeBlock(message: NormalizedMessage): RuleEvaluation {
+  const config = SCORING_CONFIG.RULES.HEUR_MSG_CODE_BLOCK;
+  const containsHtmlBlock = /\[\[CODE_BLOCK\]\][\s\S]*?\[\[\/CODE_BLOCK\]\]/.test(
+    message.normalized,
+  );
+  const containsFencedCode =
+    config.DETECT_FENCED_CODE && /```[\s\S]*?```/.test(message.original);
+
+  if (containsHtmlBlock) return matched("HTML code block detected");
+  if (containsFencedCode) return matched("Fenced code block detected");
+  return notMatched();
 }
 
 function evaluateCommands(message: NormalizedMessage): RuleEvaluation {
@@ -196,6 +211,11 @@ export const SCORING_RULES = [
     id: "HEUR_MSG_CODE",
     config: SCORING_CONFIG.RULES.HEUR_MSG_CODE,
     evaluate: evaluateCode,
+  },
+  {
+    id: "HEUR_MSG_CODE_BLOCK",
+    config: SCORING_CONFIG.RULES.HEUR_MSG_CODE_BLOCK,
+    evaluate: evaluateCodeBlock,
   },
   {
     id: "HEUR_MSG_COMMANDS",

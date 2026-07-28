@@ -260,7 +260,7 @@ export const SCORING_CONFIG = {
 
     HEUR_MSG_EXPLANATION_WORDS: {
       ENABLED: true,
-      WEIGHT: 10,
+      WEIGHT: 8,
       WORDS: [
         "because",
         "since",
@@ -293,7 +293,7 @@ export const SCORING_CONFIG = {
 
     HEUR_MSG_LISTS: {
       ENABLED: true,
-      WEIGHT: 10,
+      WEIGHT: 12,
       MIN_ITEMS: 3,
     },
 
@@ -310,7 +310,12 @@ export const SCORING_CONFIG = {
 
     HEUR_MSG_CODE: {
       ENABLED: true,
-      WEIGHT: 25,
+      WEIGHT: 10,
+    },
+
+    HEUR_MSG_CODE_BLOCK: {
+      ENABLED: true,
+      WEIGHT: 30,
       DETECT_FENCED_CODE: true,
     },
 
@@ -429,7 +434,7 @@ export const SCORING_CONFIG = {
 
     HEUR_MSG_PROPOSAL: {
       ENABLED: true,
-      WEIGHT: 15,
+      WEIGHT: 25,
       PATTERNS: [
         /^what if we\b/i,
         /^what if\b/i,
@@ -463,13 +468,13 @@ export const SCORING_CONFIG = {
 
     HEUR_CONTEXT_QUESTION: {
       ENABLED: true,
-      WEIGHT: 30,
+      WEIGHT: 25,
       PREVIOUS_MESSAGES: 2,
     },
 
     HEUR_CONTEXT_SAME_AUTHOR_2: {
       ENABLED: true,
-      WEIGHT: 10,
+      WEIGHT: 12,
       PREVIOUS_MESSAGES: 2,
     },
 
