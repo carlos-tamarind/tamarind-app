@@ -16,6 +16,7 @@ import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
@@ -56,6 +57,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
+  id: '/api/generate-embeddings',
+  path: '/api/generate-embeddings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
   id: '/api/pages/save',
   path: '/api/pages/save',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/api/generate-embeddings'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/api/generate-embeddings'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/api/generate-embeddings'
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
 }
 
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-embeddings': {
+      id: '/api/generate-embeddings'
+      path: '/api/generate-embeddings'
+      fullPath: '/api/generate-embeddings'
+      preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/pages/save': {
@@ -311,8 +331,19 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
