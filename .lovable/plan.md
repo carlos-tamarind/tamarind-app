@@ -1,56 +1,39 @@
 ## Goal
 
-A stateless `generate-embeddings` endpoint: takes normalized texts, returns OpenAI embedding vectors. No DB access, no status updates, no retries, no business logic.
+One focused migration that stabilizes the DB contract for the embedding worker. No app code, no worker, no repositories.
 
-## Platform note
+## Verified current state
 
-This project is TanStack Start, where backend HTTP endpoints are file routes under `src/routes/api/` rather than Supabase Edge Functions. Same behavior, same access to Secrets (`OPENAI_API_KEY`). Nothing in the contract changes.
+- `message_embeddings.token_count integer NOT NULL` exists — to be dropped.
+- `idx_message_embeddings_semantic` (btree on `message_semantics_id`) already exists — no-op.
+- `idx_message_embeddings_vector` (hnsw, `vector_cosine_ops`) already exists — no-op.
+- No index on `message_semantics(embedding_status, last_processed_at)` — to be created.
+- Existing helpful indexes: `idx_message_semantics_queue` on `(next_retry_at, created_at) WHERE embedding_status = 'QUEUED'`, unique on `message_id` and `checksum`.
 
-It will NOT go under `/api/public/*` — that prefix bypasses auth on the published site and would expose OpenAI spend to anyone. It stays at `POST /api/generate-embeddings`, callable from our own backend/pipeline.
+## Migration contents
 
-## Files
+1. `ALTER TABLE public.message_embeddings DROP COLUMN token_count;`
 
-**`src/routes/api/generate-embeddings.ts`** — thin route: parse JSON body, delegate, return JSON.
+2. `CREATE INDEX IF NOT EXISTS idx_message_semantics_status_processed ON public.message_semantics (embedding_status, last_processed_at);`
+   (the two `message_embeddings` indexes are written as `IF NOT EXISTS` too, so the migration is self-contained but a no-op for them)
 
-**`src/semantic/embedding/embeddings.server.ts`** (new folder) — the logic:
+3. `CREATE OR REPLACE FUNCTION public.claim_embedding_batch(p_batch_size int DEFAULT 20, p_stale_after interval DEFAULT '10 minutes')`
+   - `RETURNS SETOF public.message_semantics`, `LANGUAGE plpgsql`, **`SECURITY INVOKER`**, `SET search_path = public`.
+   - Single statement, two-stage candidate selection via a CTE union, ordered so stale `PROCESSING` rows come first, then `QUEUED`:
+     - Stage 1: `embedding_status = 'PROCESSING' AND last_processed_at < now() - p_stale_after`
+     - Stage 2: `embedding_status = 'QUEUED' AND processable = true AND (next_retry_at IS NULL OR next_retry_at <= now())`
+     - Both ordered by `next_retry_at NULLS FIRST, created_at`, `LIMIT p_batch_size`, `FOR UPDATE SKIP LOCKED`.
+   - `UPDATE public.message_semantics SET embedding_status = 'PROCESSING', last_processed_at = now(), updated_at = now() WHERE id IN (candidates) RETURNING *` — returned to the caller.
+   - Atomic: the lock, the status flip, and the return happen in one statement, so two concurrent workers never claim the same row.
 
-1. **Validate** with Zod:
-   - `model`: `string | null` (missing treated as null)
-   - `messages`: array of `{ id: string, normalized_text: string }`
-   - Note: the shape in the request wraps the array in an object (`"messages": { [ ... ] }`), which isn't valid JSON — implemented as a plain array.
-2. **Model resolution**: `null` → `text-embedding-3-small`. Any value outside `text-embedding-3-small` / `text-embedding-3-large` → **400**.
-3. **400 cases**: empty `messages` array; any `normalized_text` empty or whitespace-only; malformed body.
-4. **Single upstream call**: one `POST https://api.openai.com/v1/embeddings` with `{ model, input: [...texts in input order] }`, `Authorization: Bearer <OPENAI_API_KEY>`, `Content-Type: application/json`.
-5. **Non-2xx from OpenAI**: propagate upstream status and error body to the caller. No retry, no de-batching.
-6. **Success mapping**: index `data[]` by its `index`, pair with `messages[index].id`, return:
+4. Grants: `REVOKE ALL ... FROM PUBLIC, anon, authenticated;` then `GRANT EXECUTE ON FUNCTION public.claim_embedding_batch(int, interval) TO service_role;` — the worker runs with the admin client only; this must never be callable from the browser.
 
-```text
-{
-  "model": "<model_id_used>",
-  "results": [ { "id": "...", "embedding": [...], "dimensions": <vector length> } ],
-  "usage": { "prompt_tokens": n, "total_tokens": n }
-}
-```
+## On SECURITY INVOKER
 
-`dimensions` is the actual returned vector length (1536 for `-small`, 3072 for `-large`). `usage` is passed through.
+Switching to INVOKER as requested — there is no strong reason for DEFINER here. The only caller is the worker using the service-role client, which already bypasses RLS on its own, so DEFINER would add privilege escalation surface without adding capability. INVOKER also means that if the function is ever accidentally exposed to `authenticated`, RLS on `message_semantics` still applies (the table is service_role-only today, so such a call would simply return nothing rather than silently claiming rows). The `REVOKE` + narrow `GRANT` in step 4 remains the primary guard.
 
-## Logging
+## Notes
 
-Using the existing `DebugLogger` (`src/lib/debugLogger.ts`), scope `"generate-message-embedding"`:
-
-- **Success** — `DebugLogger.table({ scope, event: "EMBEDDING_SUCCESSFUL", data: { totalMessages, totalTokens: usage.prompt_tokens, model: res.model } })`
-- **Failure** (validation 400, missing key, OpenAI non-2xx, network/parse error) — `DebugLogger.log({ scope, event: "EMBEDDING_FAILURE", message: "<status>: <error description>", level: "error" })`
-
-Note: `DebugLogger.enabled` is driven by `import.meta.env.DEV` / `VITE_DEBUG_LOGS`, both of which are readable in the server bundle, so logging works server-side in dev without changes.
-
-## Technical details
-
-- `OPENAI_API_KEY` read from `process.env` inside the handler; missing → 500 with a clear message. Key never logged or returned.
-- No Supabase client imported in either file.
-- Typed request/response/error shapes exported for the future worker task.
-- Verification: one real POST with two short strings — check status, ordering, vector length, and the emitted log lines.
-- App version bumped one patch step per project convention.
-
-## Out of scope
-
-Queue/worker, `message_semantics` status transitions, writes to `message_embeddings`, retry/backoff — later tasks.
+- `token_count` drop is destructive but the table is empty in practice (no embeddings written yet — writes come in a later task).
+- Batch size and stale timeout are function parameters with defaults (20 rows, 10 minutes), so the worker can tune them without another migration.
+- Nothing in app code currently reads `token_count`; the generated Supabase types will refresh after the migration runs.
