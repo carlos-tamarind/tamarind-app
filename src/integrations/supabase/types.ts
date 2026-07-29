@@ -328,7 +328,6 @@ export type Database = {
           is_active: boolean
           message_semantics_id: string
           model: string
-          token_count: number
         }
         Insert: {
           created_at?: string
@@ -338,7 +337,6 @@ export type Database = {
           is_active?: boolean
           message_semantics_id: string
           model: string
-          token_count: number
         }
         Update: {
           created_at?: string
@@ -348,7 +346,6 @@ export type Database = {
           is_active?: boolean
           message_semantics_id?: string
           model?: string
-          token_count?: number
         }
         Relationships: [
           {
@@ -817,6 +814,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_embedding_batch: {
+        Args: { p_batch_size?: number; p_stale_after?: string }
+        Returns: {
+          checksum: string
+          created_at: string
+          embedding_status: Database["public"]["Enums"]["embedding_status"]
+          id: string
+          language: string
+          last_error: string | null
+          last_processed_at: string | null
+          message_id: string
+          next_retry_at: string | null
+          normalized_text: string
+          processable: boolean
+          quality_score: number
+          retry_count: number
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "message_semantics"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       current_workspace_user_id: {
         Args: { _workspace_id: string }
         Returns: string
