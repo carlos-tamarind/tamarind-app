@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { generateEmbeddings } from "@/semantic/embedding/embeddings.server";
+import { generateEmbeddingsFromRaw } from "@/semantic/embedding/providers/openai/embeddings.server";
 
 export const Route = createFileRoute("/api/generate-embeddings")({
   server: {
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/generate-embeddings")({
           return Response.json({ error: "Invalid JSON body" }, { status: 400 });
         }
 
-        const { status, body } = await generateEmbeddings(raw);
+        const { status, body } = await generateEmbeddingsFromRaw(raw);
         return Response.json(body, { status });
       },
     },

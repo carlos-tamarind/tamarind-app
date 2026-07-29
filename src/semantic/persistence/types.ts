@@ -1,10 +1,4 @@
-export type EmbeddingStatus =
-  | "NEW"
-  | "QUEUED"
-  | "PROCESSING"
-  | "EMBEDDED"
-  | "FAILED"
-  | "SKIPPED";
+export type EmbeddingStatus = "NEW" | "QUEUED" | "PROCESSING" | "EMBEDDED" | "FAILED" | "SKIPPED";
 
 export type MessageSemantics = {
   id: string;
@@ -17,8 +11,18 @@ export type MessageSemantics = {
   embedding_status: EmbeddingStatus;
   last_error: string | null;
   last_processed_at: string | null;
+  retry_count: number;
+  next_retry_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type UpdateMessageSemanticsInput = {
+  embedding_status?: EmbeddingStatus;
+  last_error?: string | null;
+  last_processed_at?: string | null;
+  retry_count?: number;
+  next_retry_at?: string | null;
 };
 
 export type InsertMessageSemanticsInput = {
