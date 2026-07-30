@@ -20,6 +20,7 @@ import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embe
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
@@ -79,6 +80,12 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicInternalRunEmbeddingWorkerRoute =
+  ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
+    id: '/api/public/internal/run-embedding-worker',
+    path: '/api/public/internal/run-embedding-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedWWorkspaceIdSettingsRoute =
   AuthenticatedWWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-embedding-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-embedding-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
+    | '/api/public/internal/run-embedding-worker'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -205,6 +218,7 @@ export interface RootRouteChildren {
   ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
   ApiRunEmbeddingWorkerRoute: typeof ApiRunEmbeddingWorkerRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
+  ApiPublicInternalRunEmbeddingWorkerRoute: typeof ApiPublicInternalRunEmbeddingWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -286,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/internal/run-embedding-worker': {
+      id: '/api/public/internal/run-embedding-worker'
+      path: '/api/public/internal/run-embedding-worker'
+      fullPath: '/api/public/internal/run-embedding-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/w/$workspaceId/settings': {
       id: '/_authenticated/w/$workspaceId/settings'
       path: '/settings'
@@ -354,17 +375,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
   ApiRunEmbeddingWorkerRoute: ApiRunEmbeddingWorkerRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
+  ApiPublicInternalRunEmbeddingWorkerRoute:
+    ApiPublicInternalRunEmbeddingWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
