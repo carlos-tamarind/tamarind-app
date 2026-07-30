@@ -7,10 +7,6 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
-type ScheduledContext = {
-  waitUntil: (promise: Promise<unknown>) => void;
-};
-
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -20,15 +16,6 @@ async function getServerEntry(): Promise<ServerEntry> {
     );
   }
   return serverEntryPromise;
-}
-
-async function runScheduledEmbeddingWorker(ctx: ScheduledContext): Promise<void> {
-  const { runEmbeddingWorker } = await import("@/semantic/embedding/runEmbeddingWorker");
-  ctx.waitUntil(
-    runEmbeddingWorker().catch((error) => {
-      console.error("[embedding-worker] scheduled tick failed:", error);
-    }),
-  );
 }
 
 function brandedErrorResponse(): Response {
@@ -89,9 +76,5 @@ export default {
       console.error(error);
       return brandedErrorResponse();
     }
-  },
-
-  async scheduled(_event: unknown, _env: unknown, ctx: ScheduledContext) {
-    await runScheduledEmbeddingWorker(ctx);
   },
 };
