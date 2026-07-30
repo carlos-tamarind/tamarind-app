@@ -1,0 +1,107 @@
+# Pages
+
+Pages are rich-text documents where teams distill and organize knowledge. They support TipTap editing, @mentions, visibility controls, sharing, duplication, and autosave.
+
+## Page Model
+
+| Field | Description |
+|-------|-------------|
+| `title` | Page title |
+| `content` | TipTap JSON document |
+| `plain_text` | Generated column for full-text search |
+| `visibility` | `private`, `conversation`, `workspace`, `external` |
+| `page_type` | `standard`, `template`, `generated`, `imported` |
+| `origin_type` | `user`, `conversation`, `import`, `ai` |
+| `parent_page_id` | Optional parent for hierarchical pages |
+| `conversation_id` | Optional link to a conversation |
+
+## UI Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Main page editor |
+| `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Create blank, conversation-scoped, or from-messages page |
+| `PageSettingsDialog` | [`page-settings-dialog.tsx`](../../src/components/page/page-settings-dialog.tsx) | Page metadata and settings |
+| `SharePageDialog` | [`share-page-dialog.tsx`](../../src/components/page/share-page-dialog.tsx) | Share to members or conversations |
+| `DuplicatePageDialog` | [`duplicate-page-dialog.tsx`](../../src/components/page/duplicate-page-dialog.tsx) | Copy page to another context |
+
+## Page Editor Features
+
+The main editor ([`page-window.tsx`](../../src/components/page/page-window.tsx)) provides:
+
+- **TipTap rich text** — headings, lists, task lists, code blocks, quotes
+- **Slash commands** — `/` palette for inserting blocks ([`slash-command.tsx`](../../src/components/editor/slash-command.tsx))
+- **@mentions** — pages, conversations, and workspace members
+- **Autosave** — debounced save via `updatePage` server function
+- **Beacon save** — flush on tab close via `POST /api/pages/save`
+- **Visibility controls** — change who can see the page
+- **Backlinks** — pages that link to this page
+- **Share and duplicate** — copy page to another conversation or workspace member
+- **Presence** — shows who else is viewing the page (Supabase Presence)
+- **Unsaved changes blocker** — warns before navigating away
+
+## Autosave
+
+Two save mechanisms prevent data loss:
+
+1. **Debounced server function** — `updatePage` called after editing pauses
+2. **Beacon API** — `POST /api/pages/save` on `beforeunload` / `visibilitychange`
+
+The beacon endpoint accepts the access token in the request body (since beacon requests cannot set headers). See [API Routes](../api/readme.md).
+
+## Server Functions
+
+All in [`src/lib/pages.functions.ts`](../../src/lib/pages.functions.ts):
+
+| Function | Method | Purpose |
+|----------|--------|---------|
+| `createBlankPage` | POST | Create empty page in workspace |
+| `listMyPages` | GET | User's accessible pages in workspace |
+| `getPage` | GET | Page content and metadata |
+| `updatePage` | POST | Save title and content |
+| `setPageVisibility` | POST | Change visibility level |
+| `getPageBacklinks` | GET | Pages linking to this page |
+| `sharePage` | POST | Share page to members/conversations |
+| `duplicatePage` | POST | Copy page to another context |
+
+## Visibility Levels
+
+| Visibility | Access |
+|------------|--------|
+| `private` | Owner and explicit collaborators |
+| `conversation` | Linked conversation participants |
+| `workspace` | All workspace members |
+| `external` | Schema-ready; not yet implemented |
+
+Collaborators are tracked in `page_collaborators` when they edit a page. RLS policies use `is_page_collaborator()` for access checks.
+
+## Editor Extensions
+
+Shared TipTap extensions in [`src/components/editor/`](../../src/components/editor/):
+
+| Extension | File | Purpose |
+|-----------|------|---------|
+| Custom mentions | `custom-mentions.ts` | @page, @conversation, @member nodes |
+| Mention list | `mention-list.tsx` | Autocomplete popup |
+| Slash command | `slash-command.tsx` | `/` block insertion palette |
+| Quote node | `quote-node.tsx` | Quote blocks for conversation messages |
+
+## Page Origins
+
+Pages can be created from multiple sources:
+
+| Origin | How |
+|--------|-----|
+| `user` | Blank page via NewPageDialog |
+| `conversation` | Conversation-scoped page or from selected messages |
+| `import` | Schema-ready |
+| `ai` | Schema-ready |
+
+Creating a page from messages (`createPageFromMessages` in conversations.functions.ts) sets `origin_type: 'conversation'`.
+
+## Related Docs
+
+- [User Interface](user_interface.md) — Where pages appear in the shell
+- [Conversations](conversations.md) — Creating pages from messages
+- [Workspaces & Permissions](workspaces_permissions.md) — Visibility and access
+- [API Routes](../api/readme.md) — Beacon save endpoint
