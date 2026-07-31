@@ -262,7 +262,6 @@ function WorkspaceShell() {
               onNewPage={handleNewPage}
               onOpenProfile={() => setProfileOpen(true)}
               onLogout={handleLogout}
-              anyDialogOpen={convDialogOpen || newPageOpen || profileOpen}
             />
 
           </ResizablePanel>
