@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
   Archive,
@@ -78,16 +78,7 @@ type Props = {
   onNewPage: () => void;
   onOpenProfile: () => void;
   onLogout: () => void;
-  anyDialogOpen: boolean;
 };
-
-function useIsMac() {
-  const [isMac, setIsMac] = useState(true);
-  useEffect(() => {
-    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent));
-  }, []);
-  return isMac;
-}
 
 function RailButton({
   icon: Icon,
@@ -173,26 +164,9 @@ export function NavigationPanel({
   onNewPage,
   onOpenProfile,
   onLogout,
-  anyDialogOpen,
 }: Props) {
   const [section, setSection] = useState<NavSection>("conversations");
-  const isMac = useIsMac();
-  const mod = isMac ? "Cmd" : "Ctrl";
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey)) return;
-      if (e.key.toLowerCase() !== "n") return;
-      if (anyDialogOpen) return;
-      if (document.querySelector('[data-state="open"][role="dialog"]')) return;
-      e.preventDefault();
-      if (e.shiftKey) onNewPage();
-      else onNewConversation();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [anyDialogOpen, onNewConversation, onNewPage]);
 
   const directConversations = useMemo(
     () => conversations.filter((c) => c.type === "direct"),
@@ -500,12 +474,12 @@ export function NavigationPanel({
               {section === "conversations" ? (
                 <Button variant="secondary" size="sm" onClick={onNewConversation}>
                   <MessageSquarePlus className="size-4" />
-                  {mod}+N
+                  New conversation
                 </Button>
               ) : (
                 <Button variant="secondary" size="sm" onClick={onNewPage}>
                   <FilePlus2 className="size-4" />
-                  {mod}+Shift+N
+                  New page
                 </Button>
               )}
             </div>
