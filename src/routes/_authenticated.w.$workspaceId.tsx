@@ -58,6 +58,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConversationWindow } from "@/components/conversation/conversation-window";
 import { PageWindow } from "@/components/page/page-window";
+import { NavigationPanel } from "@/components/navigation-panel";
+
 
 const workspaceSearchSchema = z.object({
   c: z.string().uuid().optional(),
@@ -245,285 +247,24 @@ function WorkspaceShell() {
               }
             }}
           >
-            {folded ? (
-              <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
-                <div className="flex h-14 w-full shrink-0 items-center justify-center border-b">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={toggleRail}
-                        className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                        aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-                      >
-                        <Menu className="size-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-                    </TooltipContent>
-                  </Tooltip>
+            <NavigationPanel
+              workspaceId={workspaceId}
+              folded={folded}
+              railOpen={railOpen}
+              onToggleRail={toggleRail}
+              panelRef={navPanelRef}
+              conversations={sortedConversations}
+              pages={sortedPages}
+              activeConversationId={conversationId}
+              activePageId={pageId}
+              profile={profile}
+              onNewConversation={() => setConvDialogOpen(true)}
+              onNewPage={handleNewPage}
+              onOpenProfile={() => setProfileOpen(true)}
+              onLogout={handleLogout}
+              anyDialogOpen={convDialogOpen || newPageOpen || profileOpen}
+            />
 
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => navPanelRef.current?.expand()}
-                      className="flex flex-1 w-full items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label="Open Navigation panel"
-                    >
-                      <PanelLeftOpen className="size-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Open Navigation panel</TooltipContent>
-                </Tooltip>
-
-                <div className="flex h-14 w-full shrink-0 items-center justify-center border-t">
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                            aria-label="Create new"
-                          >
-                            <CirclePlus className="size-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Create new</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent side="right" align="end">
-                      <DropdownMenuItem onClick={() => setConvDialogOpen(true)}>
-                        <MessageSquarePlus className="size-4" />
-                        New conversation
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleNewPage}>
-                        <FileText className="size-4" />
-                        New page
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="flex h-14 w-full shrink-0 items-center justify-center">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setProfileOpen(true)}
-                        className="rounded-full"
-                        aria-label="Open profile"
-                      >
-                        <Avatar className="size-7">
-                          {profile?.avatarUrl ? <AvatarImage src={profile.avatarUrl} /> : null}
-                          <AvatarFallback>
-                            <UserIcon className="size-3.5 text-muted-foreground" />
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{profileName}</TooltipContent>
-                  </Tooltip>
-                </div>
-              </aside>
-            ) : (
-            <aside className="flex h-full w-full flex-col border-r">
-              <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={toggleRail}
-                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-                    >
-                      <Menu className="size-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => navPanelRef.current?.collapse()}
-                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      aria-label="Close Navigation panel"
-                    >
-                      <PanelLeftClose className="size-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Close Navigation panel</TooltipContent>
-                </Tooltip>
-                <div className="ml-auto truncate text-sm font-semibold">
-                  {current?.name ?? "Workspace"}
-                </div>
-              </div>
-
-
-              <Tabs
-                value={tab}
-                onValueChange={(v) => setTab(v as "conversations" | "pages")}
-                className="flex flex-1 flex-col overflow-hidden"
-              >
-                <TabsList className="mx-3 mt-3 grid grid-cols-2">
-                  <TabsTrigger value="conversations">Conversations</TabsTrigger>
-                  <TabsTrigger value="pages">Pages</TabsTrigger>
-                </TabsList>
-                <div className="flex-1 overflow-y-auto p-2 text-sm">
-                  {tab === "conversations" ? (
-                    sortedConversations.length === 0 ? (
-                      <p className="px-1 py-2 text-muted-foreground">No conversations yet.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        <section>
-                          <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            Direct messages
-                          </h3>
-                          {directConversations.length === 0 ? (
-                            <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
-                          ) : (
-                            <ul className="space-y-0.5">
-                              {directConversations.map((c) => {
-                                const isActive = conversationId === c.id;
-                                return (
-                                  <li key={c.id}>
-                                    <Link
-                                      to="/w/$workspaceId"
-                                      params={{ workspaceId }}
-                                      search={(prev: any) => ({ ...prev, c: c.id })}
-                                      className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                                        isActive ? "bg-accent" : ""
-                                      }`}
-                                    >
-                                      <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                                      <span className="truncate">{c.title}</span>
-                                    </Link>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </section>
-                        <section>
-                          <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            Groups
-                          </h3>
-                          {groupConversations.length === 0 ? (
-                            <p className="px-2 py-1 text-xs text-muted-foreground">None yet.</p>
-                          ) : (
-                            <ul className="space-y-0.5">
-                              {groupConversations.map((c) => {
-                                const isActive = conversationId === c.id;
-                                return (
-                                  <li key={c.id}>
-                                    <Link
-                                      to="/w/$workspaceId"
-                                      params={{ workspaceId }}
-                                      search={(prev: any) => ({ ...prev, c: c.id })}
-                                      className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                                        isActive ? "bg-accent" : ""
-                                      }`}
-                                    >
-                                      <Users className="size-3.5 shrink-0 text-muted-foreground" />
-                                      <span className="truncate">{c.title}</span>
-                                    </Link>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </section>
-                      </div>
-                    )
-                  ) : sortedPages.length === 0 ? (
-                    <p className="px-1 py-2 text-muted-foreground">No pages yet.</p>
-                  ) : (
-                    <ul className="space-y-0.5">
-                      {sortedPages.map((p) => {
-                        const isActive = pageId === p.id;
-                        return (
-                          <li key={p.id}>
-                            <Link
-                              to="/w/$workspaceId"
-                              params={{ workspaceId }}
-                              search={(prev: any) => ({ ...prev, p: p.id })}
-                              className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
-                                isActive ? "bg-accent" : ""
-                              }`}
-                            >
-                              <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                              <span className="truncate">{p.title || "Untitled"}</span>
-                              {p.visibility === "private" ? (
-                                <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                              ) : p.visibility === "workspace" ? (
-                                <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                              ) : p.visibility === "conversation" ? (
-                                <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                              ) : null}
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-
-                <div className="flex justify-center px-3 pb-3">
-                  {tab === "conversations" ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setConvDialogOpen(true)}
-                      className="w-44"
-                    >
-                      <MessageSquarePlus className="size-4" />
-                      New conversation
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleNewPage}
-                      className="w-44"
-                    >
-                      <FileText className="size-4" />
-                      New page
-                    </Button>
-                  )}
-                </div>
-              </Tabs>
-
-              <div className="flex h-14 shrink-0 items-center gap-2 border-t px-2">
-                <button
-                  onClick={() => setProfileOpen(true)}
-                  className="flex flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-accent"
-                  aria-label="Open profile"
-                >
-                  <Avatar className="size-7">
-                    {profile?.avatarUrl ? (
-                      <AvatarImage src={profile.avatarUrl} />
-                    ) : null}
-                    <AvatarFallback>
-                      <UserIcon className="size-3.5 text-muted-foreground" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-sm">{profileName}</span>
-                </button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleLogout}
-                      aria-label="Logout"
-                    >
-                      <LogOut className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Logout</TooltipContent>
-                </Tooltip>
-              </div>
-            </aside>
-            )}
           </ResizablePanel>
 
           <ResizableHandle />
