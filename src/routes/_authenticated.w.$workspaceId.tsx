@@ -58,6 +58,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConversationWindow } from "@/components/conversation/conversation-window";
 import { PageWindow } from "@/components/page/page-window";
+import { NavigationPanel } from "@/components/navigation-panel";
+
 
 const workspaceSearchSchema = z.object({
   c: z.string().uuid().optional(),
