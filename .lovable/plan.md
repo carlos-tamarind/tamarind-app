@@ -16,7 +16,9 @@ Scope: only the Navigation Panel inside `src/routes/_authenticated.w.$workspaceI
 - Selected section marked by a black vertical bar on the left edge of the rail, the height of the button. Only rendered when unfolded.
 - Default selection: Conversations.
 - Clicking the already-selected rail button folds the panel.
-- Create button, right-aligned above the list:
+- Create button, pinned to the bottom-right corner of the panel body (the list area to the right of the inner rail), above the account row:
+  - It sits in its own non-scrolling strip at the bottom of the list area, so it never overlaps list items; the list scrolls above it and its last item stays fully readable.
+  - Always visible while Conversations or Pages is selected in the unfolded state.
   - Conversations selected: `MessageSquarePlus` + "Cmd+N" (label switches to "Ctrl+N" on non-Mac)
   - Pages selected: `FilePlus2` + "Cmd+Shift+N" / "Ctrl+Shift+N"
   - Same click handlers as today.
