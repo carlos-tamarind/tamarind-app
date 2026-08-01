@@ -522,6 +522,7 @@ export function NavigationPanel({
           <TooltipContent side="top">Logout</TooltipContent>
         </Tooltip>
       </div>
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
     </aside>
   );
 }
