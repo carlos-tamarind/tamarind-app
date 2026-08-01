@@ -66,6 +66,7 @@ export type NavPage = {
 
 type Props = {
   workspaceId: string;
+  workspaceName?: string | null;
   folded: boolean;
   railOpen: boolean;
   onToggleRail: () => void;
@@ -152,6 +153,7 @@ function Section({
 
 export function NavigationPanel({
   workspaceId,
+  workspaceName,
   folded,
   railOpen,
   onToggleRail,
