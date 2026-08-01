@@ -14,7 +14,7 @@ type SearchFilter = "all" | "conversation" | "page" | "user";
 const FILTERS: {
   value: SearchFilter;
   label: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }[] = [
   { value: "all", label: "All" },
   { value: "conversation", label: "Conversations & messages", icon: MessageSquareMore },
