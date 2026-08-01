@@ -378,7 +378,7 @@ export function NavigationPanel({
             <TooltipContent side="right">{profileName}</TooltipContent>
           </Tooltip>
         </div>
-        <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+        <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} workspaceId={workspaceId} />
       </aside>
     );
   }
@@ -537,7 +537,7 @@ export function NavigationPanel({
           <TooltipContent side="top">Logout</TooltipContent>
         </Tooltip>
       </div>
-      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} workspaceId={workspaceId} />
     </aside>
   );
 }
