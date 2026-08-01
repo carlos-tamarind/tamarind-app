@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { timingSafeEqual } from "node:crypto";
 
 import { DebugLogger } from "@/lib/debugLogger";
-import { runEmbeddingWorker } from "@/semantic/embedding/runEmbeddingWorker";
+import { runEmbeddingWorker } from "@/semantic/messages/message-embedding/runEmbeddingWorker";
 
 const LOG_SCOPE = "embedding-worker-cron";
 const SECRET_HEADER = "x-embedding-worker-secret";

@@ -9,13 +9,17 @@ This is a **server-only** module. It uses the Supabase admin client (lazy-loaded
 ```
 src/semantic/
 ├── enqueueMessageSemanticsProcessing.ts   # Entry: fire-and-forget trigger
-├── checksum/computeMessageChecksum.ts     # SHA-256 dedup key
-├── normalization/                           # Text cleanup pipeline
-├── message-scoring/                         # Heuristic quality model
-│   └── models/mvp-v1/                       # Current scoring model
-├── persistence/                             # DB repositories
-└── embedding/                               # Batch worker + OpenAI provider
-    └── providers/openai/
+├── embedding/                               # Generic text embedding client
+│   ├── types.ts                             # TextEmbedding, EmbedOutcome, EmbeddingProvider
+│   ├── embeddingProvider.ts                 # Active provider binding
+│   └── providers/openai/                    # OpenAI implementation
+└── messages/                                # Message indexing pipeline
+    ├── message-checksum/                    # SHA-256 dedup key
+    ├── message-normalization/               # Text cleanup pipeline
+    ├── message-scoring/                     # Heuristic quality model
+    │   └── models/mvp-v1/                   # Current scoring model
+    ├── message-persistence/                 # DB repositories
+    └── message-embedding/                   # Batch worker + message adapter
 ```
 
 There is no barrel `index.ts`. Import specific files directly.
@@ -25,16 +29,17 @@ There is no barrel `index.ts`. Import specific files directly.
 | File | Export | Role |
 |------|--------|------|
 | `enqueueMessageSemanticsProcessing.ts` | `enqueueMessageSemanticsProcessing` | Primary entry point (uses `waitUntil`) |
-| `normalization/normalizer.ts` | `processMessageNormalization`, `processAndPersistMessageSemantics` | Sync pipeline steps |
-| `normalization/normalizeMessage.ts` | `normalizeMessage` | Pure normalization |
-| `message-scoring/buildScoringInput.ts` | `buildScoringInput` | DB-backed scoring input |
-| `message-scoring/models/mvp-v1/scorer.ts` | `calculateScore` | Heuristic scorer |
-| `message-scoring/models/mvp-v1/config.ts` | `SCORING_CONFIG` | Tunable scoring config |
-| `persistence/persistMessageSemantics.ts` | `persistMessageSemantics` | Persist with dedup |
-| `checksum/computeMessageChecksum.ts` | `computeMessageChecksum` | SHA-256 dedup key |
-| `embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Worker entry |
-| `embedding/embeddingProvider.ts` | `embeddingProvider` | Active provider instance |
-| `embedding/providers/openai/embeddings.server.ts` | `generateEmbeddingsFromRaw` | Direct OpenAI API helper |
+| `messages/message-normalization/normalizer.ts` | `processMessageNormalization`, `processAndPersistMessageSemantics` | Sync pipeline steps |
+| `messages/message-normalization/normalizeMessage.ts` | `normalizeMessage` | Pure normalization |
+| `messages/message-scoring/buildScoringInput.ts` | `buildScoringInput` | DB-backed scoring input |
+| `messages/message-scoring/models/mvp-v1/scorer.ts` | `calculateScore` | Heuristic scorer |
+| `messages/message-scoring/models/mvp-v1/config.ts` | `SCORING_CONFIG` | Tunable scoring config |
+| `messages/message-persistence/persistMessageSemantics.ts` | `persistMessageSemantics` | Persist with dedup |
+| `messages/message-checksum/computeMessageChecksum.ts` | `computeMessageChecksum` | SHA-256 dedup key |
+| `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Worker entry |
+| `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic provider instance |
+| `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI API helper |
+| `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
 
 ## Inbound Dependencies (Who Calls This Module)
 
@@ -44,7 +49,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `src/lib/pages.server.ts` | `enqueueMessageSemanticsProcessing` (page share announcement) |
 | `src/routes/api/run-embedding-worker.ts` | `runEmbeddingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-embedding-worker.ts` | `runEmbeddingWorker` (cron) |
-| `src/routes/api/generate-embeddings.ts` | `generateEmbeddingsFromRaw` |
+| `src/routes/api/generate-embeddings.ts` | `generateMessageEmbeddingsFromRaw` |
 
 ## Outbound Dependencies
 
@@ -82,7 +87,8 @@ Message inserted
 Cron POST /api/public/internal/run-embedding-worker
   → runEmbeddingWorker
   → claim_embedding_batch RPC
-  → OpenAI text-embedding-3-small
+  → embeddingProvider.embedBatch (generic)
+  → map results to message_semantics IDs
   → persist to message_embeddings
   → embedding_status = EMBEDDED | FAILED
 ```

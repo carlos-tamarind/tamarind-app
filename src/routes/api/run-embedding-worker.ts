@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { runEmbeddingWorker } from "@/semantic/embedding/runEmbeddingWorker";
+import { runEmbeddingWorker } from "@/semantic/messages/message-embedding/runEmbeddingWorker";
 
 export const Route = createFileRoute("/api/run-embedding-worker")({
   server: {

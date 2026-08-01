@@ -1,7 +1,7 @@
 import { DebugLogger } from "@/lib/debugLogger";
-import { buildScoringInput } from "@/semantic/message-scoring/buildScoringInput";
-import { calculateScore } from "@/semantic/message-scoring/models/mvp-v1/scorer";
-import { persistMessageSemantics } from "@/semantic/persistence/persistMessageSemantics";
+import { buildScoringInput } from "@/semantic/messages/message-scoring/buildScoringInput";
+import { calculateScore } from "@/semantic/messages/message-scoring/models/mvp-v1/scorer";
+import { persistMessageSemantics } from "@/semantic/messages/message-persistence/persistMessageSemantics";
 
 import { normalizeMessage } from "./normalizeMessage";
 import type { NormalizationResult } from "./types";

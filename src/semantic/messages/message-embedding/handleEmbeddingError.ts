@@ -3,8 +3,8 @@ import { DebugLogger } from "@/lib/debugLogger";
 import {
   markMessageSemanticsFailed,
   requeueMessageSemanticsForRetry,
-} from "@/semantic/persistence/messageSemanticsRepository";
-import type { MessageSemantics } from "@/semantic/persistence/types";
+} from "@/semantic/messages/message-persistence/messageSemanticsRepository";
+import type { MessageSemantics } from "@/semantic/messages/message-persistence/types";
 
 import {
   getNextRetryAt,

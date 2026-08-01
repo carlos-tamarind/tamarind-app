@@ -1,5 +1,5 @@
-import { computeMessageChecksum } from "@/semantic/checksum/computeMessageChecksum";
-import type { ScoringResult } from "@/semantic/message-scoring/models/mvp-v1/types";
+import { computeMessageChecksum } from "@/semantic/messages/message-checksum/computeMessageChecksum";
+import type { ScoringResult } from "@/semantic/messages/message-scoring/models/mvp-v1/types";
 
 import {
   findMessageSemanticsByChecksum,

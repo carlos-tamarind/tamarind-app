@@ -2,7 +2,7 @@
 
 Normalization transforms raw chat message text into clean, searchable plain text. Messages that fail quality gates are skipped and never persisted to `message_semantics`.
 
-**Entry point:** [`normalizeMessage`](../../src/semantic/normalization/normalizeMessage.ts)
+**Entry point:** [`normalizeMessage`](../../src/semantic/messages/message-normalization/normalizeMessage.ts)
 
 ## Pipeline Steps
 
@@ -39,19 +39,19 @@ Messages with types in `NON_TEXT_MESSAGE_TYPES` are skipped immediately:
 
 ### 2. HTML stripping
 
-[`stripHtml.ts`](../../src/semantic/normalization/stripHtml.ts) converts TipTap/HTML content to plain text, preserving structure where possible.
+[`stripHtml.ts`](../../src/semantic/messages/message-normalization/stripHtml.ts) converts TipTap/HTML content to plain text, preserving structure where possible.
 
 ### 3. Markdown fence conversion
 
-[`convertMarkdownFences.ts`](../../src/semantic/normalization/convertMarkdownFences.ts) converts fenced code blocks (`` ``` ``) into protected `[[CODE_BLOCK]]...[[/CODE_BLOCK]]` markers so subsequent steps don't corrupt code content.
+[`convertMarkdownFences.ts`](../../src/semantic/messages/message-normalization/convertMarkdownFences.ts) converts fenced code blocks (`` ``` ``) into protected `[[CODE_BLOCK]]...[[/CODE_BLOCK]]` markers so subsequent steps don't corrupt code content.
 
 ### 4. Plain-text list normalization
 
-[`normalizePlainTextLists.ts`](../../src/semantic/normalization/normalizePlainTextLists.ts) standardizes bullet and numbered lists to a consistent `- item` format.
+[`normalizePlainTextLists.ts`](../../src/semantic/messages/message-normalization/normalizePlainTextLists.ts) standardizes bullet and numbered lists to a consistent `- item` format.
 
 ### 5. Text cleanup
 
-[`cleanupText`](../../src/semantic/normalization/normalizeMessage.ts) (internal):
+[`cleanupText`](../../src/semantic/messages/message-normalization/normalizeMessage.ts) (internal):
 - Collapse whitespace and excessive newlines
 - Remove emojis (Unicode Extended_Pictographic)
 - Strip markdown formatting (bold, italic, links, headers)
@@ -59,7 +59,7 @@ Messages with types in `NON_TEXT_MESSAGE_TYPES` are skipped immediately:
 
 ### 6. Shortcut expansion
 
-[`shortcuts.ts`](../../src/semantic/normalization/shortcuts.ts) expands common chat abbreviations (e.g. `tbh` → `to be honest`, `imo` → `in my opinion`) to improve searchability.
+[`shortcuts.ts`](../../src/semantic/messages/message-normalization/shortcuts.ts) expands common chat abbreviations (e.g. `tbh` → `to be honest`, `imo` → `in my opinion`) to improve searchability.
 
 ### 7. PII sanitization
 
@@ -75,11 +75,11 @@ After normalization, messages are evaluated against skip gates. If any gate trig
 | `empty` | Normalized text is empty or whitespace-only |
 | `emoji_only` | Text contains only emoji characters |
 | `punctuation_only` | Text contains only punctuation (no letters/digits) |
-| `low_value_ack` | Text matches acknowledgement tokens in [`acknowledgements.ts`](../../src/semantic/normalization/acknowledgements.ts) |
+| `low_value_ack` | Text matches acknowledgement tokens in [`acknowledgements.ts`](../../src/semantic/messages/message-normalization/acknowledgements.ts) |
 
 ### Acknowledgement tokens
 
-Low-value acknowledgements like `ok`, `thanks`, `got it`, `👍`, `lgtm` are filtered out. The full list is in [`acknowledgements.ts`](../../src/semantic/normalization/acknowledgements.ts).
+Low-value acknowledgements like `ok`, `thanks`, `got it`, `👍`, `lgtm` are filtered out. The full list is in [`acknowledgements.ts`](../../src/semantic/messages/message-normalization/acknowledgements.ts).
 
 ## Output
 
@@ -96,7 +96,7 @@ When `shouldPersist` is true, `normalizedText` contains the cleaned text ready f
 
 ## Orchestration
 
-[`processMessageNormalization`](../../src/semantic/normalization/normalizer.ts) wraps `normalizeMessage` with debug logging. [`processAndPersistMessageSemantics`](../../src/semantic/normalization/normalizer.ts) continues to scoring and persistence when `shouldPersist` is true.
+[`processMessageNormalization`](../../src/semantic/messages/message-normalization/normalizer.ts) wraps `normalizeMessage` with debug logging. [`processAndPersistMessageSemantics`](../../src/semantic/messages/message-normalization/normalizer.ts) continues to scoring and persistence when `shouldPersist` is true.
 
 ## Related Docs
 
