@@ -385,12 +385,12 @@ export function NavigationPanel({
 
   return (
     <aside className="flex h-full w-full flex-col border-r">
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={onToggleRail}
-              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
             >
               <Menu className="size-4" />
@@ -400,19 +400,11 @@ export function NavigationPanel({
             {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
           </TooltipContent>
         </Tooltip>
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5 text-left text-muted-foreground hover:bg-accent hover:text-foreground"
-          aria-label="Search"
-        >
-          <Search className="size-4 shrink-0" />
-          <span className="truncate text-sm font-light">Search…</span>
-        </button>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => panelRef.current?.collapse()}
-              className="ml-auto rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label="Close Navigation panel"
             >
               <PanelLeftClose className="size-4" />
@@ -420,7 +412,28 @@ export function NavigationPanel({
           </TooltipTrigger>
           <TooltipContent side="bottom">Close Navigation panel</TooltipContent>
         </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Search"
+            >
+              <Search className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Search</TooltipContent>
+        </Tooltip>
+        <Link
+          to="/w/$workspaceId/settings"
+          params={{ workspaceId }}
+          className="ml-auto min-w-0 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-shadow hover:bg-accent/40 hover:text-foreground hover:shadow-sm"
+          aria-label="Workspace settings"
+        >
+          {workspaceName ?? ""}
+        </Link>
       </div>
+
 
       <div className="flex min-h-0 flex-1">
         {rail}
