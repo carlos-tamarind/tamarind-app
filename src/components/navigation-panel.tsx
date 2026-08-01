@@ -497,7 +497,7 @@ export function NavigationPanel({
           </div>
 
           {section === "conversations" || section === "pages" ? (
-            <div className="flex shrink-0 justify-end border-t bg-background px-2 py-2">
+            <div className="flex shrink-0 justify-end bg-background px-2 py-2">
               {section === "conversations" ? (
                 <Button variant="secondary" size="sm" onClick={onNewConversation}>
                   <MessageSquarePlus className="size-4" />
