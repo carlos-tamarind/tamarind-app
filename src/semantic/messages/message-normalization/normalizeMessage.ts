@@ -1,11 +1,11 @@
+import { isEmojiOnly, removeEmojis } from "@/lib/text/emojis";
+
 import { acknowledgements } from "./acknowledgements";
 import { convertMarkdownFencesToCodeBlocks } from "./convertMarkdownFences";
 import { normalizePlainTextLists } from "./normalizePlainTextLists";
 import { shortcuts } from "./shortcuts";
 import { transformHtmlToText } from "./stripHtml";
 import type { NormalizationResult } from "./types";
-
-const EMOJI_REGEX = /\p{Extended_Pictographic}/gu;
 
 const NON_TEXT_MESSAGE_TYPES = new Set([
   "file",
@@ -31,32 +31,12 @@ function isNonTextMessage(messageType?: string): boolean {
   return NON_TEXT_MESSAGE_TYPES.has(messageType.toLowerCase());
 }
 
-function removeEmojiJoiners(text: string): string {
-  return text
-    .replace(/\u200d/g, "")
-    .replace(/\ufe0f/g, "")
-    .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
-}
-
-function isEmojiOnly(text: string): boolean {
-  const trimmed = text.trim();
-  if (!trimmed) return false;
-
-  const withoutEmoji = removeEmojiJoiners(trimmed.replace(/\s/g, "").replace(EMOJI_REGEX, ""));
-
-  return withoutEmoji.length === 0;
-}
-
 function isPunctuationOnly(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
   if (/[\p{L}\p{N}]/u.test(trimmed)) return false;
   if (isEmojiOnly(trimmed)) return false;
   return /[^\s]/.test(trimmed);
-}
-
-function removeEmojis(text: string): string {
-  return removeEmojiJoiners(text.replace(EMOJI_REGEX, ""));
 }
 
 function stripMarkdown(text: string): string {

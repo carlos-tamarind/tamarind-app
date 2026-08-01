@@ -1,0 +1,1 @@
+export const MAX_SEARCH_EMBEDDING_TIMEOUT_MS = 2000;
