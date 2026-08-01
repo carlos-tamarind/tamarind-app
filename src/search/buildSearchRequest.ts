@@ -39,11 +39,13 @@ export async function buildSearchRequest(params: {
     searchRequest.embedding = embeddingResult;
   }
 
-  DebugLogger.table({
+  const hasEmbedding =
+    embeddingResult !== undefined && embeddingResult !== "timeout";
+
+  DebugLogger.log({
     scope: "search-api",
-    event: "searchRequest",
-    data: searchRequest as unknown as Record<string, unknown>,
-    collapsed: true,
+    event: `searchRequest built successfully ${hasEmbedding ? "with embedding" : "without embedding"}`,
+    message: `query="${searchRequest.query}" scope=${searchRequest.scope} embedding=${searchRequest.embedding?.length ?? "none"} dims`,
   });
 
   return searchRequest;
