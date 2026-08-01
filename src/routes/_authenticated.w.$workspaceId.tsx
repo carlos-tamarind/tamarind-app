@@ -180,10 +180,10 @@ function WorkspaceShell() {
       <div className="flex h-screen w-screen bg-background text-foreground">
         <div
           className={`shrink-0 overflow-hidden border-r bg-muted/30 transition-[width] duration-150 ${
-            railOpen ? "w-14" : "w-0"
+            railOpen ? "w-10" : "w-0"
           }`}
         >
-          <div className="flex h-full w-14 flex-col">
+          <div className="flex h-full w-10 flex-col">
             <div className="h-14 shrink-0 border-b" />
             <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
               {(workspaces ?? []).map((w) => (
@@ -195,7 +195,7 @@ function WorkspaceShell() {
                       params: { workspaceId: w.workspaceId },
                     })
                   }
-                  className={`flex size-10 items-center justify-center rounded-md text-sm font-semibold ${
+                  className={`flex size-8 items-center justify-center rounded-md text-sm font-semibold ${
                     w.workspaceId === workspaceId
                       ? "bg-primary text-primary-foreground"
                       : "bg-background hover:bg-accent"
@@ -249,6 +249,7 @@ function WorkspaceShell() {
           >
             <NavigationPanel
               workspaceId={workspaceId}
+              workspaceName={current?.name}
               folded={folded}
               railOpen={railOpen}
               onToggleRail={toggleRail}

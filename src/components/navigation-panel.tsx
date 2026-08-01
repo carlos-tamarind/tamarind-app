@@ -48,6 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SearchOverlay } from "@/components/search/search-overlay";
 
 type NavSection = "conversations" | "pages" | "knowledge";
 
@@ -65,6 +66,7 @@ export type NavPage = {
 
 type Props = {
   workspaceId: string;
+  workspaceName?: string | null;
   folded: boolean;
   railOpen: boolean;
   onToggleRail: () => void;
@@ -151,6 +153,7 @@ function Section({
 
 export function NavigationPanel({
   workspaceId,
+  workspaceName,
   folded,
   railOpen,
   onToggleRail,
@@ -166,6 +169,7 @@ export function NavigationPanel({
   onLogout,
 }: Props) {
   const [section, setSection] = useState<NavSection>("conversations");
+  const [searchOpen, setSearchOpen] = useState(false);
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
   const directConversations = useMemo(
@@ -301,7 +305,7 @@ export function NavigationPanel({
   if (folded) {
     return (
       <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
-        <div className="flex h-14 w-full shrink-0 items-center justify-between border-b px-2">
+        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -332,7 +336,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-14 flex-col items-center">
+            <div className="flex w-10 flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
@@ -343,7 +347,8 @@ export function NavigationPanel({
                 label="Pages"
                 onClick={() => handleRailSelect("pages")}
               />
-              <RailButton icon={Search} label="Search" onClick={() => {}} />
+              <RailButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
+
               <RailButton
                 icon={LibraryBig}
                 label="Knowledge base"
@@ -373,18 +378,19 @@ export function NavigationPanel({
             <TooltipContent side="right">{profileName}</TooltipContent>
           </Tooltip>
         </div>
+        <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       </aside>
     );
   }
 
   return (
     <aside className="flex h-full w-full flex-col border-r">
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={onToggleRail}
-              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
             >
               <Menu className="size-4" />
@@ -398,7 +404,7 @@ export function NavigationPanel({
           <TooltipTrigger asChild>
             <button
               onClick={() => panelRef.current?.collapse()}
-              className="ml-auto rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label="Close Navigation panel"
             >
               <PanelLeftClose className="size-4" />
@@ -406,7 +412,28 @@ export function NavigationPanel({
           </TooltipTrigger>
           <TooltipContent side="bottom">Close Navigation panel</TooltipContent>
         </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Search"
+            >
+              <Search className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Search</TooltipContent>
+        </Tooltip>
+        <Link
+          to="/w/$workspaceId/settings"
+          params={{ workspaceId }}
+          className="ml-auto min-w-0 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-shadow hover:bg-accent/40 hover:text-foreground hover:shadow-sm"
+          aria-label="Workspace settings"
+        >
+          {workspaceName ?? ""}
+        </Link>
       </div>
+
 
       <div className="flex min-h-0 flex-1">
         {rail}
@@ -470,7 +497,7 @@ export function NavigationPanel({
           </div>
 
           {section === "conversations" || section === "pages" ? (
-            <div className="flex shrink-0 justify-end border-t bg-background px-2 py-2">
+            <div className="flex shrink-0 justify-end bg-background px-2 py-2">
               {section === "conversations" ? (
                 <Button variant="secondary" size="sm" onClick={onNewConversation}>
                   <MessageSquarePlus className="size-4" />
@@ -510,6 +537,7 @@ export function NavigationPanel({
           <TooltipContent side="top">Logout</TooltipContent>
         </Tooltip>
       </div>
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
     </aside>
   );
 }
