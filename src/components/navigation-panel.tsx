@@ -48,6 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SearchOverlay } from "@/components/search/search-overlay";
 
 type NavSection = "conversations" | "pages" | "knowledge";
 
@@ -166,6 +167,7 @@ export function NavigationPanel({
   onLogout,
 }: Props) {
   const [section, setSection] = useState<NavSection>("conversations");
+  const [searchOpen, setSearchOpen] = useState(false);
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
   const directConversations = useMemo(
@@ -343,7 +345,8 @@ export function NavigationPanel({
                 label="Pages"
                 onClick={() => handleRailSelect("pages")}
               />
-              <RailButton icon={Search} label="Search" onClick={() => {}} />
+              <RailButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
+
               <RailButton
                 icon={LibraryBig}
                 label="Knowledge base"
@@ -373,6 +376,7 @@ export function NavigationPanel({
             <TooltipContent side="right">{profileName}</TooltipContent>
           </Tooltip>
         </div>
+        <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       </aside>
     );
   }
@@ -394,6 +398,14 @@ export function NavigationPanel({
             {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
           </TooltipContent>
         </Tooltip>
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5 text-left text-muted-foreground hover:bg-accent hover:text-foreground"
+          aria-label="Search"
+        >
+          <Search className="size-4 shrink-0" />
+          <span className="truncate text-sm font-light">Search…</span>
+        </button>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -510,6 +522,7 @@ export function NavigationPanel({
           <TooltipContent side="top">Logout</TooltipContent>
         </Tooltip>
       </div>
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
     </aside>
   );
 }
