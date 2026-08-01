@@ -305,7 +305,7 @@ export function NavigationPanel({
   if (folded) {
     return (
       <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
-        <div className="flex h-14 w-full shrink-0 items-center justify-between border-b px-2">
+        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -336,7 +336,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-14 flex-col items-center">
+            <div className="flex w-10 flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
