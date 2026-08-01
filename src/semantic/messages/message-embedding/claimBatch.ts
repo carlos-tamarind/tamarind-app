@@ -1,4 +1,4 @@
-import type { MessageSemantics } from "@/semantic/persistence/types";
+import type { MessageSemantics } from "@/semantic/messages/message-persistence/types";
 
 import { EMBEDDING_CONFIG } from "./config";
 import { formatStaleAfterInterval } from "./retry";

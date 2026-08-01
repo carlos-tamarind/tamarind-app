@@ -2,7 +2,7 @@
 
 Scoring estimates the institutional knowledge value of a normalized message. High-scoring messages are queued for embedding; low-scoring messages are persisted as SKIPPED.
 
-**Model:** MVP v1 heuristic scorer in [`src/semantic/message-scoring/models/mvp-v1/`](../../src/semantic/message-scoring/models/mvp-v1/)
+**Model:** MVP v1 heuristic scorer in [`src/semantic/messages/message-scoring/models/mvp-v1/`](../../src/semantic/messages/message-scoring/models/mvp-v1/)
 
 ## Scoring Flow
 
@@ -29,10 +29,10 @@ flowchart LR
 
 ## Scoring Input
 
-[`buildScoringInput`](../../src/semantic/message-scoring/buildScoringInput.ts) loads:
+[`buildScoringInput`](../../src/semantic/messages/message-scoring/buildScoringInput.ts) loads:
 
 1. The anchor message from `messages` table
-2. Up to 4 prior messages in the same conversation (via [`findMessageWithPriorContext`](../../src/semantic/persistence/messageRepository.ts))
+2. Up to 4 prior messages in the same conversation (via [`findMessageWithPriorContext`](../../src/semantic/messages/message-persistence/messageRepository.ts))
 3. Prior messages are re-normalized for context evaluation
 
 ```typescript
@@ -43,7 +43,7 @@ type ScoringContext = {
 
 ## Scoring Rules
 
-16 heuristic rules in [`rules.ts`](../../src/semantic/message-scoring/models/mvp-v1/rules.ts). Each rule has an `ENABLED` flag, a `WEIGHT`, and an `evaluate()` function.
+16 heuristic rules in [`rules.ts`](../../src/semantic/messages/message-scoring/models/mvp-v1/rules.ts). Each rule has an `ENABLED` flag, a `WEIGHT`, and an `evaluate()` function.
 
 ### Message content rules
 
@@ -78,7 +78,7 @@ Raw heuristic scores are summed, then normalized via sigmoid:
 normalizedScore = 1 / (1 + exp(-K * (score - MIDPOINT)))
 ```
 
-Configuration in [`config.ts`](../../src/semantic/message-scoring/models/mvp-v1/config.ts):
+Configuration in [`config.ts`](../../src/semantic/messages/message-scoring/models/mvp-v1/config.ts):
 
 | Parameter | Value |
 |-----------|-------|
@@ -99,7 +99,7 @@ type ScoringResult = {
 
 ## Persistence Decision
 
-[`persistMessageSemantics`](../../src/semantic/persistence/persistMessageSemantics.ts) uses the scoring result:
+[`persistMessageSemantics`](../../src/semantic/messages/message-persistence/persistMessageSemantics.ts) uses the scoring result:
 
 | `shouldEmbed` | `embedding_status` | `processable` |
 |---------------|-------------------|---------------|
@@ -110,7 +110,7 @@ Both outcomes persist the row (with checksum dedup). SKIPPED messages are never 
 
 ## Configuration
 
-All rule weights, keywords, and thresholds are in [`SCORING_CONFIG`](../../src/semantic/message-scoring/models/mvp-v1/config.ts). To tune scoring behavior, adjust weights or the `SHOULD_EMBED_THRESHOLD` without changing rule logic.
+All rule weights, keywords, and thresholds are in [`SCORING_CONFIG`](../../src/semantic/messages/message-scoring/models/mvp-v1/config.ts). To tune scoring behavior, adjust weights or the `SHOULD_EMBED_THRESHOLD` without changing rule logic.
 
 ## Related Docs
 

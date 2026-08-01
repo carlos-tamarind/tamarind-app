@@ -2,7 +2,7 @@
 
 The embedding worker batch-processes queued messages, generates vector embeddings via OpenAI, and persists them for semantic search.
 
-**Entry point:** [`runEmbeddingWorker`](../../src/semantic/embedding/runEmbeddingWorker.ts)
+**Entry point:** [`runEmbeddingWorker`](../../src/semantic/messages/message-embedding/runEmbeddingWorker.ts)
 
 ## Worker Flow
 
@@ -13,7 +13,8 @@ flowchart TD
   Loop{"More batches?\n(max 10/tick)"}
   Claim["claim_embedding_batch RPC\n→ PROCESSING"]
   Empty{"Batch empty?"}
-  OpenAI["OpenAI text-embedding-3-small"]
+  Provider["embeddingProvider.embedBatch"]
+  Map["mapEmbeddingsToMessageResults"]
   Success{"Success?"}
   Persist["persistEmbeddings\n→ message_embeddings"]
   MarkEmbedded["markMessageSemanticsEmbedded\n→ EMBEDDED"]
@@ -24,8 +25,8 @@ flowchart TD
   Cron --> Worker --> Loop
   Loop --> Claim --> Empty
   Empty -->|yes| Done["Return stats"]
-  Empty -->|no| OpenAI --> Success
-  Success -->|yes| Persist --> MarkEmbedded --> Loop
+  Empty -->|no| Provider --> Success
+  Success -->|yes| Map --> Persist --> MarkEmbedded --> Loop
   Success -->|no| HandleError
   HandleError --> Retry
   HandleError --> Failed
@@ -35,7 +36,7 @@ flowchart TD
 
 ## Configuration
 
-[`EMBEDDING_CONFIG`](../../src/semantic/embedding/config.ts):
+[`EMBEDDING_CONFIG`](../../src/semantic/messages/message-embedding/config.ts):
 
 | Parameter | Value |
 |-----------|-------|
@@ -48,7 +49,7 @@ flowchart TD
 
 ## Batch Claiming
 
-[`claimEmbeddingBatch`](../../src/semantic/embedding/claimBatch.ts) calls the Postgres RPC `claim_embedding_batch`:
+[`claimEmbeddingBatch`](../../src/semantic/messages/message-embedding/claimBatch.ts) calls the Postgres RPC `claim_embedding_batch`:
 
 - Selects rows where `embedding_status = 'QUEUED'` and `next_retry_at <= now()`
 - Atomically sets status to `PROCESSING`
@@ -59,24 +60,28 @@ Only `service_role` can execute this RPC.
 
 ## Embedding Provider
 
+The generic embedding client lives in [`src/semantic/embedding/`](../../src/semantic/embedding/). It knows only about text inputs and embedding vectors.
+
 [`embeddingProvider`](../../src/semantic/embedding/embeddingProvider.ts) is a pluggable interface. The active provider is OpenAI:
 
 [`openAiEmbeddingProvider`](../../src/semantic/embedding/providers/openai/embeddings.server.ts) sends batch requests to the OpenAI embeddings API using `OPENAI_API_KEY`.
 
-Provider interface:
+Generic provider interface:
 
 ```typescript
 type EmbeddingProvider = {
-  generate(params: {
-    model: string;
-    messages: { id: string; normalized_text: string }[];
-  }): Promise<EmbeddingOutcome>;
+  embedBatch(options: {
+    model?: string;
+    texts: string[];
+  }): Promise<EmbedOutcome>;
 };
 ```
 
+The message indexing layer ([`mapEmbeddingsToMessageResults`](../../src/semantic/messages/message-embedding/mapMessageEmbeddings.ts)) maps generic vectors back to `message_semantics` IDs before persistence. Other pipelines (e.g. search-query embedding) can reuse the same generic provider directly.
+
 ## Persistence
 
-On success, [`persistEmbeddings`](../../src/semantic/embedding/persistEmbeddings.ts):
+On success, [`persistEmbeddings`](../../src/semantic/messages/message-embedding/persistEmbeddings.ts):
 
 1. Inserts rows into `message_embeddings` with `embedding_vector vector(1536)`
 2. Calls `markMessageSemanticsEmbedded` to set status to `EMBEDDED`
@@ -85,7 +90,7 @@ Vectors are stored with an HNSW cosine index (`idx_message_embeddings_vector`) f
 
 ## Error Handling
 
-[`handleEmbeddingBatchError`](../../src/semantic/embedding/handleEmbeddingError.ts) classifies errors:
+[`handleEmbeddingBatchError`](../../src/semantic/messages/message-embedding/handleEmbeddingError.ts) classifies errors:
 
 | Error type | HTTP status | Action |
 |------------|-------------|--------|
@@ -101,7 +106,7 @@ Retry delay: `min(BASE_DELAY * 2^retryCount, MAX_DELAY_RETRY_MS)`
 |-------|------|---------|
 | `POST /api/public/internal/run-embedding-worker` | `x-embedding-worker-secret` header | Production cron target |
 | `POST /api/run-embedding-worker` | Dev-only (404 in prod) | Manual local testing |
-| `POST /api/generate-embeddings` | None (JSON schema only) | Direct OpenAI proxy |
+| `POST /api/generate-embeddings` | None (JSON schema only) | Message-shaped embedding proxy |
 
 See [API Routes](../api/readme.md) and [Cron & Background Jobs](../cron/readme.md).
 

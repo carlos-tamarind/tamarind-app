@@ -4,14 +4,14 @@ import {
   findActiveEmbeddingBySemanticId,
   formatEmbeddingVector,
   insertMessageEmbedding,
-} from "@/semantic/persistence/messageEmbeddingsRepository";
-import { markMessageSemanticsEmbedded } from "@/semantic/persistence/messageSemanticsRepository";
+} from "@/semantic/messages/message-persistence/messageEmbeddingsRepository";
+import { markMessageSemanticsEmbedded } from "@/semantic/messages/message-persistence/messageSemanticsRepository";
 
-import type { EmbeddingSuccessResponse } from "./types";
+import type { MessageEmbeddingSuccessResponse } from "./types";
 
 const LOG_SCOPE = "embedding-worker";
 
-export async function persistEmbeddings(response: EmbeddingSuccessResponse): Promise<void> {
+export async function persistEmbeddings(response: MessageEmbeddingSuccessResponse): Promise<void> {
   for (const result of response.results) {
     const existing = await findActiveEmbeddingBySemanticId(result.id, response.model);
     if (!existing) {

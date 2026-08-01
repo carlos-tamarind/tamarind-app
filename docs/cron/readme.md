@@ -75,7 +75,7 @@ A pg_cron job calls the worker endpoint every minute via pg_net HTTP POST with t
 
 ### Worker execution
 
-[`runEmbeddingWorker`](../../src/semantic/embedding/runEmbeddingWorker.ts):
+[`runEmbeddingWorker`](../../src/semantic/messages/message-embedding/runEmbeddingWorker.ts):
 
 1. Claims up to 10 batches of 64 messages per tick
 2. Calls OpenAI `text-embedding-3-small`

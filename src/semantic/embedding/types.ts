@@ -1,46 +1,46 @@
 import { z } from "zod";
 
-export const embeddingRequestSchema = z.object({
+export const embedBatchRequestSchema = z.object({
   model: z.string().nullish(),
-  messages: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        normalized_text: z.string(),
-      }),
-    )
-    .min(1),
+  texts: z.array(z.string()).min(1),
 });
 
-export type EmbeddingRequest = z.infer<typeof embeddingRequestSchema>;
+export type EmbedBatchRequest = z.infer<typeof embedBatchRequestSchema>;
 
-export type EmbeddingResult = {
-  id: string;
+export type TextEmbedding = {
   embedding: number[];
   dimensions: number;
 };
 
-export type EmbeddingSuccessResponse = {
+export type EmbedBatchSuccessResponse = {
   model: string;
-  results: EmbeddingResult[];
+  embeddings: TextEmbedding[];
   usage: { prompt_tokens: number; total_tokens: number };
 };
 
-export type EmbeddingErrorResponse = {
+export type EmbedErrorResponse = {
   error: string;
 };
 
-export type EmbeddingOutcome = {
+export type EmbedOutcome = {
   status: number;
-  body: EmbeddingSuccessResponse | EmbeddingErrorResponse;
+  body: EmbedBatchSuccessResponse | EmbedErrorResponse;
 };
 
 export interface EmbeddingProvider {
-  generate(request: EmbeddingRequest): Promise<EmbeddingOutcome>;
+  embedBatch(options: { model?: string; texts: string[] }): Promise<EmbedOutcome>;
 }
 
-export function isEmbeddingSuccess(
-  outcome: EmbeddingOutcome,
-): outcome is EmbeddingOutcome & { body: EmbeddingSuccessResponse } {
-  return outcome.status === 200 && "results" in outcome.body;
+export function isEmbedSuccess(
+  outcome: EmbedOutcome,
+): outcome is EmbedOutcome & { body: EmbedBatchSuccessResponse } {
+  return outcome.status === 200 && "embeddings" in outcome.body;
+}
+
+export async function embed(
+  provider: EmbeddingProvider,
+  text: string,
+  options?: { model?: string },
+): Promise<EmbedOutcome> {
+  return provider.embedBatch({ model: options?.model, texts: [text] });
 }

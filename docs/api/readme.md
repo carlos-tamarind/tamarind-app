@@ -42,7 +42,7 @@ Flushes page content when the user closes or hides the browser tab. Uses the Bea
 
 Direct proxy to the OpenAI embeddings API. Validates input with Zod schema and returns embedding vectors.
 
-**Request body:** Validated by `embeddingRequestSchema` in [`src/semantic/embedding/types.ts`](../../src/semantic/embedding/types.ts)
+**Request body:** Validated by `messageEmbeddingRequestSchema` in [`src/semantic/messages/message-embedding/types.ts`](../../src/semantic/messages/message-embedding/types.ts). Uses the message adapter [`generateMessageEmbeddingsFromRaw`](../../src/semantic/messages/message-embedding/generateMessageEmbeddings.ts), which delegates to the generic [`embeddingProvider`](../../src/semantic/embedding/embeddingProvider.ts).
 
 **Auth:** None. Input validation only.
 

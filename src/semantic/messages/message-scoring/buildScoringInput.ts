@@ -1,5 +1,5 @@
-import { normalizeMessage } from "@/semantic/normalization/normalizeMessage";
-import { findMessageWithPriorContext } from "@/semantic/persistence/messageRepository";
+import { normalizeMessage } from "@/semantic/messages/message-normalization/normalizeMessage";
+import { findMessageWithPriorContext } from "@/semantic/messages/message-persistence/messageRepository";
 
 import type { NormalizedMessage, ScoringContext } from "./models/mvp-v1/types";
 

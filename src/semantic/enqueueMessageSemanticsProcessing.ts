@@ -2,7 +2,7 @@ import { waitUntil } from "cloudflare:workers";
 
 import { DebugLogger } from "@/lib/debugLogger";
 
-import { processAndPersistMessageSemantics } from "./normalization/normalizer";
+import { processAndPersistMessageSemantics } from "./messages/message-normalization/normalizer";
 
 export function enqueueMessageSemanticsProcessing(params: {
   messageId: string;

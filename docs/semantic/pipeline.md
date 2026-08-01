@@ -43,7 +43,7 @@ sequenceDiagram
 
 Called immediately after a message is inserted. Uses Cloudflare Workers `waitUntil()` to run asynchronously without blocking the HTTP response.
 
-**Orchestrator:** [`processAndPersistMessageSemantics`](../../src/semantic/normalization/normalizer.ts)
+**Orchestrator:** [`processAndPersistMessageSemantics`](../../src/semantic/messages/message-normalization/normalizer.ts)
 
 Steps:
 1. `normalizeMessage(rawMessage)` — clean text, apply skip gates
@@ -54,15 +54,16 @@ Steps:
 
 ## Phase B: Embedding Worker
 
-**Entry:** [`runEmbeddingWorker`](../../src/semantic/embedding/runEmbeddingWorker.ts)
+**Entry:** [`runEmbeddingWorker`](../../src/semantic/messages/message-embedding/runEmbeddingWorker.ts)
 
 Triggered by external cron. Processes up to 10 batches per tick, 64 messages per batch.
 
 Steps:
 1. `claimEmbeddingBatch()` — RPC locks QUEUED rows as PROCESSING
-2. `embeddingProvider.generate()` — OpenAI API call
-3. On success: `persistEmbeddings()` → insert vectors, mark EMBEDDED
-4. On failure: `handleEmbeddingBatchError()` → retry or mark FAILED
+2. `embeddingProvider.embedBatch()` — generic OpenAI API call with normalized text
+3. `mapEmbeddingsToMessageResults()` — zip vectors with message_semantics IDs
+4. On success: `persistEmbeddings()` → insert vectors, mark EMBEDDED
+5. On failure: `handleEmbeddingBatchError()` → retry or mark FAILED
 
 ## Embedding Status Lifecycle
 

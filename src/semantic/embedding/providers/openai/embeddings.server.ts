@@ -1,19 +1,19 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
 import type { EmbeddingProvider } from "../../types";
-import type { EmbeddingOutcome, EmbeddingRequest } from "../../types";
-import { embeddingRequestSchema } from "../../types";
+import type { EmbedOutcome } from "../../types";
+import { embedBatchRequestSchema } from "../../types";
 
-import { mapOpenAiEmbeddingsToResults } from "./mapper";
+import { mapOpenAiEmbeddingsToVectors } from "./mapper";
 import {
   DEFAULT_EMBEDDING_MODEL,
   SUPPORTED_EMBEDDING_MODELS,
   type OpenAiEmbeddingsResponse,
 } from "./types";
 
-const LOG_SCOPE = "generate-message-embedding";
+const LOG_SCOPE = "embedding";
 
-function failure(status: number, message: string): EmbeddingOutcome {
+function failure(status: number, message: string): EmbedOutcome {
   DebugLogger.log({
     scope: LOG_SCOPE,
     event: "EMBEDDING_FAILURE",
@@ -23,8 +23,11 @@ function failure(status: number, message: string): EmbeddingOutcome {
   return { status, body: { error: message } };
 }
 
-async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingOutcome> {
-  const { model: requestedModel, messages } = request;
+async function embedBatch(options: {
+  model?: string;
+  texts: string[];
+}): Promise<EmbedOutcome> {
+  const { model: requestedModel, texts } = options;
 
   const model = (requestedModel ?? DEFAULT_EMBEDDING_MODEL).trim();
   if (!(SUPPORTED_EMBEDDING_MODELS as readonly string[]).includes(model)) {
@@ -34,12 +37,9 @@ async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingO
     );
   }
 
-  const emptyIndex = messages.findIndex((m) => m.normalized_text.trim().length === 0);
+  const emptyIndex = texts.findIndex((text) => text.trim().length === 0);
   if (emptyIndex !== -1) {
-    return failure(
-      400,
-      `normalized_text is empty for message "${messages[emptyIndex].id}" (index ${emptyIndex}).`,
-    );
+    return failure(400, `texts[${emptyIndex}] is empty.`);
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -57,7 +57,7 @@ async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingO
       },
       body: JSON.stringify({
         model,
-        input: messages.map((m) => m.normalized_text),
+        input: texts,
       }),
     });
   } catch (error) {
@@ -94,7 +94,7 @@ async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingO
     );
   }
 
-  const mapped = mapOpenAiEmbeddingsToResults(messages, payload);
+  const mapped = mapOpenAiEmbeddingsToVectors(texts.length, payload);
   if (!mapped.ok) {
     return failure(mapped.status, mapped.message);
   }
@@ -103,7 +103,7 @@ async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingO
     scope: LOG_SCOPE,
     event: "EMBEDDING_SUCCESSFUL",
     data: {
-      totalMessages: messages.length,
+      totalTexts: texts.length,
       totalTokens: mapped.usage.prompt_tokens,
       model: payload.model ?? model,
     },
@@ -113,15 +113,15 @@ async function generateEmbeddings(request: EmbeddingRequest): Promise<EmbeddingO
     status: 200,
     body: {
       model: payload.model ?? model,
-      results: mapped.results,
+      embeddings: mapped.embeddings,
       usage: mapped.usage,
     },
   };
 }
 
 /** Validates a raw HTTP body and delegates to the OpenAI provider. */
-export async function generateEmbeddingsFromRaw(rawBody: unknown): Promise<EmbeddingOutcome> {
-  const parsed = embeddingRequestSchema.safeParse(rawBody);
+export async function embedBatchFromRaw(rawBody: unknown): Promise<EmbedOutcome> {
+  const parsed = embedBatchRequestSchema.safeParse(rawBody);
   if (!parsed.success) {
     return failure(
       400,
@@ -130,9 +130,12 @@ export async function generateEmbeddingsFromRaw(rawBody: unknown): Promise<Embed
         .join("; ")}`,
     );
   }
-  return generateEmbeddings(parsed.data);
+  return embedBatch({
+    texts: parsed.data.texts,
+    model: parsed.data.model ?? undefined,
+  });
 }
 
 export const openAiEmbeddingProvider: EmbeddingProvider = {
-  generate: generateEmbeddings,
+  embedBatch,
 };

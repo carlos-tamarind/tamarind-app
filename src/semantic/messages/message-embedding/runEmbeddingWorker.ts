@@ -1,11 +1,13 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
+import { embeddingProvider } from "@/semantic/embedding/embeddingProvider";
+import { isEmbedSuccess } from "@/semantic/embedding/types";
+
 import { claimEmbeddingBatch } from "./claimBatch";
 import { EMBEDDING_CONFIG } from "./config";
-import { embeddingProvider } from "./embeddingProvider";
 import { handleEmbeddingBatchError } from "./handleEmbeddingError";
+import { mapEmbeddingsToMessageResults } from "./mapMessageEmbeddings";
 import { persistEmbeddings } from "./persistEmbeddings";
-import { isEmbeddingSuccess } from "./types";
 
 const LOG_SCOPE = "embedding-worker";
 
@@ -21,18 +23,23 @@ async function processClaimedBatch(): Promise<number> {
 
   const timer = DebugLogger.time("generate-message-embedding", "EMBEDDING_TIME");
 
-  const outcome = await embeddingProvider.generate({
+  const outcome = await embeddingProvider.embedBatch({
     model: EMBEDDING_CONFIG.OPENAI_EMBEDDING_MODEL,
-    messages: batch.map((row) => ({
-      id: row.id,
-      normalized_text: row.normalized_text,
-    })),
+    texts: batch.map((row) => row.normalized_text),
   });
 
   timer.end();
 
-  if (isEmbeddingSuccess(outcome)) {
-    await persistEmbeddings(outcome.body);
+  if (isEmbedSuccess(outcome)) {
+    const results = mapEmbeddingsToMessageResults(
+      batch.map((row) => ({ id: row.id, normalized_text: row.normalized_text })),
+      outcome.body.embeddings,
+    );
+    await persistEmbeddings({
+      model: outcome.body.model,
+      results,
+      usage: outcome.body.usage,
+    });
     return batch.length;
   }
 
