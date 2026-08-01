@@ -48,6 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SearchOverlay } from "@/components/search/search-overlay";
 
 type NavSection = "conversations" | "pages" | "knowledge";
 
