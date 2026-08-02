@@ -614,6 +614,41 @@ export type Database = {
           },
         ]
       }
+      pinned_assets: {
+        Row: {
+          asset_id: string
+          asset_type: Database["public"]["Enums"]["pinned_asset_type"]
+          created_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          asset_type: Database["public"]["Enums"]["pinned_asset_type"]
+          created_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          asset_type?: Database["public"]["Enums"]["pinned_asset_type"]
+          created_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           description: string | null
@@ -877,6 +912,7 @@ export type Database = {
       page_origin: "user" | "conversation" | "import" | "ai"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
+      pinned_asset_type: "conversation" | "page"
       plan_tier: "free" | "pro" | "enterprise"
       relation_type:
         | "quoted_from"
@@ -1033,6 +1069,7 @@ export const Constants = {
       page_origin: ["user", "conversation", "import", "ai"],
       page_type: ["standard", "template", "generated", "imported"],
       page_visibility: ["private", "conversation", "workspace", "external"],
+      pinned_asset_type: ["conversation", "page"],
       plan_tier: ["free", "pro", "enterprise"],
       relation_type: [
         "quoted_from",
