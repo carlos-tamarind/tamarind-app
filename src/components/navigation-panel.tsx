@@ -235,7 +235,7 @@ export function NavigationPanel({
 
   const rail = (
     <TooltipProvider delayDuration={2000}>
-      <div className="flex w-14 shrink-0 flex-col items-center border-r">
+      <div className="flex w-[57px] shrink-0 flex-col items-center border-r">
         <RailButton
           icon={MessageSquareMore}
           label="Conversations"
