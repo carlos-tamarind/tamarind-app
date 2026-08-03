@@ -235,7 +235,7 @@ export function NavigationPanel({
 
   const rail = (
     <TooltipProvider delayDuration={2000}>
-      <div className="flex w-14 shrink-0 flex-col items-center border-r">
+      <div className="flex w-[57px] shrink-0 flex-col items-center border-r">
         <RailButton
           icon={MessageSquareMore}
           label="Conversations"
@@ -302,8 +302,8 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
-        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
+      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1.5 border-b px-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -334,7 +334,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-14 flex-col items-center">
+            <div className="flex w-[57px] flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
@@ -382,7 +382,7 @@ export function NavigationPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+    <aside className="flex h-full w-full flex-col border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -495,7 +495,7 @@ export function NavigationPanel({
           </div>
 
           {section === "conversations" || section === "pages" ? (
-            <div className="flex shrink-0 justify-end bg-background px-2 py-2">
+            <div className="flex shrink-0 justify-end px-2 py-2">
               {section === "conversations" ? (
                 <Button variant="secondary" size="sm" onClick={onNewConversation}>
                   <MessageSquarePlus className="size-4" />
