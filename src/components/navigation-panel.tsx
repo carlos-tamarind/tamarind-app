@@ -302,8 +302,8 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
-        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
+      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1.5 border-b px-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
