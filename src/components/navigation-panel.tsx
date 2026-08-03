@@ -4,20 +4,18 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
   Archive,
   Bookmark,
+  Building2,
   ChevronDown,
   ChevronRight,
+  FileLock,
   FileText,
-  FilePlus2,
-  FolderLock,
-  Folders,
-  FolderTree,
-  Globe,
+  FilePlusCorner,
   LibraryBig,
-  Lock,
   LogOut,
   Menu,
   MessageSquare,
   MessageSquareDot,
+  MessageSquareLock,
   MessageSquareMore,
   MessageSquarePlus,
   MessagesSquare,
@@ -28,6 +26,7 @@ import {
   User as UserIcon,
   Users,
 } from "lucide-react";
+
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
