@@ -11,7 +11,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import { Copy, Globe, Link2, Lock, MessageSquare, MessageSquareShare, MoreHorizontal } from "lucide-react";
+import { Copy, Building2, Link2, FileLock, MessageSquareLock, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -110,9 +110,9 @@ function VisibilityIcon({
   visibility: "private" | "workspace" | "conversation" | "external";
   className?: string;
 }) {
-  if (visibility === "workspace") return <Globe className={className} />;
-  if (visibility === "conversation") return <MessageSquare className={className} />;
-  return <Lock className={className} />;
+  if (visibility === "workspace") return <Building2 className={className} />;
+  if (visibility === "conversation") return <MessageSquareLock className={className} />;
+  return <FileLock className={className} />;
 }
 
 export function PageWindow({
@@ -714,7 +714,7 @@ export function PageWindow({
                 title="Makes the page public for the whole workspace"
                 onSelect={() => setPublishOpen(true)}
               >
-                <Globe className="size-3.5" /> Publish
+                <Building2 className="size-3.5" /> Publish
               </DropdownMenuItem>
             )}
             {(visibility === "private" || visibility === "conversation") && (
