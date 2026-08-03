@@ -23,7 +23,7 @@ import {
   Settings,
   LogOut,
   FilePlusCorner,
-  MessagesSquarePlusPlaceholder,
+  
   MessageSquarePlus,
   
   PanelLeftClose,
