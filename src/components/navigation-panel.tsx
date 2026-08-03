@@ -226,7 +226,7 @@ export function NavigationPanel({
           New conversation
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onNewPage}>
-          <FileText className="size-4" />
+          <FilePlusCorner className="size-4" />
           New page
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -465,21 +465,21 @@ export function NavigationPanel({
               <div className="space-y-1">
                 <Section icon={Bookmark} label="Pinned pages" empty />
                 <Section
-                  icon={FolderLock}
+                  icon={FileLock}
                   label="Private library"
                   empty={privatePages.length === 0}
                 >
                   <ul className="space-y-0.5">{privatePages.map(pageItem)}</ul>
                 </Section>
                 <Section
-                  icon={Folders}
+                  icon={MessageSquareLock}
                   label="From conversations"
                   empty={conversationPages.length === 0}
                 >
                   <ul className="space-y-0.5">{conversationPages.map(pageItem)}</ul>
                 </Section>
                 <Section
-                  icon={FolderTree}
+                  icon={Building2}
                   label="Public pages"
                   empty={workspacePages.length === 0}
                 >
@@ -503,7 +503,7 @@ export function NavigationPanel({
                 </Button>
               ) : (
                 <Button variant="secondary" size="sm" onClick={onNewPage}>
-                  <FilePlus2 className="size-4" />
+                  <FilePlusCorner className="size-4" />
                   New page
                 </Button>
               )}
