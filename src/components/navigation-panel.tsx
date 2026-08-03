@@ -334,7 +334,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-14 flex-col items-center">
+            <div className="flex w-[57px] flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
