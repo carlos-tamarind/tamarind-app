@@ -1,4 +1,4 @@
-import { Lock, Globe, MessageSquare } from "lucide-react";
+import { FileLock, Building2, MessageSquareLock } from "lucide-react";
 
 import {
   Dialog,
@@ -49,15 +49,15 @@ export function PageSettingsDialog({
   const visibilityLabel =
     visibility === "private" ? (
       <>
-        <Lock className="size-3.5" /> Only you can access this page.
+        <FileLock className="size-3.5" /> Only you can access this page.
       </>
     ) : visibility === "conversation" ? (
       <>
-        <MessageSquare className="size-3.5" /> You and all collaborators can access this page.
+        <MessageSquareLock className="size-3.5" /> You and all collaborators can access this page.
       </>
     ) : (
       <>
-        <Globe className="size-3.5" /> All members from this workspace can access this page.
+        <Building2 className="size-3.5" /> All members from this workspace can access this page.
       </>
     );
 
@@ -135,12 +135,12 @@ export function PageSettingsDialog({
         <DialogFooter className="flex-row gap-2 sm:justify-between">
           {showPublish && (
             <Button variant="secondary" className="flex-1" onClick={onPublish}>
-              <Globe className="size-3.5" /> Publish
+              <Building2 className="size-3.5" /> Publish
             </Button>
           )}
           {showShare && (
             <Button variant="secondary" className="flex-1" onClick={onShare}>
-              <MessageSquare className="size-3.5" /> Share
+              <MessageSquareLock className="size-3.5" /> Share
             </Button>
           )}
           <Button variant="secondary" className="flex-1" onClick={onDuplicate}>
