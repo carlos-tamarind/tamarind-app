@@ -235,7 +235,7 @@ function WorkspaceShell() {
             minSize="18%"
             maxSize="33%"
             collapsible
-            collapsedSize="56px"
+            collapsedSize="57px"
             onResize={(size) => {
               const pct = size.asPercentage;
               if (pct <= 17) {
