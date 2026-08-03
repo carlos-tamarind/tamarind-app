@@ -235,7 +235,7 @@ export function NavigationPanel({
 
   const rail = (
     <TooltipProvider delayDuration={2000}>
-      <div className="flex w-[57px] shrink-0 flex-col items-center border-r">
+      <div className="flex w-[60px] shrink-0 flex-col items-center border-r">
         <RailButton
           icon={MessageSquareMore}
           label="Conversations"
@@ -302,39 +302,41 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
-        <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1.5 border-b px-1.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onToggleRail}
-                className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-              >
-                <Menu className="size-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => panelRef.current?.expand()}
-                className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                aria-label="Open Navigation panel"
-              >
-                <PanelLeftOpen className="size-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Open Navigation panel</TooltipContent>
-          </Tooltip>
+      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/65 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+        <div className="flex h-14 w-full shrink-0 items-center justify-center border-b">
+          <div className="inline-flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onToggleRail}
+                  className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+                >
+                  <Menu className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => panelRef.current?.expand()}
+                  className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label="Open Navigation panel"
+                >
+                  <PanelLeftOpen className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Open Navigation panel</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-[57px] flex-col items-center">
+            <div className="flex w-[60px] flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
@@ -382,7 +384,7 @@ export function NavigationPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+    <aside className="flex h-full w-full flex-col border-r bg-muted/65 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
