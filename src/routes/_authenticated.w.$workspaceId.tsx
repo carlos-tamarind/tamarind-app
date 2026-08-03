@@ -22,10 +22,8 @@ import {
   PanelLeftOpen,
   Settings,
   LogOut,
-  FileText,
-  Lock,
-  Globe,
-  MessageSquare,
+  FilePlusCorner,
+  MessagesSquarePlusPlaceholder,
   MessageSquarePlus,
   
   PanelLeftClose,
