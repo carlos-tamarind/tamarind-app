@@ -126,14 +126,14 @@ function Section({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="pb-1">
+      <CollapsibleTrigger className="flex w-full items-center gap-1.5 border-b border-border/40 px-2 py-1.5 text-[13px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground">
         {open ? (
-          <ChevronDown className="size-3 shrink-0" />
+          <ChevronDown className="size-3.5 shrink-0" />
         ) : (
-          <ChevronRight className="size-3 shrink-0" />
+          <ChevronRight className="size-3.5 shrink-0" />
         )}
-        <Icon className="size-3.5 shrink-0" />
+        <Icon className="size-4 shrink-0" />
         <span className="truncate">
           {label}
           {count !== undefined ? ` (${count})` : ""}
