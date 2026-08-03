@@ -302,7 +302,7 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
+      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
         <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -334,7 +334,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-10 flex-col items-center">
+            <div className="flex w-14 flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
@@ -382,7 +382,7 @@ export function NavigationPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r">
+    <aside className="flex h-full w-full flex-col border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -439,7 +439,7 @@ export function NavigationPanel({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto py-2 text-sm">
             {section === "conversations" ? (
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <Section icon={Bookmark} label="Pinned conversations" empty />
                 <Section icon={MessageSquareDot} label="Unread messages" count={0} empty />
                 <Section
@@ -462,7 +462,7 @@ export function NavigationPanel({
                 </Section>
               </div>
             ) : section === "pages" ? (
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <Section icon={Bookmark} label="Pinned pages" empty />
                 <Section
                   icon={FileLock}
