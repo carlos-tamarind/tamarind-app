@@ -288,14 +288,13 @@ export function NavigationPanel({
           activePageId === p.id ? "bg-accent" : ""
         }`}
       >
-        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">{p.title || "Untitled"}</span>
         {p.visibility === "private" ? (
-          <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <FileLock className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : p.visibility === "workspace" ? (
-          <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <Building2 className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : p.visibility === "conversation" ? (
-          <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <MessageSquareLock className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : null}
       </Link>
     </li>
