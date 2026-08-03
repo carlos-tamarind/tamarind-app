@@ -382,7 +382,7 @@ export function NavigationPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
+    <aside className="flex h-full w-full flex-col border-r bg-muted/50 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
