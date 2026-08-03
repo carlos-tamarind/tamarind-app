@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, Globe, Loader2, Lock, MessageSquare } from "lucide-react";
+import { ChevronDown, Building2, Loader2, FileLock, MessageSquareLock } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -174,7 +174,7 @@ export function DuplicatePageDialog({
   }: {
     value: Visibility;
     label: string;
-    Icon: typeof Lock;
+    Icon: typeof FileLock;
   }) => (
     <Button
       type="button"
@@ -225,13 +225,13 @@ export function DuplicatePageDialog({
             <div className="space-y-2">
               <div className="text-sm font-medium">Visibility</div>
               <div className="flex gap-2">
-                <VisibilityButton value="private" label="Private" Icon={Lock} />
+                <VisibilityButton value="private" label="Private" Icon={FileLock} />
                 <VisibilityButton
                   value="conversation"
                   label="Conversation"
-                  Icon={MessageSquare}
+                  Icon={MessageSquareLock}
                 />
-                <VisibilityButton value="workspace" label="Workspace" Icon={Globe} />
+                <VisibilityButton value="workspace" label="Workspace" Icon={Building2} />
               </div>
             </div>
 

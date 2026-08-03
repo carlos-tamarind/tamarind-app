@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Globe, Lock, MessageSquare, Loader2 } from "lucide-react";
+import { Building2, FileLock, MessageSquareLock, Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -196,19 +196,19 @@ export function NewPageDialog({
                 {conversationId ? (
                   <SelectItem value="conversation">
                     <span className="flex items-center gap-2">
-                      <MessageSquare className="size-3.5" /> Conversation
+                      <MessageSquareLock className="size-3.5" /> Conversation
                     </span>
                   </SelectItem>
                 ) : (
                   <>
                     <SelectItem value="private">
                       <span className="flex items-center gap-2">
-                        <Lock className="size-3.5" /> Private
+                        <FileLock className="size-3.5" /> Private
                       </span>
                     </SelectItem>
                     <SelectItem value="workspace">
                       <span className="flex items-center gap-2">
-                        <Globe className="size-3.5" /> Workspace
+                        <Building2 className="size-3.5" /> Workspace
                       </span>
                     </SelectItem>
                   </>

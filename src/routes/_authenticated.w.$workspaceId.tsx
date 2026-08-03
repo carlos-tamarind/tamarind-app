@@ -22,10 +22,8 @@ import {
   PanelLeftOpen,
   Settings,
   LogOut,
-  FileText,
-  Lock,
-  Globe,
-  MessageSquare,
+  FilePlusCorner,
+  
   MessageSquarePlus,
   
   PanelLeftClose,
@@ -179,11 +177,11 @@ function WorkspaceShell() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-screen bg-background text-foreground">
         <div
-          className={`shrink-0 overflow-hidden border-r bg-muted/30 transition-[width] duration-150 ${
-            railOpen ? "w-10" : "w-0"
+          className={`shrink-0 overflow-hidden border-r bg-muted/60 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.10)] transition-[width] duration-150 ${
+            railOpen ? "w-14" : "w-0"
           }`}
         >
-          <div className="flex h-full w-10 flex-col">
+          <div className="flex h-full w-14 flex-col">
             <div className="h-14 shrink-0 border-b" />
             <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
               {(workspaces ?? []).map((w) => (
@@ -237,7 +235,7 @@ function WorkspaceShell() {
             minSize="18%"
             maxSize="33%"
             collapsible
-            collapsedSize="5%"
+            collapsedSize="56px"
             onResize={(size) => {
               const pct = size.asPercentage;
               if (pct <= 17) {
@@ -360,7 +358,7 @@ function EmptyState({
           New conversation
         </Button>
         <Button variant="secondary" onClick={onNewPage}>
-          <FileText className="size-4" />
+          <FilePlusCorner className="size-4" />
           New page
         </Button>
       </div>

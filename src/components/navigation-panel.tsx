@@ -4,20 +4,18 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
   Archive,
   Bookmark,
+  Building2,
   ChevronDown,
   ChevronRight,
+  FileLock,
   FileText,
-  FilePlus2,
-  FolderLock,
-  Folders,
-  FolderTree,
-  Globe,
+  FilePlusCorner,
   LibraryBig,
-  Lock,
   LogOut,
   Menu,
   MessageSquare,
   MessageSquareDot,
+  MessageSquareLock,
   MessageSquareMore,
   MessageSquarePlus,
   MessagesSquare,
@@ -28,6 +26,7 @@ import {
   User as UserIcon,
   Users,
 } from "lucide-react";
+
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -127,14 +126,14 @@ function Section({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="pb-1">
+      <CollapsibleTrigger className="flex w-full items-center gap-1.5 border-b border-border/40 px-2 py-1.5 text-[13px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground">
         {open ? (
-          <ChevronDown className="size-3 shrink-0" />
+          <ChevronDown className="size-3.5 shrink-0" />
         ) : (
-          <ChevronRight className="size-3 shrink-0" />
+          <ChevronRight className="size-3.5 shrink-0" />
         )}
-        <Icon className="size-3.5 shrink-0" />
+        <Icon className="size-4 shrink-0" />
         <span className="truncate">
           {label}
           {count !== undefined ? ` (${count})` : ""}
@@ -227,7 +226,7 @@ export function NavigationPanel({
           New conversation
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onNewPage}>
-          <FileText className="size-4" />
+          <FilePlusCorner className="size-4" />
           New page
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -289,14 +288,13 @@ export function NavigationPanel({
           activePageId === p.id ? "bg-accent" : ""
         }`}
       >
-        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">{p.title || "Untitled"}</span>
         {p.visibility === "private" ? (
-          <Lock className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <FileLock className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : p.visibility === "workspace" ? (
-          <Globe className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <Building2 className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : p.visibility === "conversation" ? (
-          <MessageSquare className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          <MessageSquareLock className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
         ) : null}
       </Link>
     </li>
@@ -304,7 +302,7 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/20">
+      <aside className="flex h-full w-full flex-col items-center border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
         <div className="flex h-14 w-full shrink-0 items-center justify-center gap-1 border-b px-1">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -336,7 +334,7 @@ export function NavigationPanel({
 
         <div className="flex flex-1 w-full flex-col items-center overflow-y-auto py-2">
           <TooltipProvider delayDuration={2000}>
-            <div className="flex w-10 flex-col items-center">
+            <div className="flex w-14 flex-col items-center">
               <RailButton
                 icon={MessageSquareMore}
                 label="Conversations"
@@ -384,7 +382,7 @@ export function NavigationPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r">
+    <aside className="flex h-full w-full flex-col border-r bg-muted/30 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.08)]">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b px-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -441,7 +439,7 @@ export function NavigationPanel({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto py-2 text-sm">
             {section === "conversations" ? (
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <Section icon={Bookmark} label="Pinned conversations" empty />
                 <Section icon={MessageSquareDot} label="Unread messages" count={0} empty />
                 <Section
@@ -464,24 +462,24 @@ export function NavigationPanel({
                 </Section>
               </div>
             ) : section === "pages" ? (
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <Section icon={Bookmark} label="Pinned pages" empty />
                 <Section
-                  icon={FolderLock}
+                  icon={FileLock}
                   label="Private library"
                   empty={privatePages.length === 0}
                 >
                   <ul className="space-y-0.5">{privatePages.map(pageItem)}</ul>
                 </Section>
                 <Section
-                  icon={Folders}
+                  icon={MessageSquareLock}
                   label="From conversations"
                   empty={conversationPages.length === 0}
                 >
                   <ul className="space-y-0.5">{conversationPages.map(pageItem)}</ul>
                 </Section>
                 <Section
-                  icon={FolderTree}
+                  icon={Building2}
                   label="Public pages"
                   empty={workspacePages.length === 0}
                 >
@@ -505,7 +503,7 @@ export function NavigationPanel({
                 </Button>
               ) : (
                 <Button variant="secondary" size="sm" onClick={onNewPage}>
-                  <FilePlus2 className="size-4" />
+                  <FilePlusCorner className="size-4" />
                   New page
                 </Button>
               )}
