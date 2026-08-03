@@ -177,11 +177,11 @@ function WorkspaceShell() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-screen bg-background text-foreground">
         <div
-          className={`shrink-0 overflow-hidden border-r bg-muted/60 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.10)] transition-[width] duration-150 ${
-            railOpen ? "w-14" : "w-0"
+          className={`shrink-0 overflow-hidden border-r bg-muted/80 shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.10)] transition-[width] duration-150 ${
+            railOpen ? "w-[57px]" : "w-0"
           }`}
         >
-          <div className="flex h-full w-14 flex-col">
+          <div className="flex h-full w-[57px] flex-col">
             <div className="h-14 shrink-0 border-b" />
             <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
               {(workspaces ?? []).map((w) => (
