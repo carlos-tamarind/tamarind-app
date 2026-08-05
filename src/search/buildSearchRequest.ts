@@ -10,6 +10,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function buildSearchRequest(params: {
+  workspaceId: string;
   scope: SearchScope;
   rawQuery: string;
 }): Promise<SearchRequest | null> {
@@ -22,6 +23,7 @@ export async function buildSearchRequest(params: {
   ]);
 
   const searchRequest: SearchRequest = {
+    workspaceId: params.workspaceId,
     query: processed,
     scope: params.scope,
     limit: 20,

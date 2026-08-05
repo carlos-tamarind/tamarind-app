@@ -32,6 +32,7 @@ export const prepareSearchRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await getCurrentWorkspaceUser(data.workspaceId, context.userId);
     const searchRequest = await buildSearchRequest({
+      workspaceId: data.workspaceId,
       scope: data.scope,
       rawQuery: data.query,
     });
