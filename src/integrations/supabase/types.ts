@@ -894,6 +894,47 @@ export type Database = {
       }
       is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      search_conversations_keyword: {
+        Args: { p_limit: number; p_query: string; p_workspace_id: string }
+        Returns: {
+          asset_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
+      search_messages_keyword: {
+        Args: { p_limit: number; p_query: string; p_workspace_id: string }
+        Returns: {
+          asset_id: string
+          conversation_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
+      search_pages_keyword: {
+        Args: { p_limit: number; p_query: string; p_workspace_id: string }
+        Returns: {
+          asset_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
+      search_people_keyword: {
+        Args: { p_limit: number; p_query: string; p_workspace_id: string }
+        Returns: {
+          asset_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
       tiptap_to_plaintext: { Args: { doc: Json }; Returns: string }
     }
     Enums: {
@@ -924,6 +965,7 @@ export type Database = {
         | "child_of"
         | "attached_to"
         | "linked_by_user"
+      search_matched_field: "title" | "content" | "name"
       workspace_role: "admin" | "member" | "viewer"
     }
     CompositeTypes: {
@@ -1082,6 +1124,7 @@ export const Constants = {
         "attached_to",
         "linked_by_user",
       ],
+      search_matched_field: ["title", "content", "name"],
       workspace_role: ["admin", "member", "viewer"],
     },
   },
