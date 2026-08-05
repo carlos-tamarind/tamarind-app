@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
-import { prepareSearchRequest } from "@/lib/search.functions";
+import { executeSearch as executeSearchFn } from "@/lib/search.functions";
 import type { SearchScope } from "@/search/types";
 
 const DEBOUNCE_MS = 500;
@@ -17,7 +17,7 @@ export function useSearchRequest({
   query: string;
   scope: SearchScope;
 }) {
-  const prepareSearch = useServerFn(prepareSearchRequest);
+  const executeSearchServer = useServerFn(executeSearchFn);
   const requestIdRef = useRef(0);
   const debounceTimerRef = useRef<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,15 +33,15 @@ export function useSearchRequest({
     const id = ++requestIdRef.current;
     setIsLoading(true);
     try {
-      await prepareSearch({ data: { workspaceId, query, scope } });
+      await executeSearchServer({ data: { workspaceId, query, scope } });
     } catch {
-      // Stage 1: no UI feedback for errors yet.
+      // No UI feedback for errors yet.
     } finally {
       if (id === requestIdRef.current) {
         setIsLoading(false);
       }
     }
-  }, [workspaceId, query, scope, prepareSearch]);
+  }, [workspaceId, query, scope, executeSearchServer]);
 
   const searchNow = useCallback(() => {
     if (!open) return;
