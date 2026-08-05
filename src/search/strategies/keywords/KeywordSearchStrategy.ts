@@ -7,8 +7,8 @@ import type {
   SearchScope,
   SearchStrategy,
   SearchSupabaseClient,
-} from "../types";
-import { extractSnippet } from "../utils/snippet";
+} from "../../types";
+import { extractSnippet } from "../../utils/snippet";
 
 type KeywordRpcName =
   | "search_pages_keyword"
