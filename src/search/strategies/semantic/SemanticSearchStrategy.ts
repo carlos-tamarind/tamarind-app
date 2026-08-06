@@ -50,43 +50,48 @@ export class SemanticSearchStrategy implements SearchStrategy {
     supabase: SearchSupabaseClient,
     request: SearchRequest,
   ): Promise<SearchResult[]> {
-    if (!scopeSupportsSemanticSearch(request.scope) || !request.embedding) {
-      return [];
-    }
+    const timer = DebugLogger.time("searchStratSemantic", "Total elapsed time");
+    try {
+      if (!scopeSupportsSemanticSearch(request.scope) || !request.embedding) {
+        return [];
+      }
 
-    const { data, error } = await supabase.rpc("search_messages_semantic", {
-      p_workspace_id: request.workspaceId,
-      p_embedding: formatEmbeddingVector(request.embedding),
-      p_limit: request.limit,
-      p_similarity_threshold: SEMANTIC_SEARCH_CONFIG.EMBEDDING_THRESHOLD,
-      p_weight_similarity: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_SIMILARITY,
-      p_weight_quality: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_QUALITY,
-      p_weight_recency: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_RECENCY,
-      p_recency_half_life_days: SEMANTIC_SEARCH_CONFIG.RECENCY_HALF_LIFE_DAYS,
-    });
+      const { data, error } = await supabase.rpc("search_messages_semantic", {
+        p_workspace_id: request.workspaceId,
+        p_embedding: formatEmbeddingVector(request.embedding),
+        p_limit: request.limit,
+        p_similarity_threshold: SEMANTIC_SEARCH_CONFIG.EMBEDDING_THRESHOLD,
+        p_weight_similarity: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_SIMILARITY,
+        p_weight_quality: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_QUALITY,
+        p_weight_recency: SEMANTIC_SEARCH_CONFIG.SCORE_WEIGHT_RECENCY,
+        p_recency_half_life_days: SEMANTIC_SEARCH_CONFIG.RECENCY_HALF_LIFE_DAYS,
+      });
 
-    if (error) {
+      if (error) {
+        DebugLogger.log({
+          scope: "searchStratSemantic",
+          event: "error",
+          level: "error",
+          message: `search_messages_semantic: ${error.message}`,
+        });
+        return [];
+      }
+
+      const rows = (data ?? []) as SemanticRpcRow[];
+      const mapped = rows.map((row) => mapRow(row, request.query));
+      const deduped = dedupeResults(mapped);
+      const ranked = deduped.sort((a, b) => b.score - a.score).slice(0, request.limit);
+
       DebugLogger.log({
         scope: "searchStratSemantic",
-        event: "error",
-        level: "error",
-        message: `search_messages_semantic: ${error.message}`,
+        event: "searchResults",
+        level: "log",
+        message: `Found ${ranked.length} results`,
       });
-      return [];
+
+      return ranked;
+    } finally {
+      timer.end();
     }
-
-    const rows = (data ?? []) as SemanticRpcRow[];
-    const mapped = rows.map((row) => mapRow(row, request.query));
-    const deduped = dedupeResults(mapped);
-    const ranked = deduped.sort((a, b) => b.score - a.score).slice(0, request.limit);
-
-    DebugLogger.log({
-      scope: "searchStratSemantic",
-      event: "searchResults",
-      level: "log",
-      message: `Found ${ranked.length} results`,
-    });
-
-    return ranked;
   }
 }

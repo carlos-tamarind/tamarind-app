@@ -138,48 +138,53 @@ export class KeywordSearchStrategy implements SearchStrategy {
     supabase: SearchSupabaseClient,
     request: SearchRequest,
   ): Promise<SearchResult[]> {
-    if (!request.query.trim()) {
-      return [];
-    }
-
-    const rpcNames = SCOPE_RPCS[request.scope];
-    const settled = await Promise.allSettled(
-      rpcNames.map((rpcName) => callKeywordRpc(supabase, rpcName, request)),
-    );
-
-    const results: SearchResult[] = [];
-
-    for (let i = 0; i < settled.length; i++) {
-      const outcome = settled[i];
-      const rpcName = rpcNames[i];
-
-      if (outcome.status === "rejected") {
-        const message =
-          outcome.reason instanceof Error
-            ? outcome.reason.message
-            : String(outcome.reason);
-
-        DebugLogger.log({
-          scope: "searchStratKeywords",
-          event: "error",
-          level: "error",
-          message: `${rpcName}: ${message}`,
-        });
-        continue;
+    const timer = DebugLogger.time("searchStratKeywords", "Total elapsed time");
+    try {
+      if (!request.query.trim()) {
+        return [];
       }
 
-      results.push(...outcome.value);
+      const rpcNames = SCOPE_RPCS[request.scope];
+      const settled = await Promise.allSettled(
+        rpcNames.map((rpcName) => callKeywordRpc(supabase, rpcName, request)),
+      );
+
+      const results: SearchResult[] = [];
+
+      for (let i = 0; i < settled.length; i++) {
+        const outcome = settled[i];
+        const rpcName = rpcNames[i];
+
+        if (outcome.status === "rejected") {
+          const message =
+            outcome.reason instanceof Error
+              ? outcome.reason.message
+              : String(outcome.reason);
+
+          DebugLogger.log({
+            scope: "searchStratKeywords",
+            event: "error",
+            level: "error",
+            message: `${rpcName}: ${message}`,
+          });
+          continue;
+        }
+
+        results.push(...outcome.value);
+      }
+
+      const ranked = results.sort((a, b) => b.score - a.score).slice(0, request.limit);
+
+      DebugLogger.log({
+        scope: "searchStratKeywords",
+        event: "searchResults",
+        level: "log",
+        message: `Found ${ranked.length} results`,
+      });
+
+      return ranked;
+    } finally {
+      timer.end();
     }
-
-    const ranked = results.sort((a, b) => b.score - a.score).slice(0, request.limit);
-
-    DebugLogger.log({
-      scope: "searchStratKeywords",
-      event: "searchResults",
-      level: "log",
-      message: `Found ${ranked.length} results`,
-    });
-
-    return ranked;
   }
 }
