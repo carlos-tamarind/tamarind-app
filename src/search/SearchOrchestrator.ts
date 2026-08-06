@@ -1,14 +1,27 @@
 import { KeywordSearchStrategy } from "./strategies/keywords/KeywordSearchStrategy";
-import type { SearchRequest, SearchResult, SearchSupabaseClient } from "./types";
+import { SemanticSearchStrategy } from "./strategies/semantic/SemanticSearchStrategy";
+import type {
+  SearchOrchestratorResponse,
+  SearchRequest,
+  SearchSupabaseClient,
+} from "./types";
 
 export class SearchOrchestrator {
-  constructor(private keywordStrategy = new KeywordSearchStrategy()) {}
+  constructor(
+    private keywordStrategy = new KeywordSearchStrategy(),
+    private semanticStrategy = new SemanticSearchStrategy(),
+  ) {}
 
-  search(
+  async search(
     supabase: SearchSupabaseClient,
     request: SearchRequest,
-  ): Promise<SearchResult[]> {
-    return this.keywordStrategy.search(supabase, request);
+  ): Promise<SearchOrchestratorResponse> {
+    const [keywordResults, semanticResults] = await Promise.all([
+      this.keywordStrategy.search(supabase, request),
+      this.semanticStrategy.search(supabase, request),
+    ]);
+
+    return { keywordResults, semanticResults };
   }
 }
 

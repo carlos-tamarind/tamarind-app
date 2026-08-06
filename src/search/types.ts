@@ -27,6 +27,11 @@ export type SearchResult = {
   pageId?: string;
 };
 
+export type SearchOrchestratorResponse = {
+  keywordResults: SearchResult[];
+  semanticResults: SearchResult[];
+};
+
 export type SearchSupabaseClient = SupabaseClient<Database>;
 
 export interface SearchStrategy {

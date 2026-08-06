@@ -61,9 +61,12 @@ export const executeSearch = createServerFn({ method: "POST" })
     });
 
     if (!searchRequest) {
-      return { results: [] };
+      return { keywordResults: [], semanticResults: [] };
     }
 
-    const results = await searchOrchestrator.search(context.supabase, searchRequest);
-    return { results };
+    const { keywordResults, semanticResults } = await searchOrchestrator.search(
+      context.supabase,
+      searchRequest,
+    );
+    return { keywordResults, semanticResults };
   });
