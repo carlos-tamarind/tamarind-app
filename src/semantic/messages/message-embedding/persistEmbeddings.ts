@@ -1,8 +1,8 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
+import { formatEmbeddingVector } from "@/lib/vector/formatEmbeddingVector";
 import {
   findActiveEmbeddingBySemanticId,
-  formatEmbeddingVector,
   insertMessageEmbedding,
 } from "@/semantic/messages/message-persistence/messageEmbeddingsRepository";
 import { markMessageSemanticsEmbedded } from "@/semantic/messages/message-persistence/messageSemanticsRepository";
