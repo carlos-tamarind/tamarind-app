@@ -11,11 +11,6 @@ async function getAdmin() {
   return supabaseAdmin;
 }
 
-/** pgvector insert format for Supabase client. */
-export function formatEmbeddingVector(values: number[]): string {
-  return `[${values.join(",")}]`;
-}
-
 export async function insertMessageEmbedding(input: InsertMessageEmbeddingInput): Promise<void> {
   const supabase = await getAdmin();
 
