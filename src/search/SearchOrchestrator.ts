@@ -6,6 +6,11 @@ import type {
   SearchSupabaseClient,
 } from "./types";
 
+export type SearchOrchestratorOptions = {
+  enableKeywordSearch?: boolean;
+  enableSemanticSearch?: boolean;
+};
+
 export class SearchOrchestrator {
   constructor(
     private keywordStrategy = new KeywordSearchStrategy(),
@@ -15,10 +20,18 @@ export class SearchOrchestrator {
   async search(
     supabase: SearchSupabaseClient,
     request: SearchRequest,
+    options: SearchOrchestratorOptions = {},
   ): Promise<SearchOrchestratorResponse> {
+    const enableKeywordSearch = options.enableKeywordSearch ?? true;
+    const enableSemanticSearch = options.enableSemanticSearch ?? true;
+
     const [keywordResults, semanticResults] = await Promise.all([
-      this.keywordStrategy.search(supabase, request),
-      this.semanticStrategy.search(supabase, request),
+      enableKeywordSearch
+        ? this.keywordStrategy.search(supabase, request)
+        : Promise.resolve([]),
+      enableSemanticSearch
+        ? this.semanticStrategy.search(supabase, request)
+        : Promise.resolve([]),
     ]);
 
     return { keywordResults, semanticResults };

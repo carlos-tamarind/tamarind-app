@@ -48,6 +48,8 @@ export const executeSearch = createServerFn({ method: "POST" })
         workspaceId: z.string().uuid(),
         query: z.string(),
         scope: searchScopeSchema,
+        enableKeywordSearch: z.boolean().default(true),
+        enableSemanticSearch: z.boolean().default(true),
       })
       .parse(input),
   )
@@ -67,6 +69,10 @@ export const executeSearch = createServerFn({ method: "POST" })
     const { keywordResults, semanticResults } = await searchOrchestrator.search(
       context.supabase,
       searchRequest,
+      {
+        enableKeywordSearch: data.enableKeywordSearch,
+        enableSemanticSearch: data.enableSemanticSearch,
+      },
     );
     return { keywordResults, semanticResults };
   });
