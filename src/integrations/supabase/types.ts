@@ -881,6 +881,7 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
+      escape_ilike_pattern: { Args: { p: string }; Returns: string }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
