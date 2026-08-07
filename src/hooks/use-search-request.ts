@@ -1,26 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
+import { DebugLogger } from "@/lib/debugLogger";
 import { executeSearch as executeSearchFn } from "@/lib/search.functions";
-import type { SearchScope } from "@/search/types";
+import type { SearchResult, SearchScope } from "@/search/types";
 
-const DEBOUNCE_MS = 500;
+const DEBOUNCE_MS = 1000;
+
+function logStrategyResults(strategy: "keyword" | "semantic", results: SearchResult[]) {
+  DebugLogger.table({
+    scope: "search-api",
+    event: `search results for ${strategy}`,
+    collapsed: true,
+    data: Object.fromEntries(results.map((r, i) => [String(i), r])),
+  });
+}
 
 export function useSearchRequest({
   workspaceId,
   open,
   query,
   scope,
+  enableKeywordSearch,
+  enableSemanticSearch,
 }: {
   workspaceId: string;
   open: boolean;
   query: string;
   scope: SearchScope;
+  enableKeywordSearch: boolean;
+  enableSemanticSearch: boolean;
 }) {
   const executeSearchServer = useServerFn(executeSearchFn);
   const requestIdRef = useRef(0);
   const debounceTimerRef = useRef<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [keywordResults, setKeywordResults] = useState<SearchResult[]>([]);
+  const [semanticResults, setSemanticResults] = useState<SearchResult[]>([]);
 
   const clearDebounce = useCallback(() => {
     if (debounceTimerRef.current !== null) {
@@ -32,8 +48,36 @@ export function useSearchRequest({
   const executeSearch = useCallback(async () => {
     const id = ++requestIdRef.current;
     setIsLoading(true);
+
+    if (!enableKeywordSearch && !enableSemanticSearch) {
+      setKeywordResults([]);
+      setSemanticResults([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await executeSearchServer({ data: { workspaceId, query, scope } });
+      const { keywordResults, semanticResults } = await executeSearchServer({
+        data: {
+          workspaceId,
+          query,
+          scope,
+          enableKeywordSearch,
+          enableSemanticSearch,
+        },
+      });
+
+      if (id !== requestIdRef.current) return;
+
+      setKeywordResults(keywordResults);
+      setSemanticResults(semanticResults);
+
+      if (enableKeywordSearch) {
+        logStrategyResults("keyword", keywordResults);
+      }
+      if (enableSemanticSearch) {
+        logStrategyResults("semantic", semanticResults);
+      }
     } catch {
       // No UI feedback for errors yet.
     } finally {
@@ -41,7 +85,14 @@ export function useSearchRequest({
         setIsLoading(false);
       }
     }
-  }, [workspaceId, query, scope, executeSearchServer]);
+  }, [
+    workspaceId,
+    query,
+    scope,
+    enableKeywordSearch,
+    enableSemanticSearch,
+    executeSearchServer,
+  ]);
 
   const searchNow = useCallback(() => {
     if (!open) return;
@@ -64,7 +115,15 @@ export function useSearchRequest({
     }, DEBOUNCE_MS);
 
     return clearDebounce;
-  }, [open, query, scope, clearDebounce, executeSearch]);
+  }, [
+    open,
+    query,
+    scope,
+    enableKeywordSearch,
+    enableSemanticSearch,
+    clearDebounce,
+    executeSearch,
+  ]);
 
-  return { isLoading, searchNow };
+  return { isLoading, searchNow, keywordResults, semanticResults };
 }
