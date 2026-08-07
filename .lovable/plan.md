@@ -38,7 +38,10 @@ Manual smoke tests through the search overlay:
 4. `pages`, `conversations`, `users` scopes return the expected asset types.
 5. A query containing `%` or `_` matches literally; queries under 3 characters still return nothing.
 
+## Version
+
+Bump `APP_VERSION` in `src/lib/version.ts` from `0.1.455` to `0.1.456`.
+
 ## Not included
 
-- No version bump.
 - No changes to semantic search or the search UI.
