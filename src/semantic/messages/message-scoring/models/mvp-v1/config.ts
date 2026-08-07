@@ -5,7 +5,7 @@ export const SCORING_CONFIG = {
     MIDPOINT: 50,
   },
 
-  SHOULD_EMBED_THRESHOLD: 0.65,
+  SHOULD_EMBED_THRESHOLD: 0.5,
 
   RULES: {
     HEUR_MSG_LENGTH: {
@@ -310,7 +310,7 @@ export const SCORING_CONFIG = {
 
     HEUR_MSG_CODE: {
       ENABLED: true,
-      WEIGHT: 10,
+      WEIGHT: 15,
     },
 
     HEUR_MSG_CODE_BLOCK: {
