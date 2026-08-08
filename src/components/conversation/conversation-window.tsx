@@ -57,6 +57,11 @@ import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 import { QuoteBlock } from "@/components/editor/quote-node";
+import { UserLink } from "@/components/user-link";
+import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
+import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
+import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
+import { UserNavigationContext } from "@/lib/user-navigation-context";
 
 type Message = {
   id: string;
@@ -125,6 +130,7 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "BR",
   "SPAN",
   "DIV",
+  "A",
   "SVG",
   "CIRCLE",
   "PATH",
@@ -141,10 +147,17 @@ const KEEP_ATTRS_ON_QUOTE = new Set([
   "class",
   "data-quote-id",
   "data-author",
+  "data-author-id",
   "data-created-at",
 ]);
-// Drop event handlers and href-like attributes; allow svg/path geometry attrs.
-const DROP_ATTRS = new Set(["onclick", "onmouseover", "href", "xlink:href", "style"]);
+const KEEP_ATTRS_ON_QUOTE_HEADER = new Set([
+  "class",
+  "data-author",
+  "data-author-id",
+]);
+const KEEP_ATTRS_ON_LINK = new Set(["href", "target", "rel", "class"]);
+// Drop event handlers and unsafe attrs; allow svg/path geometry attrs.
+const DROP_ATTRS = new Set(["onclick", "onmouseover", "xlink:href", "style"]);
 
 function sanitizeAttrs(el: Element) {
   for (const attr of Array.from(el.attributes)) {
@@ -159,7 +172,10 @@ function sanitizeAttrs(el: Element) {
   }
 }
 
-function sanitizeMessageHtml(html: string): string {
+function sanitizeMessageHtml(
+  html: string,
+  myWorkspaceUserId?: string | null,
+): string {
   if (typeof window === "undefined") return "";
   const tpl = document.createElement("template");
   tpl.innerHTML = html;
@@ -173,20 +189,51 @@ function sanitizeMessageHtml(html: string): string {
         continue;
       }
       if (tag === "DIV") {
-        if (!el.classList.contains("msg-quote")) {
-          // Unwrap unknown divs but keep their children.
-          const frag = document.createDocumentFragment();
-          while (el.firstChild) frag.appendChild(el.firstChild);
-          el.replaceWith(frag);
-          walk(frag);
+        if (el.classList.contains("msg-quote-header")) {
+          for (const attr of Array.from(el.attributes)) {
+            if (!KEEP_ATTRS_ON_QUOTE_HEADER.has(attr.name)) {
+              el.removeAttribute(attr.name);
+            }
+          }
+          el.setAttribute("class", "msg-quote-header");
+          const authorId = el.getAttribute("data-author-id");
+          if (authorId && myWorkspaceUserId && authorId === myWorkspaceUserId) {
+            el.classList.add("msg-quote-header-self");
+          }
+          walk(el);
+          continue;
+        }
+        if (el.classList.contains("msg-quote")) {
+          for (const attr of Array.from(el.attributes)) {
+            if (!KEEP_ATTRS_ON_QUOTE.has(attr.name)) {
+              el.removeAttribute(attr.name);
+            }
+          }
+          el.setAttribute("class", "msg-quote");
+          walk(el);
+          continue;
+        }
+        // Unwrap unknown divs but keep their children.
+        const frag = document.createDocumentFragment();
+        while (el.firstChild) frag.appendChild(el.firstChild);
+        el.replaceWith(frag);
+        walk(frag);
+        continue;
+      }
+      if (tag === "A") {
+        const href = el.getAttribute("href") ?? "";
+        if (!isSafeExternalUrl(href)) {
+          el.replaceWith(document.createTextNode(el.textContent ?? ""));
           continue;
         }
         for (const attr of Array.from(el.attributes)) {
-          if (!KEEP_ATTRS_ON_QUOTE.has(attr.name)) {
+          if (!KEEP_ATTRS_ON_LINK.has(attr.name)) {
             el.removeAttribute(attr.name);
           }
         }
-        el.setAttribute("class", "msg-quote");
+        el.setAttribute("class", "message-link");
+        el.setAttribute("target", "_blank");
+        el.setAttribute("rel", "noopener noreferrer nofollow");
         walk(el);
         continue;
       }
@@ -200,7 +247,14 @@ function sanitizeMessageHtml(html: string): string {
           el.replaceWith(text);
           continue;
         }
-        el.setAttribute("class", mentionClass);
+        const isSelf =
+          mentionClass === "mention-member" &&
+          myWorkspaceUserId &&
+          el.getAttribute("data-id") === myWorkspaceUserId;
+        el.setAttribute(
+          "class",
+          isSelf ? "mention-member mention-member-self" : mentionClass,
+        );
         for (const attr of Array.from(el.attributes)) {
           if (!KEEP_ATTRS_ON_MENTION.has(attr.name)) {
             el.removeAttribute(attr.name);
@@ -367,6 +421,17 @@ export function ConversationWindow({
     queryFn: () => fetchConv({ data: { conversationId } }),
   });
 
+  const myWorkspaceUserId =
+    conv?.participants.find((p) => p.isMe)?.workspaceUserId ?? null;
+  const { navigateToUser } = useNavigateToUserConversation(
+    workspaceId,
+    myWorkspaceUserId,
+  );
+  const navigateToUserRef = useRef(navigateToUser);
+  navigateToUserRef.current = navigateToUser;
+  const myWorkspaceUserIdRef = useRef(myWorkspaceUserId);
+  myWorkspaceUserIdRef.current = myWorkspaceUserId;
+
   const { data: initialMessages } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () => fetchMessages({ data: { conversationId } }),
@@ -498,6 +563,14 @@ export function ConversationWindow({
         class:
           "prose prose-sm max-w-none min-h-full focus:outline-none px-3 py-2",
       },
+      handleClickOn: createMentionClickHandler({
+        navigate,
+        workspaceId,
+        getMyWorkspaceUserId: () => myWorkspaceUserIdRef.current,
+        navigateToUser: (id) => {
+          void navigateToUserRef.current(id);
+        },
+      }),
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
@@ -552,10 +625,16 @@ export function ConversationWindow({
           m.authorLabel ??
           "Archived user",
       );
+      const authorId = m.authorWorkspaceUserId
+        ? escapeAttr(m.authorWorkspaceUserId)
+        : "";
       const createdAt = escapeAttr(m.createdAt);
-      const inner = sanitizeMessageHtml(m.rawText || "") || "<p></p>";
+      const inner =
+        sanitizeMessageHtml(m.rawText || "", myWorkspaceUserId) || "<p></p>";
+      const headerDate = formatMessageTimestamp(m.createdAt);
+      const authorIdAttr = authorId ? ` data-author-id="${authorId}"` : "";
       nodes.push(
-        `<div class="msg-quote" data-quote-id="${escapeAttr(m.id)}" data-author="${author}" data-created-at="${createdAt}">${inner}</div>`,
+        `<div class="msg-quote" data-quote-id="${escapeAttr(m.id)}" data-author="${author}" data-created-at="${createdAt}"><div class="msg-quote-header"${authorIdAttr} data-author="${author}">${author} · ${escapeAttr(headerDate)}</div>${inner}</div>`,
       );
     }
     if (nodes.length === 0) return;
@@ -626,6 +705,52 @@ export function ConversationWindow({
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const targetEl = e.target as HTMLElement;
+
+    const linkEl = targetEl.closest("a[href]");
+    if (linkEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      openExternalUrl(linkEl.getAttribute("href") ?? "");
+      return;
+    }
+
+    const memberEl = targetEl.closest(
+      "span.mention-member:not(.mention-member-self)",
+    ) as HTMLElement | null;
+    if (memberEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = memberEl.getAttribute("data-id");
+      if (id) void navigateToUser(id);
+      return;
+    }
+
+    const pageEl = targetEl.closest("span.mention-page") as HTMLElement | null;
+    if (pageEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = pageEl.getAttribute("data-id");
+      if (id) {
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev: any) => ({ ...prev, p: id }),
+        });
+      }
+      return;
+    }
+
+    const authorHeaderEl = targetEl.closest(
+      ".msg-quote-header[data-author-id]",
+    ) as HTMLElement | null;
+    if (authorHeaderEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = authorHeaderEl.getAttribute("data-author-id");
+      if (id && id !== myWorkspaceUserId) void navigateToUser(id);
+      return;
+    }
+
     const quoteEl = targetEl.closest("div.msg-quote") as HTMLElement | null;
     if (quoteEl) {
       const qid = quoteEl.getAttribute("data-quote-id");
@@ -636,16 +761,6 @@ export function ConversationWindow({
         return;
       }
     }
-    const target = targetEl.closest("span.mention-page") as HTMLElement | null;
-    if (!target) return;
-    const id = target.getAttribute("data-id");
-    if (!id) return;
-    e.preventDefault();
-    navigate({
-      to: "/w/$workspaceId",
-      params: { workspaceId },
-      search: (prev: any) => ({ ...prev, p: id }),
-    });
   };
 
   const handleRename = async (title: string) => {
@@ -670,6 +785,9 @@ export function ConversationWindow({
       : conv.participants.find((p) => !p.isMe)?.displayName ?? "Conversation";
 
   return (
+    <UserNavigationContext.Provider
+      value={{ workspaceId, myWorkspaceUserId }}
+    >
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col">
         {selectedIds.size > 0 ? (
@@ -824,7 +942,13 @@ export function ConversationWindow({
                     <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
                       {conv.participants.map((p) => (
                         <li key={p.workspaceUserId}>
-                          {p.displayName}
+                          <UserLink
+                            workspaceId={workspaceId}
+                            workspaceUserId={p.workspaceUserId}
+                            myWorkspaceUserId={myWorkspaceUserId}
+                            label={p.displayName}
+                            isMe={p.isMe}
+                          />
                           {p.isMe && (
                             <span className="ml-1 text-xs text-muted-foreground">
                               (you)
@@ -921,6 +1045,9 @@ export function ConversationWindow({
                             const t = e.target as HTMLElement;
                             if (
                               t.closest("span.mention-page") ||
+                              t.closest("span.mention-member") ||
+                              t.closest("a[href]") ||
+                              t.closest(".msg-quote-header[data-author-id]") ||
                               t.closest("div.msg-quote")
                             )
                               return;
@@ -951,7 +1078,16 @@ export function ConversationWindow({
                             >
                               {showName && (
                                 <span className="mb-0.5 px-2 text-xs text-muted-foreground">
-                                  {author?.label ?? m.authorLabel ?? "Archived user"}
+                                  <UserLink
+                                    workspaceId={workspaceId}
+                                    workspaceUserId={m.authorWorkspaceUserId}
+                                    myWorkspaceUserId={myWorkspaceUserId}
+                                    label={
+                                      author?.label ??
+                                      m.authorLabel ??
+                                      "Archived user"
+                                    }
+                                  />
                                 </span>
                               )}
                               <div
@@ -961,7 +1097,10 @@ export function ConversationWindow({
                                     : "bg-muted text-foreground"
                                 }`}
                                 dangerouslySetInnerHTML={{
-                                  __html: sanitizeMessageHtml(m.rawText),
+                                  __html: sanitizeMessageHtml(
+                                    m.rawText,
+                                    myWorkspaceUserId,
+                                  ),
                                 }}
                               />
                               <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
@@ -1112,5 +1251,6 @@ export function ConversationWindow({
         />
       </div>
     </TooltipProvider>
+    </UserNavigationContext.Provider>
   );
 }

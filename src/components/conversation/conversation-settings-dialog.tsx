@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UserLink } from "@/components/user-link";
 import { listConversationPages } from "@/lib/conversations.functions";
+import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { AddParticipantsDialog } from "./add-participants-dialog";
 import { EditableTitle } from "./editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
@@ -39,16 +41,23 @@ export function ConversationSettingsDialog({
   title: string;
   isGroup: boolean;
   participants: Participant[];
-  createdBy: { label: string } | null;
+  createdBy: { workspaceUserId: string; label: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRename: (title: string) => Promise<void>;
 }) {
-
   const navigate = useNavigate();
   const fetchPages = useServerFn(listConversationPages);
+  const fetchProfile = useServerFn(getMyWorkspaceProfile);
   const [addOpen, setAddOpen] = useState(false);
   const [newPageOpen, setNewPageOpen] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile", workspaceId],
+    queryFn: () => fetchProfile({ data: { workspaceId } }),
+    enabled: open,
+  });
+  const myWorkspaceUserId = profile?.workspaceUserId ?? null;
 
   const { data: pages } = useQuery({
     queryKey: ["conversation-pages", conversationId],
@@ -83,6 +92,8 @@ export function ConversationSettingsDialog({
     });
   };
 
+  const closeOnNavigate = () => onOpenChange(false);
+
   return (
     <TooltipProvider delayDuration={200}>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,10 +119,21 @@ export function ConversationSettingsDialog({
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Created by</h3>
             <div className="rounded-md border bg-muted/30 p-2 text-sm">
-              <div className="min-w-0 break-words px-1 py-1">{createdBy?.label ?? "Unknown"}</div>
+              <div className="min-w-0 break-words px-1 py-1">
+                {createdBy ? (
+                  <UserLink
+                    workspaceId={workspaceId}
+                    workspaceUserId={createdBy.workspaceUserId}
+                    myWorkspaceUserId={myWorkspaceUserId}
+                    label={createdBy.label}
+                    onNavigate={closeOnNavigate}
+                  />
+                ) : (
+                  "Unknown"
+                )}
+              </div>
             </div>
           </div>
-
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -123,7 +145,14 @@ export function ConversationSettingsDialog({
             <ul className="max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-sm">
               {participants.map((p) => (
                 <li key={p.workspaceUserId} className="min-w-0 break-words px-1 py-1">
-                  {p.displayName}
+                  <UserLink
+                    workspaceId={workspaceId}
+                    workspaceUserId={p.workspaceUserId}
+                    myWorkspaceUserId={myWorkspaceUserId}
+                    label={p.displayName}
+                    isMe={p.isMe}
+                    onNavigate={closeOnNavigate}
+                  />
                   {p.isMe && (
                     <span className="ml-1 text-xs text-muted-foreground">(you)</span>
                   )}
@@ -143,13 +172,14 @@ export function ConversationSettingsDialog({
               {(pages ?? []).length === 0 ? (
                 <li className="px-1 py-1 text-muted-foreground">No pages yet.</li>
               ) : (
-                (pages ?? []).map((p) => (
-                  <li key={p.id} className="min-w-0">
+                (pages ?? []).map((page) => (
+                  <li key={page.id} className="min-w-0 break-words px-1 py-1">
                     <button
-                      onClick={() => handleOpenPage(p.id)}
-                      className="block w-full whitespace-normal break-words rounded px-1 py-1 text-left hover:bg-accent"
+                      type="button"
+                      className="cursor-pointer text-left hover:underline"
+                      onClick={() => handleOpenPage(page.id)}
                     >
-                      {p.title || "Untitled"}
+                      {page.title || "Untitled"}
                     </button>
                   </li>
                 ))

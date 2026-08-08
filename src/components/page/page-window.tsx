@@ -48,6 +48,10 @@ import {
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
 import { SharePageDialog } from "@/components/page/share-page-dialog";
 import { DuplicatePageDialog } from "@/components/page/duplicate-page-dialog";
+import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
+import { getMyWorkspaceProfile } from "@/lib/profile.functions";
+import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
+import { UserNavigationContext } from "@/lib/user-navigation-context";
 
 function buildMentionSuggestion(
   char: string,
@@ -137,6 +141,21 @@ export function PageWindow({
     queryKey: ["page", pageId],
     queryFn: () => fetchPage({ data: { pageId } }),
   });
+
+  const fetchProfile = useServerFn(getMyWorkspaceProfile);
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile", workspaceId],
+    queryFn: () => fetchProfile({ data: { workspaceId } }),
+  });
+  const myWorkspaceUserId = profile?.workspaceUserId ?? null;
+  const { navigateToUser } = useNavigateToUserConversation(
+    workspaceId,
+    myWorkspaceUserId,
+  );
+  const navigateToUserRef = useRef(navigateToUser);
+  navigateToUserRef.current = navigateToUser;
+  const myWorkspaceUserIdRef = useRef(myWorkspaceUserId);
+  myWorkspaceUserIdRef.current = myWorkspaceUserId;
 
   const { data: backlinks } = useQuery({
     queryKey: ["page-backlinks", pageId, workspaceId],
@@ -284,25 +303,14 @@ export function PageWindow({
         class:
           "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[60vh]",
       },
-      handleClickOn: (_view, _pos, node) => {
-        if (node.type.name === "pageMention" && node.attrs.id) {
-          navigate({
-            to: "/w/$workspaceId",
-            params: { workspaceId },
-            search: (prev: any) => ({ ...prev, p: node.attrs.id }),
-          });
-          return true;
-        }
-        if (node.type.name === "conversationMention" && node.attrs.id) {
-          navigate({
-            to: "/w/$workspaceId",
-            params: { workspaceId },
-            search: (prev: any) => ({ ...prev, c: node.attrs.id }),
-          });
-          return true;
-        }
-        return false;
-      },
+      handleClickOn: createMentionClickHandler({
+        navigate,
+        workspaceId,
+        getMyWorkspaceUserId: () => myWorkspaceUserIdRef.current,
+        navigateToUser: (id) => {
+          void navigateToUserRef.current(id);
+        },
+      }),
     },
     onUpdate: ({ editor: ed }) => {
       if (isHydratingRef.current) return;
@@ -670,6 +678,9 @@ export function PageWindow({
   const visibility = data?.visibility ?? "private";
 
   return (
+    <UserNavigationContext.Provider
+      value={{ workspaceId, myWorkspaceUserId }}
+    >
     <div className="flex h-full flex-col">
       {/* Thin top header */}
       <div className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-3">
@@ -831,11 +842,14 @@ export function PageWindow({
       <PageSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        workspaceId={workspaceId}
+        myWorkspaceUserId={myWorkspaceUserId}
         pageId={pageId}
         title={title}
         onTitleChange={handleTitleChange}
         onTitleCommit={handleTitleBlur}
         ownerDisplayName={data?.ownerDisplayName ?? null}
+        ownerWorkspaceUserId={data?.ownerWorkspaceUserId ?? null}
         visibility={visibility}
         isOwner={data?.isOwner ?? false}
         collaborators={data?.collaborators ?? []}
@@ -868,5 +882,6 @@ export function PageWindow({
         currentTitle={title || "Untitled"}
       />
     </div>
+    </UserNavigationContext.Provider>
   );
 }

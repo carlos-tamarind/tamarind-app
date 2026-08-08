@@ -234,6 +234,24 @@
   color: #000 !important;
   background-color: color-mix(in oklab, var(--muted) 70%, transparent);
 }
+.mention-member-self {
+  cursor: default;
+}
+.ProseMirror a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  cursor: pointer;
+}
+.prose a.message-link,
+.prose a[href] {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.prose-invert a[href] {
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.9;
+}
 .mention-icon {
   width: 1em;
   height: 1em;
@@ -281,6 +299,21 @@
   letter-spacing: 0.04em;
   color: var(--muted-foreground);
   margin-bottom: 2px;
+}
+.msg-quote:has(.msg-quote-header)::before {
+  display: none;
+}
+.msg-quote-header {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  margin-bottom: 2px;
+  cursor: default;
+}
+.msg-quote-header[data-author-id]:not([data-author-id=""]):not(.msg-quote-header-self) {
+  cursor: pointer;
 }
 /* Hide the pseudo-header inside the composer since the React NodeView
    renders its own header. */
