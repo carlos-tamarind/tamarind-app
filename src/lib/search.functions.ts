@@ -63,16 +63,14 @@ export const executeSearch = createServerFn({ method: "POST" })
     });
 
     if (!searchRequest) {
-      return { keywordResults: [], semanticResults: [] };
+      return { keywordResults: [], semanticResults: [], mergedResults: [] };
     }
 
-    const { keywordResults, semanticResults } = await searchOrchestrator.search(
-      context.supabase,
-      searchRequest,
-      {
+    const { keywordResults, semanticResults, mergedResults } =
+      await searchOrchestrator.search(context.supabase, searchRequest, {
         enableKeywordSearch: data.enableKeywordSearch,
         enableSemanticSearch: data.enableSemanticSearch,
-      },
-    );
-    return { keywordResults, semanticResults };
+      });
+    return { keywordResults, semanticResults, mergedResults };
   });
+
