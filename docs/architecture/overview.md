@@ -17,6 +17,7 @@ flowchart TB
     Start["src/start.ts"]
     Routes["src/routes/"]
     ServerFns["src/lib/*.functions.ts"]
+    Search["src/search/"]
     Semantic["src/semantic/"]
   end
 
@@ -36,6 +37,8 @@ flowchart TB
   Realtime --> PG
   ServerFns --> Semantic
   Semantic --> PG
+  ServerFns --> Search
+  Search --> PG
   Server --> Start
   Routes --> ServerFns
 ```
@@ -97,6 +100,7 @@ Business logic lives in [`src/lib/*.functions.ts`](../../src/lib/) using TanStac
 | `workspaces.functions.ts` | Workspace listing, bootstrap, feature gating |
 | `conversations.functions.ts` | Conversations, messages, participants, page-from-messages |
 | `pages.functions.ts` | Page CRUD, sharing, visibility, backlinks, duplication |
+| `search.functions.ts` | Hybrid workspace search (`executeSearch`) |
 | `invites.functions.ts` | Invite lifecycle |
 | `profile.functions.ts` | Display name, workspace profile |
 
@@ -148,4 +152,5 @@ Two background mechanisms exist:
 - [Auth](auth.md) — Authentication and authorization
 - [Realtime](realtime.md) — Live updates
 - [Semantic Pipeline](../semantic/readme.md) — Message processing
+- [Search & Retrieval](../search/readme.md) — Hybrid workspace search
 - [Deployment](../deployment.md) — Environment and hosting

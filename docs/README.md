@@ -1,6 +1,6 @@
 # Tamarind Documentation
 
-Tamarind is an institutional knowledge and collaboration SaaS. Teams capture knowledge in conversations, distill it into rich-text pages, and process messages through a semantic pipeline that normalizes, scores, and embeds high-value content for future search.
+Tamarind is an institutional knowledge and collaboration SaaS. Teams capture knowledge in conversations, distill it into rich-text pages, and search across workspace content using hybrid keyword and semantic retrieval.
 
 This documentation describes the **current architecture** of the codebase. It does not speculate about unimplemented features unless explicitly noted as schema-ready.
 
@@ -31,6 +31,18 @@ Message normalization, scoring, and embedding subsystem.
 
 Developer entry point for the module: [`src/semantic/README.md`](../src/semantic/README.md)
 
+### Search & Retrieval
+
+Hybrid keyword and semantic search over workspace pages, conversations, messages, and people.
+
+| Document | Description |
+|----------|-------------|
+| [Overview](search/readme.md) | Subsystem purpose, architecture, and strategy summary |
+| [Pipeline](search/pipeline.md) | End-to-end query flow from UI to merged results |
+| [Keyword Search](search/keyword.md) | Trigram-based keyword strategy and RPCs |
+| [Semantic Search](search/semantic.md) | Vector similarity over message embeddings |
+| [User Search](search/user_search.md) | How users open search, filter, and act on results |
+
 ### Interface
 
 User-facing UI, routing, and feature areas.
@@ -57,8 +69,9 @@ User-facing UI, routing, and feature areas.
 ```
 src/
 ├── routes/           # File-based TanStack Router pages and API handlers
-├── components/       # UI feature components (conversation, page, editor, ui)
+├── components/       # UI feature components (conversation, page, editor, search, ui)
 ├── lib/              # Server functions (*.functions.ts), auth, features
+├── search/           # Search orchestration, strategies, request building
 ├── semantic/         # Message normalization, scoring, embedding pipeline
 ├── integrations/     # Supabase and Lovable OAuth clients
 └── server.ts         # Cloudflare Worker entry point

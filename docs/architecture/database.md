@@ -107,14 +107,19 @@ erDiagram
 
 ## Key Indexes
 
-| Index | Table | Type |
-|-------|-------|------|
-| `idx_messages_conversation` | messages | `(conversation_id, created_at)` |
-| `idx_messages_fts` | messages | GIN full-text on `raw_text` |
-| `idx_pages_plaintext_fts` | pages | GIN full-text on `plain_text` |
-| `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` |
-| `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` |
-| `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` |
+| Index | Table | Type | Used by |
+|-------|-------|------|---------|
+| `idx_messages_conversation` | messages | `(conversation_id, created_at)` | Conversation message listing |
+| `idx_messages_fts` | messages | GIN full-text on `raw_text` | *(legacy — not used by current search RPCs)* |
+| `idx_pages_plaintext_fts` | pages | GIN full-text on `plain_text` | *(legacy — not used by current search RPCs)* |
+| `idx_pages_title_trgm` | pages | GIN trigram on `title` | Keyword search |
+| `idx_pages_content_trgm` | pages | GIN trigram on `plain_text` | Keyword search |
+| `idx_conversations_title_trgm` | conversations | GIN trigram on `title` | Keyword search |
+| `idx_messages_normalized_trgm` | message_semantics | GIN trigram on `normalized_text` | Keyword search |
+| `idx_workspace_users_display_name_trgm` | workspace_users | GIN trigram on `display_name` | Keyword search (people) |
+| `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
+| `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
+| `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
 
 ## Database Functions
 
@@ -128,6 +133,12 @@ erDiagram
 | `tiptap_to_plaintext(doc jsonb)` | Generated column helper for pages.plain_text |
 | `set_last_modified_at()` | Trigger: auto-update last_modified_at |
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
+| `search_pages_keyword(...)` | Keyword search over page titles and content |
+| `search_conversations_keyword(...)` | Keyword search over conversation titles |
+| `search_messages_keyword(...)` | Keyword search over normalized message text |
+| `search_people_keyword(...)` | Keyword search over participant display names |
+| `search_messages_semantic(...)` | Semantic search over message embedding vectors |
+| `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
 ## Row-Level Security
 
@@ -162,3 +173,4 @@ Write patterns:
 - [Overview](overview.md) — How the app accesses the database
 - [Auth](auth.md) — RLS and permission model
 - [Semantic Pipeline](../semantic/pipeline.md) — message_semantics and message_embeddings usage
+- [Search & Retrieval](../search/readme.md) — Keyword and semantic search RPCs

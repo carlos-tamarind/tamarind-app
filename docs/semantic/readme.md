@@ -21,7 +21,7 @@ Not every chat message contains institutional knowledge. The pipeline:
 2. **Normalizes** remaining text into clean, searchable plain text
 3. **Scores** normalized messages against heuristics to estimate knowledge value
 4. **Persists** eligible messages with a quality score
-5. **Embeds** high-scoring messages as 1536-dimensional vectors for semantic search
+5. **Embeds** high-scoring messages as 1536-dimensional vectors consumed by [semantic search](../search/semantic.md)
 
 ## Architecture
 
@@ -82,5 +82,6 @@ See [Database Schema](../architecture/database.md) for full table definitions.
 
 ## Related Docs
 
+- [Search & Retrieval](../search/readme.md) — Query-time hybrid search over embeddings
 - [Cron & Background Jobs](../cron/readme.md) — Scheduling details
 - [API Routes](../api/readme.md) — HTTP endpoints

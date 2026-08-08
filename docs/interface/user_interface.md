@@ -38,6 +38,17 @@ Resizable panel with two tabs:
 
 Each item navigates by updating search params on the workspace route.
 
+### Search
+
+The nav panel provides a **Search** button (header icon when expanded, rail button when folded) that opens a modal overlay. Users type a query, optionally filter by scope (All, Conversations & messages, Pages, Users & conversations), and select from merged keyword + semantic results.
+
+Selecting a result navigates via the same search params as the nav panel:
+
+- Page hit → `?p=<pageId>`
+- Conversation or message hit → `?c=<conversationId>`
+
+See [User Search](../search/user_search.md) for the full interaction model.
+
 ### Main Area
 
 Displays one or both content windows based on URL search params:
@@ -76,6 +87,7 @@ Legacy nested routes redirect to search params:
 | `NewConversationDialog` | [`new-conversation-dialog.tsx`](../../src/components/new-conversation-dialog.tsx) | Create conversation |
 | `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Create page |
 | `ProfileDialog` | [`profile-dialog.tsx`](../../src/components/profile/profile-dialog.tsx) | User profile |
+| `SearchOverlay` | [`search-overlay.tsx`](../../src/components/search/search-overlay.tsx) | Workspace search modal |
 
 ## Responsive Behavior
 
@@ -89,6 +101,7 @@ When no conversation or page is selected, the main area shows a prompt to select
 
 ## Related Docs
 
+- [User Search](../search/user_search.md) — Search overlay and result interaction
 - [Conversations](conversations.md) — Chat UI details
 - [Pages](pages.md) — Page editor details
 - [Workspaces & Permissions](workspaces_permissions.md) — Multi-workspace switching

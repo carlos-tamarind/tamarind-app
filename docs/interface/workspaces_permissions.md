@@ -56,7 +56,7 @@ Feature capabilities are defined in [`src/lib/features.ts`](../../src/lib/featur
 - **Server:** `requireFeature(workspaceId, featureKey)` throws `FeatureGateError` (HTTP 402)
 - **Client:** `hasFeature(plan, featureKey)` hides or disables UI actions (UX only)
 
-> **Note:** Only `invites.create` is actively gated in server code today. Other feature keys are infrastructure for future enforcement. Search and AI features are defined but not yet wired to UI.
+> **Note:** Only `invites.create` is actively gated in server code today. Other feature keys are infrastructure for future enforcement. Search UI and server functions are live, but `search.fulltext` and `search.semantic` are not yet enforced on the `executeSearch` path.
 
 ## Workspace Settings
 
@@ -88,5 +88,6 @@ Collaborators are tracked in `page_collaborators` when they edit a page.
 ## Related Docs
 
 - [Auth](../architecture/auth.md) — RLS and token flow
+- [User Search](../search/user_search.md) — Search overlay in the workspace UI
 - [User Onboarding](user_onboarding.md) — How users join workspaces
 - [Database](../architecture/database.md) — Schema details
