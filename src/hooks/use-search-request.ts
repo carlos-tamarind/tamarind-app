@@ -112,10 +112,10 @@ export function useSearchRequest({
   ]);
 
   const searchNow = useCallback(() => {
-    if (!open) return;
+    if (!open || !query.trim()) return;
     clearDebounce();
     void executeSearch();
-  }, [open, clearDebounce, executeSearch]);
+  }, [open, query, clearDebounce, executeSearch]);
 
   useEffect(() => {
     if (!open) {
@@ -127,6 +127,11 @@ export function useSearchRequest({
 
     // Nothing changed since the last search — keep showing previous results.
     if (lastSignatureRef.current === signature) return;
+
+    if (!query.trim()) {
+      clearDebounce();
+      return;
+    }
 
     clearDebounce();
     debounceTimerRef.current = window.setTimeout(() => {
