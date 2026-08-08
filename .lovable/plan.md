@@ -18,6 +18,7 @@ Scope: strategy timeout, result merging/ranking, and a redesigned results UI in 
 
 - The dialog is sized to its content: search input, filter chips, dev toggles, plus a small amount of breathing room. No fixed 35vh block.
 - When results arrive the dialog grows smoothly (animated height transition) up to a max of roughly 130% of the current default height, after which the results area scrolls. No pagination.
+- The overlay does not expand for the empty state or the error state; those messages render inside the compact default height.
 - The existing spinner ("Searching…") is kept as-is.
 - The current JSON debug results sections are removed entirely.
 
