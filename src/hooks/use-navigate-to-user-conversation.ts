@@ -34,8 +34,12 @@ export function useNavigateToUserConversation(
           queryKey: ["conversations-list", workspaceId],
         });
         navigate({
-          to: "/w/$workspaceId/c/$conversationId",
-          params: { workspaceId, conversationId },
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev: Record<string, unknown>) => ({
+            ...prev,
+            c: conversationId,
+          }),
         });
       } catch (e) {
         console.error(e);
