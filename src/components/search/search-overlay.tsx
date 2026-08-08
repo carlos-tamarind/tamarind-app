@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { FileText, Loader2, MessageSquareMore, SlidersHorizontal, User } from "lucide-react";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSearchRequest } from "@/hooks/use-search-request";
 import type { SearchResult, SearchScope } from "@/search/types";
+
+const IS_DEV = import.meta.env.DEV;
 
 const FILTERS: {
   value: SearchScope;
@@ -22,33 +25,47 @@ const STRATEGY_TOGGLES = [
   { key: "semantic" as const, label: "Semantic search" },
 ];
 
-function StrategyResultsSection({
-  title,
-  results,
+const STRATEGY_LABELS: Record<"keyword" | "semantic", string> = {
+  keyword: "Keyword match",
+  semantic: "Semantic match",
+};
+
+function resultIcon(assetType: SearchResult["assetType"]) {
+  return assetType === "page" ? FileText : MessageSquareMore;
+}
+
+function ResultRow({
+  result,
+  onSelect,
 }: {
-  title: string;
-  results: SearchResult[];
+  result: SearchResult;
+  onSelect: (result: SearchResult) => void;
 }) {
+  const Icon = resultIcon(result.assetType);
+  const title =
+    result.title ?? (result.assetType === "message" ? "Message" : "Untitled");
+
   return (
-    <section className="space-y-2">
-      <h3 className="text-xs font-medium text-muted-foreground">
-        {title} ({results.length})
-      </h3>
-      {results.length === 0 ? (
-        <p className="text-xs text-muted-foreground/70">No results</p>
-      ) : (
-        <ul className="space-y-2">
-          {results.map((result) => (
-            <li
-              key={`${result.assetType}-${result.assetId}`}
-              className="rounded border border-border p-2 font-mono text-xs"
-            >
-              <pre className="whitespace-pre-wrap break-all">{JSON.stringify(result, null, 2)}</pre>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <button
+      type="button"
+      onClick={() => onSelect(result)}
+      className="flex w-full flex-col items-start gap-0.5 px-6 py-3 text-left transition-colors hover:bg-accent"
+    >
+      <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+        <Icon className="size-4 shrink-0" strokeWidth={1.5} />
+        <span className="truncate">{title}</span>
+      </span>
+      {result.matchedField === "content" && result.snippet ? (
+        <span className="line-clamp-2 text-xs italic text-muted-foreground">
+          {result.snippet}
+        </span>
+      ) : null}
+      {IS_DEV && result.strategy ? (
+        <span className="text-[11px] font-light text-muted-foreground/70">
+          {STRATEGY_LABELS[result.strategy]} · {result.score.toFixed(3)}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -61,6 +78,7 @@ export function SearchOverlay({
   onOpenChange: (open: boolean) => void;
   workspaceId: string;
 }) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
   const [showFilters, setShowFilters] = useState(true);
@@ -68,28 +86,22 @@ export function SearchOverlay({
   const [enableSemanticSearch, setEnableSemanticSearch] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { isLoading, searchNow, keywordResults, semanticResults } = useSearchRequest({
+  const { isLoading, searchNow, results, hasSearched, hasError } = useSearchRequest({
     workspaceId,
     open,
     query,
     scope,
-    enableKeywordSearch,
-    enableSemanticSearch,
+    enableKeywordSearch: IS_DEV ? enableKeywordSearch : true,
+    enableSemanticSearch: IS_DEV ? enableSemanticSearch : true,
   });
 
   useEffect(() => {
     if (!open) return;
-    const id = window.setTimeout(() => inputRef.current?.focus(), 30);
+    const id = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 30);
     return () => window.clearTimeout(id);
-  }, [open]);
-
-  useEffect(() => {
-    if (open) return;
-    setQuery("");
-    setScope("all");
-    setShowFilters(true);
-    setEnableKeywordSearch(true);
-    setEnableSemanticSearch(true);
   }, [open]);
 
   const chipClass = (active: boolean) =>
@@ -99,12 +111,34 @@ export function SearchOverlay({
         : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
+  const handleSelect = (result: SearchResult) => {
+    onOpenChange(false);
+    if (result.assetType === "page") {
+      const pageId = result.pageId ?? result.assetId;
+      void navigate({
+        to: "/w/$workspaceId",
+        params: { workspaceId },
+        search: (prev: Record<string, unknown>) => ({ ...prev, p: pageId }),
+      });
+      return;
+    }
+    const conversationId = result.conversationId ?? result.assetId;
+    void navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev: Record<string, unknown>) => ({ ...prev, c: conversationId }),
+    });
+  };
+
+  const hasResults = results.length > 0;
+  const showEmpty = hasSearched && !hasError && !isLoading && !hasResults;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[35vh] min-h-[380px] w-[55vw] max-w-[900px] flex-col gap-0 p-0">
+      <DialogContent className="flex w-[55vw] max-w-[900px] flex-col gap-0 p-0">
         <DialogTitle className="sr-only">Search</DialogTitle>
 
-        <div className="flex h-1/5 min-h-[72px] shrink-0 items-center gap-3 px-6 pr-14">
+        <div className="flex min-h-[68px] shrink-0 items-center gap-3 px-6 pr-14">
           <input
             ref={inputRef}
             value={query}
@@ -153,38 +187,56 @@ export function SearchOverlay({
               })}
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pb-3">
-              {STRATEGY_TOGGLES.map(({ key, label }) => {
-                const active = key === "keyword" ? enableKeywordSearch : enableSemanticSearch;
-                const setActive =
-                  key === "keyword" ? setEnableKeywordSearch : setEnableSemanticSearch;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setActive((v) => !v)}
-                    aria-pressed={active}
-                    className={chipClass(active)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            {IS_DEV ? (
+              <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pb-2">
+                {STRATEGY_TOGGLES.map(({ key, label }) => {
+                  const active = key === "keyword" ? enableKeywordSearch : enableSemanticSearch;
+                  const setActive =
+                    key === "keyword" ? setEnableKeywordSearch : setEnableSemanticSearch;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setActive((v) => !v)}
+                      aria-pressed={active}
+                      className={chipClass(active)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+        <div className="shrink-0 px-6 pb-4 pt-1 text-sm text-muted-foreground">
           {isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="flex items-center gap-2">
               <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />
               Searching…
-            </div>
-          ) : (
-            <div className="space-y-6 pt-2">
-              <StrategyResultsSection title="Keyword results" results={keywordResults} />
-              <StrategyResultsSection title="Semantic results" results={semanticResults} />
-            </div>
-          )}
+            </span>
+          ) : hasError ? (
+            <span>Something went wrong. Try again.</span>
+          ) : showEmpty ? (
+            <span>No results. Try a different search or remove a filter.</span>
+          ) : hasResults ? (
+            <span>
+              {results.length} result{results.length === 1 ? "" : "s"}
+            </span>
+          ) : null}
+        </div>
+
+        <div
+          className="overflow-y-auto transition-[max-height] duration-300 ease-out"
+          style={{ maxHeight: hasResults && !isLoading && !hasError ? "45vh" : "0px" }}
+        >
+          <ul className="divide-y divide-border border-t border-border">
+            {results.map((result) => (
+              <li key={`${result.assetType}-${result.assetId}`}>
+                <ResultRow result={result} onSelect={handleSelect} />
+              </li>
+            ))}
+          </ul>
         </div>
       </DialogContent>
     </Dialog>
