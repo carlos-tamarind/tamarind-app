@@ -29,7 +29,7 @@ Scope: strategy timeout, result merging/ranking, and a redesigned results UI in 
 - Row structure:
   - Bold line: asset icon (same icons as the filter chips) + title.
   - Italic line: snippet, shown only when the matched field is content.
-  - Dev only, small thin text: strategy label ("Keyword match" / "Semantic match") + " · " + score.
+  - Dev only, small thin text: a dynamic strategy label driven by the strategy tag on that specific result — "Keyword match" for keyword-sourced results, "Semantic match" for semantic-sourced ones (for deduped results, the strategy of the higher-scoring entry) — followed by " · " and the score.
 - Clicking a row navigates to the asset and closes the overlay:
   - page → `/w/$workspaceId?p=<pageId>`
   - conversation → `/w/$workspaceId?c=<conversationId>`
