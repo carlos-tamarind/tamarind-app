@@ -34,9 +34,19 @@ export function useSearchRequest({
   const executeSearchServer = useServerFn(executeSearchFn);
   const requestIdRef = useRef(0);
   const debounceTimerRef = useRef<number | null>(null);
+  const lastSignatureRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [keywordResults, setKeywordResults] = useState<SearchResult[]>([]);
-  const [semanticResults, setSemanticResults] = useState<SearchResult[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [results, setResults] = useState<SearchResult[]>([]);
+
+  const signature = JSON.stringify({
+    workspaceId,
+    query,
+    scope,
+    enableKeywordSearch,
+    enableSemanticSearch,
+  });
 
   const clearDebounce = useCallback(() => {
     if (debounceTimerRef.current !== null) {
@@ -47,17 +57,19 @@ export function useSearchRequest({
 
   const executeSearch = useCallback(async () => {
     const id = ++requestIdRef.current;
+    lastSignatureRef.current = signature;
     setIsLoading(true);
+    setHasError(false);
 
     if (!enableKeywordSearch && !enableSemanticSearch) {
-      setKeywordResults([]);
-      setSemanticResults([]);
+      setResults([]);
+      setHasSearched(true);
       setIsLoading(false);
       return;
     }
 
     try {
-      const { keywordResults, semanticResults } = await executeSearchServer({
+      const { keywordResults, semanticResults, mergedResults } = await executeSearchServer({
         data: {
           workspaceId,
           query,
@@ -69,8 +81,8 @@ export function useSearchRequest({
 
       if (id !== requestIdRef.current) return;
 
-      setKeywordResults(keywordResults);
-      setSemanticResults(semanticResults);
+      setResults(mergedResults);
+      setHasSearched(true);
 
       if (enableKeywordSearch) {
         logStrategyResults("keyword", keywordResults);
@@ -79,7 +91,11 @@ export function useSearchRequest({
         logStrategyResults("semantic", semanticResults);
       }
     } catch {
-      // No UI feedback for errors yet.
+      if (id === requestIdRef.current) {
+        setResults([]);
+        setHasSearched(true);
+        setHasError(true);
+      }
     } finally {
       if (id === requestIdRef.current) {
         setIsLoading(false);
@@ -89,6 +105,7 @@ export function useSearchRequest({
     workspaceId,
     query,
     scope,
+    signature,
     enableKeywordSearch,
     enableSemanticSearch,
     executeSearchServer,
@@ -108,6 +125,9 @@ export function useSearchRequest({
       return;
     }
 
+    // Nothing changed since the last search — keep showing previous results.
+    if (lastSignatureRef.current === signature) return;
+
     clearDebounce();
     debounceTimerRef.current = window.setTimeout(() => {
       debounceTimerRef.current = null;
@@ -115,15 +135,7 @@ export function useSearchRequest({
     }, DEBOUNCE_MS);
 
     return clearDebounce;
-  }, [
-    open,
-    query,
-    scope,
-    enableKeywordSearch,
-    enableSemanticSearch,
-    clearDebounce,
-    executeSearch,
-  ]);
+  }, [open, signature, clearDebounce, executeSearch]);
 
-  return { isLoading, searchNow, keywordResults, semanticResults };
+  return { isLoading, searchNow, results, hasSearched, hasError };
 }
