@@ -5,7 +5,7 @@ import { DebugLogger } from "@/lib/debugLogger";
 import { executeSearch as executeSearchFn } from "@/lib/search.functions";
 import type { SearchResult, SearchScope } from "@/search/types";
 
-const DEBOUNCE_MS = 1000;
+const DEBOUNCE_MS = 1500;
 
 function logStrategyResults(strategy: "keyword" | "semantic", results: SearchResult[]) {
   DebugLogger.table({
