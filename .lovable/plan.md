@@ -18,6 +18,7 @@ Scope: strategy timeout, result merging/ranking, and a redesigned results UI in 
 
 - The dialog is sized to its content: search input, filter chips, dev toggles, plus a small amount of breathing room. No fixed 35vh block.
 - When results arrive the dialog grows smoothly (animated height transition) up to a max of roughly 130% of the current default height, after which the results area scrolls. No pagination.
+- The overlay does not expand for the empty state or the error state; those messages render inside the compact default height.
 - The existing spinner ("Searching…") is kept as-is.
 - The current JSON debug results sections are removed entirely.
 
@@ -28,7 +29,7 @@ Scope: strategy timeout, result merging/ranking, and a redesigned results UI in 
 - Row structure:
   - Bold line: asset icon (same icons as the filter chips) + title.
   - Italic line: snippet, shown only when the matched field is content.
-  - Dev only, small thin text: strategy label ("Keyword match" / "Semantic match") + " · " + score.
+  - Dev only, small thin text: a dynamic strategy label driven by the strategy tag on that specific result — "Keyword match" for keyword-sourced results, "Semantic match" for semantic-sourced ones (for deduped results, the strategy of the higher-scoring entry) — followed by " · " and the score.
 - Clicking a row navigates to the asset and closes the overlay:
   - page → `/w/$workspaceId?p=<pageId>`
   - conversation → `/w/$workspaceId?c=<conversationId>`
