@@ -16,6 +16,8 @@ export type SearchRequest = {
   limit: 20;
 };
 
+export type SearchStrategyKind = "keyword" | "semantic";
+
 export type SearchResult = {
   assetType: "page" | "conversation" | "message";
   assetId: string;
@@ -25,12 +27,15 @@ export type SearchResult = {
   matchedField: SearchMatchedField;
   conversationId?: string;
   pageId?: string;
+  strategy?: SearchStrategyKind;
 };
 
 export type SearchOrchestratorResponse = {
   keywordResults: SearchResult[];
   semanticResults: SearchResult[];
+  mergedResults: SearchResult[];
 };
+
 
 export type SearchSupabaseClient = SupabaseClient<Database>;
 
