@@ -126,7 +126,7 @@ Additional assertions in business logic:
 
 `requireFeature(workspaceId, featureKey)` in [`src/lib/workspaces.functions.ts`](../../src/lib/workspaces.functions.ts) throws `FeatureGateError` (HTTP 402) when the workspace plan does not grant the feature.
 
-> **Note:** Only `invites.create` is actively gated in server code today. Other feature keys are infrastructure for future UI enforcement. Client-side gating via `hasFeature()` is UX-only; server checks are authoritative.
+> **Note:** Only `invites.create` is actively gated in server code today. Other feature keys are infrastructure for future UI enforcement. Client-side gating via `hasFeature()` is UX-only; server checks are authoritative. Search is available in the UI, but `search.fulltext` and `search.semantic` are not yet enforced on the `executeSearch` server path.
 
 ## Service Role Usage
 

@@ -27,14 +27,17 @@ src/
 │   ├── conversation/          # Chat feature (window, settings, participants)
 │   ├── page/                  # Page feature (editor, share, duplicate, settings)
 │   ├── editor/                # Shared TipTap extensions (mentions, slash commands)
+│   ├── search/                # Search overlay modal
 │   ├── profile/               # Profile dialog
 │   ├── new-conversation-dialog.tsx
 │   └── version-badge.tsx
 ├── hooks/
-│   └── use-mobile.tsx
+│   ├── use-mobile.tsx
+│   └── use-search-request.ts  # Debounced search hook
 └── lib/
     ├── auth-context.tsx
     ├── *.functions.ts         # Server functions (backend RPC)
+    ├── search.functions.ts    # executeSearch server function
     ├── features.ts            # Plan-based feature gating
     └── utils.ts
 ```
@@ -80,6 +83,7 @@ All other data flows through server functions.
 
 ## Related Docs
 
+- [Search & Retrieval](../search/readme.md) — Hybrid search overlay and pipeline
 - [Architecture Overview](../architecture/overview.md) — Server-side patterns
 - [Auth](../architecture/auth.md) — Authentication flow
 - [Realtime](../architecture/realtime.md) — Live subscriptions
