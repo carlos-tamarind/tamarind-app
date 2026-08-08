@@ -6,45 +6,63 @@ import {
 } from "@tiptap/react";
 import { CircleX } from "lucide-react";
 
+import { UserLink } from "@/components/user-link";
+import { useUserNavigation } from "@/lib/user-navigation-context";
+
 export interface QuoteBlockAttrs {
   quoteId: string | null;
   author: string | null;
+  authorId: string | null;
   createdAt: string | null;
 }
 
-function formatHeader(author: string | null, createdAt: string | null) {
-  const parts: string[] = [];
-  if (author) parts.push(author);
-  if (createdAt) {
-    const d = new Date(createdAt);
-    if (!Number.isNaN(d.getTime())) {
-      const pad = (n: number) => String(n).padStart(2, "0");
-      parts.push(
-        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
-      );
-    }
-  }
-  return parts.join(" · ");
+function formatTimestamp(createdAt: string | null) {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function QuoteBlockView(props: any) {
   const { node, deleteNode, editor } = props;
-  const header = formatHeader(node.attrs.author, node.attrs.createdAt);
+  const nav = useUserNavigation();
+  const timestamp = formatTimestamp(node.attrs.createdAt);
   const editable = editor?.isEditable ?? false;
+
   return (
     <NodeViewWrapper
       as="div"
       className="msg-quote group relative my-1 rounded-md border bg-muted/50 px-3 py-2"
       data-quote-id={node.attrs.quoteId ?? undefined}
       data-author={node.attrs.author ?? undefined}
+      data-author-id={node.attrs.authorId ?? undefined}
       data-created-at={node.attrs.createdAt ?? undefined}
     >
-      {header ? (
+      {node.attrs.author || timestamp ? (
         <div
-          className="mb-1 select-none text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+          className="msg-quote-header mb-1 select-none text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
           contentEditable={false}
+          data-author={node.attrs.author ?? undefined}
+          data-author-id={node.attrs.authorId ?? undefined}
         >
-          {header}
+          {nav && node.attrs.authorId ? (
+            <>
+              <UserLink
+                workspaceId={nav.workspaceId}
+                workspaceUserId={node.attrs.authorId}
+                myWorkspaceUserId={nav.myWorkspaceUserId}
+                label={node.attrs.author ?? "Archived user"}
+                className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+              />
+              {timestamp ? ` · ${timestamp}` : null}
+            </>
+          ) : (
+            <>
+              {node.attrs.author}
+              {timestamp ? ` · ${timestamp}` : null}
+            </>
+          )}
         </div>
       ) : null}
       {editable ? (
@@ -87,6 +105,18 @@ export const QuoteBlock = Node.create({
         parseHTML: (el) => (el as HTMLElement).getAttribute("data-author"),
         renderHTML: (attrs) =>
           attrs.author ? { "data-author": attrs.author } : {},
+      },
+      authorId: {
+        default: null,
+        parseHTML: (el) => {
+          const root = el as HTMLElement;
+          return (
+            root.getAttribute("data-author-id") ??
+            root.querySelector(".msg-quote-header")?.getAttribute("data-author-id")
+          );
+        },
+        renderHTML: (attrs) =>
+          attrs.authorId ? { "data-author-id": attrs.authorId } : {},
       },
       createdAt: {
         default: null,

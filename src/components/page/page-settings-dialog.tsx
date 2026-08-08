@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserLink } from "@/components/user-link";
 
 type Collaborator = {
   workspaceUserId: string;
@@ -21,11 +22,14 @@ export type PageVisibility = "private" | "workspace" | "conversation" | "externa
 export function PageSettingsDialog({
   open,
   onOpenChange,
+  workspaceId,
+  myWorkspaceUserId,
   pageId,
   title,
   onTitleChange,
   onTitleCommit,
   ownerDisplayName,
+  ownerWorkspaceUserId,
   visibility,
   collaborators,
   onPublish,
@@ -34,11 +38,14 @@ export function PageSettingsDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string;
+  myWorkspaceUserId: string | null;
   pageId: string;
   title: string;
   onTitleChange: (value: string) => void;
   onTitleCommit: () => void;
   ownerDisplayName: string | null;
+  ownerWorkspaceUserId: string | null;
   visibility: PageVisibility;
   isOwner?: boolean;
   collaborators: Collaborator[];
@@ -64,6 +71,7 @@ export function PageSettingsDialog({
   const showCollaborators = visibility === "conversation" || visibility === "external";
   const showPublish = visibility === "private";
   const showShare = visibility !== "workspace";
+  const closeOnNavigate = () => onOpenChange(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,7 +106,19 @@ export function PageSettingsDialog({
             <div className="text-xs font-semibold text-muted-foreground">
               Owner
             </div>
-            <div className="text-sm break-words">{ownerDisplayName ?? "—"}</div>
+            <div className="text-sm break-words">
+              {ownerDisplayName && ownerWorkspaceUserId ? (
+                <UserLink
+                  workspaceId={workspaceId}
+                  workspaceUserId={ownerWorkspaceUserId}
+                  myWorkspaceUserId={myWorkspaceUserId}
+                  label={ownerDisplayName}
+                  onNavigate={closeOnNavigate}
+                />
+              ) : (
+                (ownerDisplayName ?? "—")
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -123,7 +143,13 @@ export function PageSettingsDialog({
                 ) : (
                   collaborators.map((c) => (
                     <li key={c.workspaceUserId} className="min-w-0 break-words px-1 py-1">
-                      {c.displayName}
+                      <UserLink
+                        workspaceId={workspaceId}
+                        workspaceUserId={c.workspaceUserId}
+                        myWorkspaceUserId={myWorkspaceUserId}
+                        label={c.displayName}
+                        onNavigate={closeOnNavigate}
+                      />
                     </li>
                   ))
                 )}
@@ -140,7 +166,7 @@ export function PageSettingsDialog({
           )}
           {showShare && (
             <Button variant="secondary" className="flex-1" onClick={onShare}>
-              <MessageSquareLock className="size-3.5" /> Share
+              Share
             </Button>
           )}
           <Button variant="secondary" className="flex-1" onClick={onDuplicate}>
