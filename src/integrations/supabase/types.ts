@@ -53,10 +53,64 @@ export type Database = {
           },
         ]
       }
+      conversation_topics: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          description: string | null
+          embedding: string | null
+          evidence_count: number
+          first_seen_at: string
+          historical_weight: number
+          id: string
+          is_candidate: boolean
+          last_seen_at: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          description?: string | null
+          embedding?: string | null
+          evidence_count?: number
+          first_seen_at?: string
+          historical_weight?: number
+          id?: string
+          is_candidate?: boolean
+          last_seen_at?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          description?: string | null
+          embedding?: string | null
+          evidence_count?: number
+          first_seen_at?: string
+          historical_weight?: number
+          id?: string
+          is_candidate?: boolean
+          last_seen_at?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_topics_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
           created_by_workspace_user_id: string | null
+          current_topic_id: string | null
           id: string
           image_url: string | null
           last_modified_at: string
@@ -67,6 +121,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_workspace_user_id?: string | null
+          current_topic_id?: string | null
           id?: string
           image_url?: string | null
           last_modified_at?: string
@@ -77,6 +132,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_workspace_user_id?: string | null
+          current_topic_id?: string | null
           id?: string
           image_url?: string | null
           last_modified_at?: string
@@ -90,6 +146,13 @@ export type Database = {
             columns: ["created_by_workspace_user_id"]
             isOneToOne: false
             referencedRelation: "workspace_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_current_topic_id_fkey"
+            columns: ["current_topic_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_topics"
             referencedColumns: ["id"]
           },
           {
