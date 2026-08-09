@@ -15,7 +15,7 @@ export function createMentionClickHandler(options: {
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, p: node.attrs.id }),
+        search: (prev: Record<string, unknown>) => ({ ...prev, p: String(node.attrs.id) }),
       });
       return true;
     }
@@ -23,7 +23,7 @@ export function createMentionClickHandler(options: {
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, c: node.attrs.id }),
+        search: (prev: Record<string, unknown>) => ({ ...prev, c: String(node.attrs.id) }),
       });
       return true;
     }
