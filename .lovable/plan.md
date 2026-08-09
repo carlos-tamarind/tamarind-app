@@ -5,7 +5,7 @@ Analysis of the attached spec, plus the gaps that must be filled for it to work 
 ## What the spec asks for
 
 - New `conversation_topics` table (id, conversation_id, name, description, embedding vector(1536), first_seen_at, last_seen_at, evidence_count, is_candidate, historical_weight, created_at, updated_at).
-- Checks: `evidence_count > 0`, `historical_weight >= 0`.
+- Checks: `evidence_count > 0`, `historical_weight >= 0`, and an established topic (`is_candidate = false`) must have a name.
 - Indexes: `idx_conversation_topics_conversation_id`, `idx_conversation_topics_conversation_candidate`.
 - New nullable `conversations.current_topic_id` FK to `conversation_topics.id`.
 
