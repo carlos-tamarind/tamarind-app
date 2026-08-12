@@ -53,6 +53,45 @@ export type Database = {
           },
         ]
       }
+      conversation_topic_evidences: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          similarity: number
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          similarity: number
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          similarity?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_topic_evidences_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_topic_evidences_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_topics: {
         Row: {
           conversation_id: string
