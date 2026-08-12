@@ -12,7 +12,7 @@ Analysis of the attached spec for the new table linking topics to the messages t
 
 ## Gaps found in the spec (resolved as follows)
 
-1. **Table name is inconsistent.** The description names it `conversation_topic_evidences` (plural) while the index block uses `conversation_topic_evidence` (singular). I'll use the singular `conversation_topic_evidence`, matching the index names given and reading naturally as a mass noun. Say the word if you prefer the plural — index names will follow whichever is chosen.
+1. **Table name is inconsistent.** The description names it `conversation_topic_evidences` (plural) while the index block uses `conversation_topic_evidences` (singular). I'll use the singular `conversation_topic_evidences`, matching the index names given and reading naturally as a mass noun. Say the word if you prefer the plural — index names will follow whichever is chosen.
 2. **No access rules.** As with `conversation_topics`, new tables here get no default access, so without explicit grants and policies the app sees zero rows. I'll grant signed-in users and back-office code, enable row-level security, and scope access to participants of the conversation the topic belongs to — reusing the existing participant check, resolved through the topic's parent conversation.
 3. **No workspace column.** Not needed: access is derived through the topic, and the topic is already tied to a conversation.
 4. **No `updated_at`.** Correct as-is — evidence rows are immutable facts, so only `created_at` is kept and no update trigger is added.
@@ -22,7 +22,7 @@ Analysis of the attached spec for the new table linking topics to the messages t
 ## Migration outline
 
 ```text
-1. CREATE TABLE public.conversation_topic_evidence
+1. CREATE TABLE public.conversation_topic_evidences
      id            uuid PK default gen_random_uuid()
      topic_id      uuid NOT NULL -> conversation_topics(id) ON DELETE CASCADE
      message_id    uuid NOT NULL -> messages(id) ON DELETE CASCADE
