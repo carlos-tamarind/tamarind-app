@@ -12,7 +12,7 @@ Analysis of the attached spec for the new table linking topics to the messages t
 
 ## Gaps found in the spec (resolved as follows)
 
-1. **Table name is inconsistent in the spec.** The description says `conversation_topic_evidences` (plural) while the index block uses the singular. Resolved: the table is plural, `conversation_topic_evidences`; index names stay as written in the spec (`idx_conversation_topic_evidence_*`).
+1. **Table name is inconsistent in the spec.** The description says `conversation_topic_evidences` (plural) while the index block uses the singular. Resolved: the table is plural, `conversation_topic_evidences`, and the index names are made plural to match (`idx_conversation_topic_evidences_*`).
 2. **No access rules.** As with `conversation_topics`, new tables here get no default access, so without explicit grants and policies the app sees zero rows. I'll grant signed-in users and back-office code, enable row-level security, and scope access to participants of the conversation the topic belongs to — reusing the existing participant check, resolved through the topic's parent conversation.
 3. **No workspace column.** Not needed: access is derived through the topic, and the topic is already tied to a conversation.
 4. **No `updated_at`.** Correct as-is — evidence rows are immutable facts, so only `created_at` is kept and no update trigger is added.
@@ -32,9 +32,9 @@ Analysis of the attached spec for the new table linking topics to the messages t
 2. GRANT to authenticated + service_role
 3. ENABLE ROW LEVEL SECURITY
 4. POLICIES: participants of the topic's conversation can read and write
-5. INDEX idx_conversation_topic_evidence_topic_id
-6. INDEX idx_conversation_topic_evidence_message_id
-7. INDEX idx_conversation_topic_evidence_topic_created (topic_id, created_at)
+5. INDEX idx_conversation_topic_evidences_topic_id
+6. INDEX idx_conversation_topic_evidences_message_id
+7. INDEX idx_conversation_topic_evidences_topic_created (topic_id, created_at)
 ```
 
 After the migration runs, the generated database types are regenerated so the new table is available in code.
