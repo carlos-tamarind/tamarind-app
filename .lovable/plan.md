@@ -45,4 +45,4 @@ Evidence creation, similarity computation, topic promotion logic, retrieval help
 
 ## Version
 
-Bump `src/lib/version.ts` to 0.2.2.
+Bump `src/lib/version.ts` to 0.2.02.
