@@ -9,40 +9,31 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as BootstrapRouteImport } from './routes/bootstrap'
-import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
+import { Route as BootstrapRouteImport } from './routes/bootstrap'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
-import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
+import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
+import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
-import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
+import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
-import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
+import { Route as ApiPublicInternalRunCtiWorkerRouteImport } from './routes/api/public/internal/run-cti-worker'
+import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
+import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BootstrapRoute = BootstrapRouteImport.update({
-  id: '/bootstrap',
-  path: '/bootstrap',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcceptInviteRoute = AcceptInviteRouteImport.update({
@@ -50,18 +41,24 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const BootstrapRoute = BootstrapRouteImport.update({
+  id: '/bootstrap',
+  path: '/bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRunEmbeddingWorkerRoute = ApiRunEmbeddingWorkerRouteImport.update({
-  id: '/api/run-embedding-worker',
-  path: '/api/run-embedding-worker',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
@@ -69,9 +66,14 @@ const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
   path: '/api/generate-embeddings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
-  id: '/api/pages/save',
-  path: '/api/pages/save',
+const ApiRunCtiWorkerRoute = ApiRunCtiWorkerRouteImport.update({
+  id: '/api/run-cti-worker',
+  path: '/api/run-cti-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunEmbeddingWorkerRoute = ApiRunEmbeddingWorkerRouteImport.update({
+  id: '/api/run-embedding-worker',
+  path: '/api/run-embedding-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWWorkspaceIdRoute =
@@ -80,28 +82,39 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicInternalRunEmbeddingWorkerRoute =
-  ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
-    id: '/api/public/internal/run-embedding-worker',
-    path: '/api/public/internal/run-embedding-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
+  id: '/api/pages/save',
+  path: '/api/pages/save',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWWorkspaceIdSettingsRoute =
   AuthenticatedWWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
     getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
   } as any)
-const AuthenticatedWWorkspaceIdPPageIdRoute =
-  AuthenticatedWWorkspaceIdPPageIdRouteImport.update({
-    id: '/p/$pageId',
-    path: '/p/$pageId',
-    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+const ApiPublicInternalRunCtiWorkerRoute =
+  ApiPublicInternalRunCtiWorkerRouteImport.update({
+    id: '/api/public/internal/run-cti-worker',
+    path: '/api/public/internal/run-cti-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalRunEmbeddingWorkerRoute =
+  ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
+    id: '/api/public/internal/run-embedding-worker',
+    path: '/api/public/internal/run-embedding-worker',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedWWorkspaceIdCConversationIdRoute =
   AuthenticatedWWorkspaceIdCConversationIdRouteImport.update({
     id: '/c/$conversationId',
     path: '/c/$conversationId',
+    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+  } as any)
+const AuthenticatedWWorkspaceIdPPageIdRoute =
+  AuthenticatedWWorkspaceIdPPageIdRouteImport.update({
+    id: '/p/$pageId',
+    path: '/p/$pageId',
     getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
   } as any)
 
@@ -113,10 +126,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -129,10 +144,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -147,10 +164,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
@@ -165,10 +184,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
@@ -181,10 +202,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
@@ -198,10 +221,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
+    | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
@@ -216,46 +241,20 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
+  ApiRunCtiWorkerRoute: typeof ApiRunCtiWorkerRoute
   ApiRunEmbeddingWorkerRoute: typeof ApiRunEmbeddingWorkerRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
+  ApiPublicInternalRunCtiWorkerRoute: typeof ApiPublicInternalRunCtiWorkerRoute
   ApiPublicInternalRunEmbeddingWorkerRoute: typeof ApiPublicInternalRunEmbeddingWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bootstrap': {
-      id: '/bootstrap'
-      path: '/bootstrap'
-      fullPath: '/bootstrap'
-      preLoaderRoute: typeof BootstrapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accept-invite': {
-      id: '/accept-invite'
-      path: '/accept-invite'
-      fullPath: '/accept-invite'
-      preLoaderRoute: typeof AcceptInviteRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -265,18 +264,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/run-embedding-worker': {
-      id: '/api/run-embedding-worker'
-      path: '/api/run-embedding-worker'
-      fullPath: '/api/run-embedding-worker'
-      preLoaderRoute: typeof ApiRunEmbeddingWorkerRouteImport
+    '/bootstrap': {
+      id: '/bootstrap'
+      path: '/bootstrap'
+      fullPath: '/bootstrap'
+      preLoaderRoute: typeof BootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-embeddings': {
@@ -286,11 +306,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/pages/save': {
-      id: '/api/pages/save'
-      path: '/api/pages/save'
-      fullPath: '/api/pages/save'
-      preLoaderRoute: typeof ApiPagesSaveRouteImport
+    '/api/run-cti-worker': {
+      id: '/api/run-cti-worker'
+      path: '/api/run-cti-worker'
+      fullPath: '/api/run-cti-worker'
+      preLoaderRoute: typeof ApiRunCtiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-embedding-worker': {
+      id: '/api/run-embedding-worker'
+      path: '/api/run-embedding-worker'
+      fullPath: '/api/run-embedding-worker'
+      preLoaderRoute: typeof ApiRunEmbeddingWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/w/$workspaceId': {
@@ -300,11 +327,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/internal/run-embedding-worker': {
-      id: '/api/public/internal/run-embedding-worker'
-      path: '/api/public/internal/run-embedding-worker'
-      fullPath: '/api/public/internal/run-embedding-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunEmbeddingWorkerRouteImport
+    '/api/pages/save': {
+      id: '/api/pages/save'
+      path: '/api/pages/save'
+      fullPath: '/api/pages/save'
+      preLoaderRoute: typeof ApiPagesSaveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/w/$workspaceId/settings': {
@@ -314,18 +341,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdSettingsRouteImport
       parentRoute: typeof AuthenticatedWWorkspaceIdRoute
     }
-    '/_authenticated/w/$workspaceId/p/$pageId': {
-      id: '/_authenticated/w/$workspaceId/p/$pageId'
-      path: '/p/$pageId'
-      fullPath: '/w/$workspaceId/p/$pageId'
-      preLoaderRoute: typeof AuthenticatedWWorkspaceIdPPageIdRouteImport
-      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    '/api/public/internal/run-cti-worker': {
+      id: '/api/public/internal/run-cti-worker'
+      path: '/api/public/internal/run-cti-worker'
+      fullPath: '/api/public/internal/run-cti-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunCtiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-embedding-worker': {
+      id: '/api/public/internal/run-embedding-worker'
+      path: '/api/public/internal/run-embedding-worker'
+      fullPath: '/api/public/internal/run-embedding-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/w/$workspaceId/c/$conversationId': {
       id: '/_authenticated/w/$workspaceId/c/$conversationId'
       path: '/c/$conversationId'
       fullPath: '/w/$workspaceId/c/$conversationId'
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdCConversationIdRouteImport
+      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    }
+    '/_authenticated/w/$workspaceId/p/$pageId': {
+      id: '/_authenticated/w/$workspaceId/p/$pageId'
+      path: '/p/$pageId'
+      fullPath: '/w/$workspaceId/p/$pageId'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdPPageIdRouteImport
       parentRoute: typeof AuthenticatedWWorkspaceIdRoute
     }
   }
@@ -373,8 +414,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
+  ApiRunCtiWorkerRoute: ApiRunCtiWorkerRoute,
   ApiRunEmbeddingWorkerRoute: ApiRunEmbeddingWorkerRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
+  ApiPublicInternalRunCtiWorkerRoute: ApiPublicInternalRunCtiWorkerRoute,
   ApiPublicInternalRunEmbeddingWorkerRoute:
     ApiPublicInternalRunEmbeddingWorkerRoute,
 }

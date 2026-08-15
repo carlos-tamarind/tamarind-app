@@ -17,7 +17,7 @@ flowchart TD
   Map["mapEmbeddingsToMessageResults"]
   Success{"Success?"}
   Persist["persistEmbeddings\n→ message_embeddings"]
-  MarkEmbedded["markMessageSemanticsEmbedded\n→ EMBEDDED"]
+  MarkEmbedded["finalize_embedded_message\n→ EMBEDDED + CTI job"]
   HandleError["handleEmbeddingBatchError"]
   Retry["requeue with backoff\n→ QUEUED"]
   Failed["markMessageSemanticsFailed\n→ FAILED"]
@@ -84,9 +84,9 @@ The message indexing layer ([`mapEmbeddingsToMessageResults`](../../src/semantic
 On success, [`persistEmbeddings`](../../src/semantic/messages/message-embedding/persistEmbeddings.ts):
 
 1. Inserts rows into `message_embeddings` with `embedding_vector vector(1536)`
-2. Calls `markMessageSemanticsEmbedded` to set status to `EMBEDDED`
+2. Calls `finalize_embedded_message` RPC to set `embedding_status = EMBEDDED` and enqueue a `conversation_topic_jobs` row (idempotent via `UNIQUE(message_id)`)
 
-Vectors are stored with an HNSW cosine index (`idx_message_embeddings_vector`) for similarity search.
+Vectors are stored with an HNSW cosine index (`idx_message_embeddings_vector`) for similarity search. CTI jobs are only created after `EMBEDDED`; see [Pipeline](pipeline.md) Phase C.
 
 ## Error Handling
 

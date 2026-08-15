@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and an external cron scheduler for batch embedding.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding and CTI workers.
 
 ## Overview
 
@@ -12,15 +12,23 @@ flowchart TB
     Norm["normalize → score → persist"]
   end
 
-  subgraph cron [Scheduled: pg_cron]
-    PGCron["pg_cron (every minute)"]
-    PGNet["pg_net HTTP POST"]
-    Worker["runEmbeddingWorker"]
+  subgraph cronEmbed [Scheduled: embedding]
+    PGCronEmbed["pg_cron (every minute)"]
+    PGNetEmbed["pg_net HTTP POST"]
+    WorkerEmbed["runEmbeddingWorker"]
     Embed["OpenAI → message_embeddings"]
   end
 
+  subgraph cronCti [Scheduled: CTI]
+    PGCronCti["pg_cron (every minute)"]
+    PGNetCti["pg_net HTTP POST"]
+    WorkerCti["runCtiWorker"]
+    Cti["commit_cti_job"]
+  end
+
   Send --> Enqueue --> Norm
-  PGCron --> PGNet --> Worker --> Embed
+  PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
+  PGCronCti --> PGNetCti --> WorkerCti --> Cti
 ```
 
 ## Inline Semantics Processing
@@ -80,7 +88,8 @@ A pg_cron job calls the worker endpoint every minute via pg_net HTTP POST with t
 1. Claims up to 10 batches of 64 messages per tick
 2. Calls OpenAI `text-embedding-3-small`
 3. Persists vectors to `message_embeddings`
-4. Updates status to EMBEDDED or handles retry/failure
+4. Calls `finalize_embedded_message` (sets EMBEDDED + enqueues CTI job)
+5. Handles retry/failure on embedding errors
 
 ### Queue management
 
@@ -100,12 +109,53 @@ Batch claiming uses the `claim_embedding_batch` Postgres RPC (service_role only)
 
 Transient errors (429, 5xx) trigger exponential backoff requeue (max 10 retries). Permanent errors (400, 401, 403) mark FAILED immediately.
 
-## Dev Manual Trigger
+## CTI Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (separate from embedding)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job calls the CTI worker endpoint every minute via pg_net HTTP POST with the `x-cti-worker-secret` header.
+
+### Worker execution
+
+[`runCtiWorker`](../../src/semantic/conversation-topics/runCtiWorker.ts):
+
+1. Claims **one** next-in-order job per iteration via `claim_conversation_topic_job`
+2. Runs the black-box `conversationTopicEngine` stub (no topic mutations yet)
+3. Commits via `commit_cti_job` (conversation lock + order check + COMPLETED)
+4. Requeues with backoff on transient errors; marks FAILED after max retries
+
+### Queue management
+
+Queue state lives in `conversation_topic_jobs.status`:
+
+| Status | Meaning |
+|--------|---------|
+| `QUEUED` | Waiting for worker |
+| `PROCESSING` | Claimed by worker |
+| `COMPLETED` | Topic transition committed |
+| `FAILED` | Max retries exceeded |
+
+Jobs are created only after `message_semantics.embedding_status = EMBEDDED` (via `finalize_embedded_message` RPC). Messages are processed in conversation order (`messages.created_at`, then `messages.id`).
+
+### Head-of-line blocking on FAILED
+
+A CTI job stuck in `FAILED` blocks every later message in that conversation. This is intentional for sequential topic tracking. To unblock a poisoned conversation, requeue the failed job operationally:
+
+```sql
+UPDATE conversation_topic_jobs
+SET status = 'QUEUED', next_retry_at = NULL, processing_started_at = NULL
+WHERE id = '<failed-job-id>';
+```
+
+## Dev Manual Triggers
 
 For local testing without pg_cron:
 
 ```
 POST /api/run-embedding-worker
+POST /api/run-cti-worker
 ```
 
 Available only in development mode (404 in production). See [API Routes](../api/readme.md).
