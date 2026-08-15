@@ -1061,6 +1061,11 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      commit_cti_job: { Args: { p_job_id: string }; Returns: string }
+      cti_is_next_processable: {
+        Args: { _conversation_id: string; _message_id: string }
+        Returns: boolean
+      }
       cti_lock_conversation: {
         Args: { _conversation_id: string }
         Returns: undefined
@@ -1074,6 +1079,10 @@ export type Database = {
         Returns: string
       }
       escape_ilike_pattern: { Args: { p: string }; Returns: string }
+      finalize_embedded_message: {
+        Args: { p_message_semantics_id: string }
+        Returns: undefined
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
@@ -1087,6 +1096,10 @@ export type Database = {
       }
       is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      release_conversation_topic_job: {
+        Args: { p_job_id: string }
+        Returns: undefined
+      }
       search_conversations_keyword: {
         Args: { p_limit: number; p_query: string; p_workspace_id: string }
         Returns: {
