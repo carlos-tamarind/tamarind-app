@@ -55,6 +55,7 @@ export type Database = {
       }
       conversation_topic_evidences: {
         Row: {
+          conversation_id: string
           created_at: string
           id: string
           message_id: string
@@ -62,6 +63,7 @@ export type Database = {
           topic_id: string
         }
         Insert: {
+          conversation_id: string
           created_at?: string
           id?: string
           message_id: string
@@ -69,6 +71,7 @@ export type Database = {
           topic_id: string
         }
         Update: {
+          conversation_id?: string
           created_at?: string
           id?: string
           message_id?: string
@@ -77,17 +80,74 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "conversation_topic_evidences_message_id_fkey"
-            columns: ["message_id"]
+            foreignKeyName: "conversation_topic_evidences_message_conv_fkey"
+            columns: ["message_id", "conversation_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id", "conversation_id"]
+          },
+          {
+            foreignKeyName: "conversation_topic_evidences_topic_conv_fkey"
+            columns: ["topic_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_topics"
+            referencedColumns: ["id", "conversation_id"]
+          },
+        ]
+      }
+      conversation_topic_jobs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          message_id: string
+          next_retry_at: string | null
+          processing_started_at: string | null
+          status: Database["public"]["Enums"]["cti_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id: string
+          next_retry_at?: string | null
+          processing_started_at?: string | null
+          status?: Database["public"]["Enums"]["cti_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string
+          next_retry_at?: string | null
+          processing_started_at?: string | null
+          status?: Database["public"]["Enums"]["cti_job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_topic_jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conversation_topic_evidences_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "conversation_topics"
+            foreignKeyName: "conversation_topic_jobs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -188,11 +248,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conversations_current_topic_id_fkey"
-            columns: ["current_topic_id"]
+            foreignKeyName: "conversations_current_topic_conv_fkey"
+            columns: ["current_topic_id", "id"]
             isOneToOne: false
             referencedRelation: "conversation_topics"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "conversation_id"]
           },
           {
             foreignKeyName: "conversations_workspace_id_fkey"
@@ -954,6 +1014,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_conversation_topic_job: {
+        Args: { p_stale_after?: string }
+        Returns: {
+          attempt_count: number
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          message_id: string
+          next_retry_at: string | null
+          processing_started_at: string | null
+          status: Database["public"]["Enums"]["cti_job_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversation_topic_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_embedding_batch: {
         Args: { p_batch_size?: number; p_stale_after?: string }
         Returns: {
@@ -978,6 +1060,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      cti_lock_conversation: {
+        Args: { _conversation_id: string }
+        Returns: undefined
+      }
+      cti_try_lock_conversation: {
+        Args: { _conversation_id: string }
+        Returns: boolean
       }
       current_workspace_user_id: {
         Args: { _workspace_id: string }
@@ -1069,6 +1159,7 @@ export type Database = {
         | "semantic_hint"
       conversation_role: "admin" | "member" | "viewer"
       conversation_type: "direct" | "group" | "channel"
+      cti_job_status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"
       embedding_status:
         | "NEW"
         | "QUEUED"
@@ -1226,6 +1317,7 @@ export const Constants = {
       ],
       conversation_role: ["admin", "member", "viewer"],
       conversation_type: ["direct", "group", "channel"],
+      cti_job_status: ["QUEUED", "PROCESSING", "COMPLETED", "FAILED"],
       embedding_status: [
         "NEW",
         "QUEUED",
