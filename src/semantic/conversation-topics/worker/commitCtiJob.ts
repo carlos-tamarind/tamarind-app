@@ -1,4 +1,4 @@
-import type { CommitCtiJobResult } from "./types";
+import type { CommitCtiJobResult } from "../types/job";
 
 async function getAdmin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

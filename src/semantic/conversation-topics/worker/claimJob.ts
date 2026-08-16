@@ -1,4 +1,4 @@
-import type { ConversationTopicJob } from "./types";
+import type { ConversationTopicJob } from "../types/job";
 import { formatStaleAfterInterval } from "./retry";
 
 async function getAdmin() {
