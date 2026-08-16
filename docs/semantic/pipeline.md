@@ -41,7 +41,8 @@ sequenceDiagram
   Note over Cron,CtiWorker: Separate cron tick
   Cron->>CtiWorker: POST with secret
   CtiWorker->>DB: claim_conversation_topic_job
-  CtiWorker->>DB: commit_cti_job
+  CtiWorker->>OpenAI: Topic LLM / canonical embedding (as needed)
+  CtiWorker->>DB: apply_cti_plan_and_commit
 ```
 
 ## Phase A: Inline Processing
@@ -76,12 +77,12 @@ Steps:
 
 **Entry:** [`runCtiWorker`](../../src/semantic/conversation-topics/worker/runCtiWorker.ts)
 
-Triggered by external cron. Processes up to 50 jobs per tick, **one job at a time** (no batching).
+Triggered by external cron. Processes up to 8 jobs per tick, **one job at a time** (no batching).
 
 Steps:
 1. `claimConversationTopicJob()` — RPC claims one next-in-order `QUEUED` or due `RETRY_WAIT` job
-2. `conversationTopicEngine.planTransition()` — black-box stub (no DB writes yet)
-3. `commitCtiJob()` — advisory lock + order check + COMPLETED
+2. `conversationTopicEngine.planTransition()` — match topics, route T1–T4, optional LLM/embedding, build mutation plan
+3. `applyCtiPlanAndCommit()` — advisory lock + apply topic/evidence/`current_topic_id` writes + COMPLETED in one transaction
 4. On failure: `handleCtiJobError()` — permanent → `QUARANTINED`; transient → `RETRY_WAIT` (5× backoff, then 24h halt)
 
 `QUARANTINED` jobs do not block later messages. `RETRY_WAIT` keeps the cursor on the failed job until backoff or the 24h halt expires.

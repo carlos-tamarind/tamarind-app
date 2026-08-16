@@ -1,8 +1,9 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
 import { conversationTopicEngine } from "../engine/conversationTopicEngine";
+import { applyCtiPlanAndCommit } from "../engine/persistence/applyCtiPlan";
 import { claimConversationTopicJob } from "./claimJob";
-import { commitCtiJob, releaseConversationTopicJob } from "./commitCtiJob";
+import { releaseConversationTopicJob } from "./commitCtiJob";
 import { CTI_CONFIG } from "./config";
 import { handleCtiJobError } from "./handleCtiError";
 
@@ -23,9 +24,9 @@ async function processClaimedJob(): Promise<ProcessClaimedJobResult> {
   });
 
   try {
-    await conversationTopicEngine.planTransition({ job });
+    const plan = await conversationTopicEngine.planTransition({ job });
 
-    const result = await commitCtiJob(job.id);
+    const result = await applyCtiPlanAndCommit(job.id, plan);
 
     if (result === "not_next") {
       await releaseConversationTopicJob(job.id);

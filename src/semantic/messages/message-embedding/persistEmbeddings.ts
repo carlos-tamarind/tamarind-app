@@ -1,6 +1,6 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
-import { formatEmbeddingVector } from "@/lib/vector/formatEmbeddingVector";
+import { formatEmbeddingVector } from "@/lib/vector/embeddingVectorUtil";
 import {
   findActiveEmbeddingBySemanticId,
   insertMessageEmbedding,

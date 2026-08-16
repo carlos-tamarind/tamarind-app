@@ -23,7 +23,7 @@ flowchart TB
     PGCronCti["pg_cron (every minute)"]
     PGNetCti["pg_net HTTP POST"]
     WorkerCti["runCtiWorker"]
-    Cti["commit_cti_job"]
+    Cti["apply_cti_plan_and_commit"]
   end
 
   Send --> Enqueue --> Norm
@@ -122,8 +122,8 @@ A pg_cron job calls the CTI worker endpoint every minute via pg_net HTTP POST wi
 [`runCtiWorker`](../../src/semantic/conversation-topics/worker/runCtiWorker.ts):
 
 1. Claims **one** next-in-order job per iteration via `claim_conversation_topic_job`
-2. Runs the black-box `conversationTopicEngine` stub (no topic mutations yet)
-3. Commits via `commit_cti_job` (conversation lock + order check + COMPLETED)
+2. Runs `conversationTopicEngine.planTransition()` (similarity routing, optional LLM/embeddings)
+3. Applies the plan and completes the job via `apply_cti_plan_and_commit` (conversation lock + topic mutations + COMPLETED)
 4. Classifies errors via `classifyCtiError` — permanent → `QUARANTINED`; transient → `RETRY_WAIT` with backoff
 5. After 5 transient backoffs: 24h conversation halt, then renewed retry cycle
 

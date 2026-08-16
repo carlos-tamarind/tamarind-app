@@ -13,6 +13,10 @@ src/semantic/
 │   ├── types.ts
 │   ├── embeddingProvider.ts
 │   └── providers/openai/
+├── llm/                                     # Generic LLM client
+│   ├── types.ts
+│   ├── llmProvider.ts
+│   └── providers/openai/
 ├── conversation-topics/                     # CTI (worker + engine)
 │   ├── types/                               # job + plan types
 │   ├── errors.ts                            # CtiPermanentError, CtiTransientError
@@ -46,8 +50,9 @@ There is no barrel `index.ts`. Import specific files directly.
 | `messages/message-checksum/computeMessageChecksum.ts` | `computeMessageChecksum` | SHA-256 dedup key |
 | `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Embedding worker entry |
 | `conversation-topics/worker/runCtiWorker.ts` | `runCtiWorker` | CTI worker entry |
-| `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic provider instance |
-| `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI API helper |
+| `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic embedding provider instance |
+| `llm/llmProvider.ts` | `llmProvider` | Generic LLM provider instance |
+| `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI embeddings helper |
 | `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
 
 ## Inbound Dependencies (Who Calls This Module)
@@ -70,14 +75,16 @@ There is no barrel `index.ts`. Import specific files directly.
 | `@/integrations/supabase/client.server` | `supabaseAdmin` (lazy dynamic import) |
 | `cloudflare:workers` (`waitUntil`) | Background task scheduling |
 | `node:crypto` | Checksum hashing |
-| `zod` | Embedding request validation |
-| `process.env.OPENAI_API_KEY` | OpenAI embeddings API |
+| `zod` | Embedding and LLM request validation |
+| `process.env.OPENAI_API_KEY` | OpenAI embeddings and LLM APIs |
 | `process.env.EMBEDDING_WORKER_SECRET` | Embedding cron endpoint auth |
 | `process.env.CTI_WORKER_SECRET` | CTI cron endpoint auth |
 | Supabase RPC `claim_embedding_batch` | Atomic batch claim |
 | Supabase RPC `claim_conversation_topic_job` | Atomic single CTI job claim |
+| Supabase RPC `match_conversation_topics` | Message-to-topic cosine similarities |
+| Supabase RPC `apply_cti_plan_and_commit` | Apply topic plan + complete job |
 | Supabase RPC `finalize_embedded_message` | EMBEDDED + CTI job enqueue |
-| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs` | Persistence |
+| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences` | Persistence |
 
 ## Data Flow
 
@@ -113,8 +120,8 @@ Cron POST /api/public/internal/run-embedding-worker
 Cron POST /api/public/internal/run-cti-worker
   → runCtiWorker
   → claim_conversation_topic_job RPC (one next-in-order job)
-  → conversationTopicEngine.planTransition (stub)
-  → commit_cti_job RPC
+  → conversationTopicEngine.planTransition (similarity, LLM, embeddings)
+  → apply_cti_plan_and_commit RPC (topic/evidence writes + COMPLETED)
   → COMPLETED | RETRY_WAIT | QUARANTINED
 ```
 
@@ -130,7 +137,7 @@ NEW → QUEUED → PROCESSING → EMBEDDED
 
 | Variable | Required by |
 |----------|-------------|
-| `OPENAI_API_KEY` | OpenAI embedding provider |
+| `OPENAI_API_KEY` | OpenAI embedding and LLM providers |
 | `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client for persistence |
