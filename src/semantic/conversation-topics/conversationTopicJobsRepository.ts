@@ -19,7 +19,7 @@ export async function markConversationTopicJobFailed(
   const { error } = await supabase
     .from("conversation_topic_jobs")
     .update({
-      status: "FAILED",
+      status: "QUARANTINED",
       last_error: lastError,
       processing_started_at: null,
     })
