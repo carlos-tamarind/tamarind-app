@@ -124,7 +124,8 @@ A pg_cron job calls the CTI worker endpoint every minute via pg_net HTTP POST wi
 1. Claims **one** next-in-order job per iteration via `claim_conversation_topic_job`
 2. Runs the black-box `conversationTopicEngine` stub (no topic mutations yet)
 3. Commits via `commit_cti_job` (conversation lock + order check + COMPLETED)
-4. Requeues with backoff on transient errors; marks FAILED after max retries
+4. Classifies errors via `classifyCtiError` — permanent → `QUARANTINED`; transient → `RETRY_WAIT` with backoff
+5. After 5 transient backoffs: 24h conversation halt, then renewed retry cycle
 
 ### Queue management
 
@@ -135,19 +136,29 @@ Queue state lives in `conversation_topic_jobs.status`:
 | `QUEUED` | Waiting for worker |
 | `PROCESSING` | Claimed by worker |
 | `COMPLETED` | Topic transition committed |
-| `FAILED` | Max retries exceeded |
+| `RETRY_WAIT` | Transient failure; backoff or 24h conversation halt |
+| `QUARANTINED` | Permanent failure; message excluded; later jobs continue |
 
 Jobs are created only after `message_semantics.embedding_status = EMBEDDED` (via `finalize_embedded_message` RPC). Messages are processed in conversation order (`messages.created_at`, then `messages.id`).
 
-### Head-of-line blocking on FAILED
+### Error handling
 
-A CTI job stuck in `FAILED` blocks every later message in that conversation. This is intentional for sequential topic tracking. To unblock a poisoned conversation, requeue the failed job operationally:
+- **Permanent** (validation, malformed data, unsupported content): `QUARANTINED` immediately. The conversation continues with the next message.
+- **Transient** (timeouts, 5xx, rate limits, network): `RETRY_WAIT` with exponential backoff (10s base, 5 attempts). Other conversations keep processing.
+- **After 5 transient backoffs**: 24h halt for that conversation only (`RETRY_WAIT`, `attempt_count` reset). Then the same job retries with a fresh 5-attempt cycle.
+- **Global infra outage**: tick circuit-break stops processing further jobs in the same cron invocation (does not affect other conversations on the next tick).
+
+### Operational recovery
+
+24h halt — wait or force retry:
 
 ```sql
 UPDATE conversation_topic_jobs
-SET status = 'QUEUED', next_retry_at = NULL, processing_started_at = NULL
-WHERE id = '<failed-job-id>';
+SET next_retry_at = now(), status = 'RETRY_WAIT'
+WHERE id = '<job-id>';
 ```
+
+Quarantined messages are not replayed automatically (optional later backfill).
 
 ## Dev Manual Triggers
 

@@ -15,6 +15,7 @@ src/semantic/
 │   └── providers/openai/
 ├── conversation-topics/                     # CTI worker (single-job, cron-driven)
 │   ├── runCtiWorker.ts
+│   ├── classifyCtiError.ts
 │   ├── claimJob.ts
 │   ├── commitCtiJob.ts
 │   └── engine.ts
@@ -111,7 +112,7 @@ Cron POST /api/public/internal/run-cti-worker
   → claim_conversation_topic_job RPC (one next-in-order job)
   → conversationTopicEngine.planTransition (stub)
   → commit_cti_job RPC
-  → status = COMPLETED | FAILED (head-of-line blocks conversation)
+  → COMPLETED | RETRY_WAIT | QUARANTINED
 ```
 
 ## Embedding Status Lifecycle

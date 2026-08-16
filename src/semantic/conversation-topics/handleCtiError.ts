@@ -1,45 +1,81 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
+import { classifyCtiError } from "./classifyCtiError";
 import {
-  markConversationTopicJobFailed,
-  requeueConversationTopicJobForRetry,
+  markConversationTopicJobQuarantined,
+  markConversationTopicJobRetryWait,
 } from "./conversationTopicJobsRepository";
-import { getNextRetryAt, hasExceededMaxRetries } from "./retry";
+import {
+  getConversationHaltUntil,
+  getNextRetryAt,
+  hasExceededTransientBackoffs,
+} from "./retry";
 import type { ConversationTopicJob } from "./types";
 
 const LOG_SCOPE = "cti-worker";
 
-function summarizeError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.slice(0, 500);
-}
+export type HandleCtiJobErrorResult =
+  | { kind: "permanent" }
+  | { kind: "transient"; globalInfra: boolean }
+  | { kind: "halted" };
 
 export async function handleCtiJobError(
   job: ConversationTopicJob,
   error: unknown,
-): Promise<void> {
-  const summary = summarizeError(error);
+): Promise<HandleCtiJobErrorResult> {
+  const classification = classifyCtiError(error);
 
-  if (hasExceededMaxRetries(job.attempt_count)) {
-    await markConversationTopicJobFailed(job.id, `${summary} (max retries exceeded)`);
+  if (classification.kind === "permanent") {
+    await markConversationTopicJobQuarantined(job.id, classification.summary);
     DebugLogger.log({
       scope: LOG_SCOPE,
-      event: "JOB_FAILED",
-      message: `${job.id} · ${summary}`,
+      event: "JOB_QUARANTINED",
+      message: `${job.id} · permanent · ${classification.summary}`,
       level: "error",
     });
-    return;
+    return { kind: "permanent" };
   }
 
-  await requeueConversationTopicJobForRetry(job.id, {
-    nextRetryAt: getNextRetryAt(job.attempt_count),
-    lastError: summary,
+  if (hasExceededTransientBackoffs(job.attempt_count)) {
+    const haltUntil = getConversationHaltUntil();
+    await markConversationTopicJobRetryWait(job.id, {
+      nextRetryAt: haltUntil,
+      lastError: `${classification.summary} (conversation halted 24h after ${job.attempt_count} attempts)`,
+      attemptCount: 0,
+    });
+    DebugLogger.table({
+      scope: LOG_SCOPE,
+      event: "CONVERSATION_HALTED",
+      data: {
+        jobId: job.id,
+        conversationId: job.conversation_id,
+        kind: "transient",
+        attemptCount: job.attempt_count,
+        haltUntil: haltUntil.toISOString(),
+        error: classification.summary,
+      },
+    });
+    return { kind: "halted" };
+  }
+
+  const nextRetryAt = getNextRetryAt(job.attempt_count);
+  await markConversationTopicJobRetryWait(job.id, {
+    nextRetryAt,
+    lastError: classification.summary,
   });
 
-  DebugLogger.log({
+  DebugLogger.table({
     scope: LOG_SCOPE,
-    event: "JOB_REQUEUED",
-    message: `${job.id} · attempt ${job.attempt_count} · ${summary}`,
-    level: "error",
+    event: "JOB_RETRY_WAIT",
+    data: {
+      jobId: job.id,
+      conversationId: job.conversation_id,
+      kind: "transient",
+      attemptCount: job.attempt_count,
+      nextRetryAt: nextRetryAt.toISOString(),
+      error: classification.summary,
+    },
   });
+
+  return { kind: "transient", globalInfra: classification.globalInfra };
 }
