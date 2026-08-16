@@ -1,6 +1,6 @@
 # API Routes
 
-Tamarind's primary backend interface is TanStack Start server functions (`createServerFn` in `src/lib/*.functions.ts`). Four REST routes exist for cases where server functions are not suitable.
+Tamarind's primary backend interface is TanStack Start server functions (`createServerFn` in `src/lib/*.functions.ts`). REST routes exist for cases where server functions are not suitable.
 
 ## Route Summary
 
@@ -9,7 +9,9 @@ Tamarind's primary backend interface is TanStack Start server functions (`create
 | POST | `/api/pages/save` | Bearer token in body | Beacon-based page autosave |
 | POST | `/api/generate-embeddings` | None (JSON schema) | OpenAI embedding proxy |
 | POST | `/api/run-embedding-worker` | Dev-only | Manual embedding worker trigger |
-| POST | `/api/public/internal/run-embedding-worker` | Secret header | Production cron target |
+| POST | `/api/public/internal/run-embedding-worker` | Secret header | Production embedding cron target |
+| POST | `/api/run-cti-worker` | Dev-only | Manual CTI worker trigger |
+| POST | `/api/public/internal/run-cti-worker` | Secret header | Production CTI cron target |
 
 ## POST /api/pages/save
 
@@ -79,6 +81,38 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 {
   "batchesProcessed": 3,
   "messagesProcessed": 128
+}
+```
+
+## POST /api/run-cti-worker
+
+**File:** [`src/routes/api/run-cti-worker.ts`](../../src/routes/api/run-cti-worker.ts)
+
+Manual trigger for the CTI worker during local development.
+
+**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
+
+**Response:**
+
+```json
+{
+  "jobsProcessed": 12
+}
+```
+
+## POST /api/public/internal/run-cti-worker
+
+**File:** [`src/routes/api/public/internal/run-cti-worker.ts`](../../src/routes/api/public/internal/run-cti-worker.ts)
+
+Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-cti-worker-secret` header matching `CTI_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret.
+
+**Response:**
+
+```json
+{
+  "jobsProcessed": 8
 }
 ```
 

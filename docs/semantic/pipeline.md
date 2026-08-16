@@ -1,6 +1,6 @@
 # Semantic Pipeline
 
-The semantic pipeline processes messages in two independent phases: inline normalization and scoring on insert, and asynchronous batch embedding via cron.
+The semantic pipeline processes messages in three decoupled phases: inline normalization and scoring on insert, asynchronous batch embedding via cron, and conversation topic identification (CTI) via a separate cron worker.
 
 ## End-to-End Flow
 
@@ -16,6 +16,7 @@ sequenceDiagram
   participant Worker as runEmbeddingWorker
   participant OpenAI
   participant DB as PostgreSQL
+  participant CtiWorker as runCtiWorker
 
   User->>SF: Send message
   SF->>DB: INSERT messages
@@ -34,7 +35,13 @@ sequenceDiagram
   Worker->>DB: claim_embedding_batch
   Worker->>OpenAI: Batch embed
   OpenAI-->>Worker: Vectors
-  Worker->>DB: INSERT message_embeddings, status=EMBEDDED
+  Worker->>DB: INSERT message_embeddings
+  Worker->>DB: finalize_embedded_message (EMBEDDED + CTI job)
+
+  Note over Cron,CtiWorker: Separate cron tick
+  Cron->>CtiWorker: POST with secret
+  CtiWorker->>DB: claim_conversation_topic_job
+  CtiWorker->>DB: commit_cti_job
 ```
 
 ## Phase A: Inline Processing
@@ -62,8 +69,22 @@ Steps:
 1. `claimEmbeddingBatch()` — RPC locks QUEUED rows as PROCESSING
 2. `embeddingProvider.embedBatch()` — generic OpenAI API call with normalized text
 3. `mapEmbeddingsToMessageResults()` — zip vectors with message_semantics IDs
-4. On success: `persistEmbeddings()` → insert vectors, mark EMBEDDED
+4. On success: `persistEmbeddings()` → insert vectors, `finalize_embedded_message` (EMBEDDED + CTI job)
 5. On failure: `handleEmbeddingBatchError()` → retry or mark FAILED
+
+## Phase C: CTI Worker
+
+**Entry:** [`runCtiWorker`](../../src/semantic/conversation-topics/runCtiWorker.ts)
+
+Triggered by external cron. Processes up to 50 jobs per tick, **one job at a time** (no batching).
+
+Steps:
+1. `claimConversationTopicJob()` — RPC claims one next-in-order QUEUED job
+2. `conversationTopicEngine.planTransition()` — black-box stub (no DB writes yet)
+3. `commitCtiJob()` — advisory lock + order check + COMPLETED
+4. On failure: `handleCtiJobError()` → retry or mark FAILED
+
+A job in `FAILED` head-of-line-blocks later messages in the same conversation until ops requeues it.
 
 ## Embedding Status Lifecycle
 
@@ -99,7 +120,7 @@ Steps:
 | `QUEUED` | `persistMessageSemantics` | Eligible for embedding, waiting for worker |
 | `SKIPPED` | `persistMessageSemantics` | Score below threshold; never embedded |
 | `PROCESSING` | `claim_embedding_batch` RPC | Locked by worker |
-| `EMBEDDED` | `markMessageSemanticsEmbedded` | Vector stored in message_embeddings |
+| `EMBEDDED` | `finalize_embedded_message` | Vector stored; CTI job enqueued |
 | `FAILED` | `markMessageSemanticsFailed` | Permanent or max-retry failure |
 
 ## Deduplication

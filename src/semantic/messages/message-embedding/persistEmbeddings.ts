@@ -5,7 +5,7 @@ import {
   findActiveEmbeddingBySemanticId,
   insertMessageEmbedding,
 } from "@/semantic/messages/message-persistence/messageEmbeddingsRepository";
-import { markMessageSemanticsEmbedded } from "@/semantic/messages/message-persistence/messageSemanticsRepository";
+import { finalizeEmbeddedMessage } from "@/semantic/messages/message-persistence/messageSemanticsRepository";
 
 import type { MessageEmbeddingSuccessResponse } from "./types";
 
@@ -24,7 +24,7 @@ export async function persistEmbeddings(response: MessageEmbeddingSuccessRespons
       });
     }
 
-    await markMessageSemanticsEmbedded(result.id);
+    await finalizeEmbeddedMessage(result.id);
   }
 
   DebugLogger.table({

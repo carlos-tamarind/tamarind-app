@@ -10,16 +10,20 @@ This is a **server-only** module. It uses the Supabase admin client (lazy-loaded
 src/semantic/
 ├── enqueueMessageSemanticsProcessing.ts   # Entry: fire-and-forget trigger
 ├── embedding/                               # Generic text embedding client
-│   ├── types.ts                             # TextEmbedding, EmbedOutcome, EmbeddingProvider
-│   ├── embeddingProvider.ts                 # Active provider binding
-│   └── providers/openai/                    # OpenAI implementation
+│   ├── types.ts
+│   ├── embeddingProvider.ts
+│   └── providers/openai/
+├── conversation-topics/                     # CTI worker (single-job, cron-driven)
+│   ├── runCtiWorker.ts
+│   ├── claimJob.ts
+│   ├── commitCtiJob.ts
+│   └── engine.ts
 └── messages/                                # Message indexing pipeline
-    ├── message-checksum/                    # SHA-256 dedup key
-    ├── message-normalization/               # Text cleanup pipeline
-    ├── message-scoring/                     # Heuristic quality model
-    │   └── models/mvp-v1/                   # Current scoring model
-    ├── message-persistence/                 # DB repositories
-    └── message-embedding/                   # Batch worker + message adapter
+    ├── message-checksum/
+    ├── message-normalization/
+    ├── message-scoring/models/mvp-v1/
+    ├── message-persistence/
+    └── message-embedding/
 ```
 
 There is no barrel `index.ts`. Import specific files directly.
@@ -36,7 +40,8 @@ There is no barrel `index.ts`. Import specific files directly.
 | `messages/message-scoring/models/mvp-v1/config.ts` | `SCORING_CONFIG` | Tunable scoring config |
 | `messages/message-persistence/persistMessageSemantics.ts` | `persistMessageSemantics` | Persist with dedup |
 | `messages/message-checksum/computeMessageChecksum.ts` | `computeMessageChecksum` | SHA-256 dedup key |
-| `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Worker entry |
+| `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Embedding worker entry |
+| `conversation-topics/runCtiWorker.ts` | `runCtiWorker` | CTI worker entry |
 | `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic provider instance |
 | `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI API helper |
 | `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
@@ -49,6 +54,8 @@ There is no barrel `index.ts`. Import specific files directly.
 | `src/lib/pages.server.ts` | `enqueueMessageSemanticsProcessing` (page share announcement) |
 | `src/routes/api/run-embedding-worker.ts` | `runEmbeddingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-embedding-worker.ts` | `runEmbeddingWorker` (cron) |
+| `src/routes/api/run-cti-worker.ts` | `runCtiWorker` (dev-only) |
+| `src/routes/api/public/internal/run-cti-worker.ts` | `runCtiWorker` (cron) |
 | `src/routes/api/generate-embeddings.ts` | `generateMessageEmbeddingsFromRaw` |
 
 ## Outbound Dependencies
@@ -61,13 +68,16 @@ There is no barrel `index.ts`. Import specific files directly.
 | `node:crypto` | Checksum hashing |
 | `zod` | Embedding request validation |
 | `process.env.OPENAI_API_KEY` | OpenAI embeddings API |
-| `process.env.EMBEDDING_WORKER_SECRET` | Cron endpoint auth |
+| `process.env.EMBEDDING_WORKER_SECRET` | Embedding cron endpoint auth |
+| `process.env.CTI_WORKER_SECRET` | CTI cron endpoint auth |
 | Supabase RPC `claim_embedding_batch` | Atomic batch claim |
-| DB tables: `messages`, `message_semantics`, `message_embeddings` | Persistence |
+| Supabase RPC `claim_conversation_topic_job` | Atomic single CTI job claim |
+| Supabase RPC `finalize_embedded_message` | EMBEDDED + CTI job enqueue |
+| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs` | Persistence |
 
 ## Data Flow
 
-Two decoupled phases run independently:
+Two decoupled phases run independently, followed by CTI:
 
 ### Phase A: Normalize → Score → Persist (inline, on message create)
 
@@ -90,7 +100,18 @@ Cron POST /api/public/internal/run-embedding-worker
   → embeddingProvider.embedBatch (generic)
   → map results to message_semantics IDs
   → persist to message_embeddings
-  → embedding_status = EMBEDDED | FAILED
+  → finalize_embedded_message (EMBEDDED + CTI job QUEUED)
+```
+
+### Phase C: CTI (async, cron-driven)
+
+```
+Cron POST /api/public/internal/run-cti-worker
+  → runCtiWorker
+  → claim_conversation_topic_job RPC (one next-in-order job)
+  → conversationTopicEngine.planTransition (stub)
+  → commit_cti_job RPC
+  → status = COMPLETED | FAILED (head-of-line blocks conversation)
 ```
 
 ## Embedding Status Lifecycle
@@ -106,7 +127,8 @@ NEW → QUEUED → PROCESSING → EMBEDDED
 | Variable | Required by |
 |----------|-------------|
 | `OPENAI_API_KEY` | OpenAI embedding provider |
-| `EMBEDDING_WORKER_SECRET` | Cron endpoint authentication |
+| `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
+| `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client for persistence |
 
 ## Documentation
