@@ -5,5 +5,5 @@ export const CTI_CONFIG = {
   /** Stale PROCESSING recovery interval for claim_conversation_topic_job. */
   STALE_AFTER_MS: 10 * 60 * 1000,
   /** Max jobs processed per cron tick to avoid worker CPU timeout. */
-  MAX_JOBS_PER_TICK: 50,
+  MAX_JOBS_PER_TICK: 8,
 } as const;

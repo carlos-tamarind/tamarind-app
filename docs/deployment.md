@@ -144,7 +144,7 @@ SELECT cron.schedule(
 );
 ```
 
-Replace the URL and secret with your deployment values. Do not enable this against production traffic until the CTI engine is implemented (the current stub completes jobs without topic mutations).
+Replace the URL and secret with your deployment values. The worker now runs the full CTI engine (topic matching, optional LLM, and atomic apply+commit).
 
 ## Database Migrations
 
