@@ -1172,7 +1172,12 @@ export type Database = {
         | "semantic_hint"
       conversation_role: "admin" | "member" | "viewer"
       conversation_type: "direct" | "group" | "channel"
-      cti_job_status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"
+      cti_job_status:
+        | "QUEUED"
+        | "PROCESSING"
+        | "COMPLETED"
+        | "RETRY_WAIT"
+        | "QUARANTINED"
       embedding_status:
         | "NEW"
         | "QUEUED"
@@ -1330,7 +1335,13 @@ export const Constants = {
       ],
       conversation_role: ["admin", "member", "viewer"],
       conversation_type: ["direct", "group", "channel"],
-      cti_job_status: ["QUEUED", "PROCESSING", "COMPLETED", "FAILED"],
+      cti_job_status: [
+        "QUEUED",
+        "PROCESSING",
+        "COMPLETED",
+        "RETRY_WAIT",
+        "QUARANTINED",
+      ],
       embedding_status: [
         "NEW",
         "QUEUED",
