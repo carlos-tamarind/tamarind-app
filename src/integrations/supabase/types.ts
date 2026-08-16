@@ -1014,6 +1014,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_cti_plan_and_commit: {
+        Args: { p_job_id: string; p_plan?: Json }
+        Returns: string
+      }
       claim_conversation_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
@@ -1096,6 +1100,24 @@ export type Database = {
       }
       is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      match_conversation_topics: {
+        Args: { p_conversation_id: string; p_message_id: string }
+        Returns: {
+          conversation_id: string
+          created_at: string
+          description: string
+          embedding: string
+          evidence_count: number
+          first_seen_at: string
+          historical_weight: number
+          id: string
+          is_candidate: boolean
+          last_seen_at: string
+          name: string
+          similarity: number
+          updated_at: string
+        }[]
+      }
       release_conversation_topic_job: {
         Args: { p_job_id: string }
         Returns: undefined
