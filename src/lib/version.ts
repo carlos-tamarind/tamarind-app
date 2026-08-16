@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.2.09";
+export const APP_VERSION = "0.2.10";
 export const ENVIRONMENT = "Development";
 export const LAST_COMMIT = "";
 
