@@ -19,7 +19,7 @@ export async function markConversationTopicJobFailed(
   const { error } = await supabase
     .from("conversation_topic_jobs")
     .update({
-      status: "FAILED",
+      status: "QUARANTINED",
       last_error: lastError,
       processing_started_at: null,
     })
@@ -37,7 +37,7 @@ export async function requeueConversationTopicJobForRetry(
   const { error } = await supabase
     .from("conversation_topic_jobs")
     .update({
-      status: "QUEUED",
+      status: "RETRY_WAIT",
       next_retry_at: params.nextRetryAt.toISOString(),
       last_error: params.lastError,
       processing_started_at: null,
