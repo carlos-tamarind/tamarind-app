@@ -74,7 +74,7 @@ Steps:
 
 ## Phase C: CTI Worker
 
-**Entry:** [`runCtiWorker`](../../src/semantic/conversation-topics/runCtiWorker.ts)
+**Entry:** [`runCtiWorker`](../../src/semantic/conversation-topics/worker/runCtiWorker.ts)
 
 Triggered by external cron. Processes up to 50 jobs per tick, **one job at a time** (no batching).
 

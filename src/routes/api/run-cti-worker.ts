@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { runCtiWorker } from "@/semantic/conversation-topics/runCtiWorker";
+import { runCtiWorker } from "@/semantic/conversation-topics/worker/runCtiWorker";
 
 export const Route = createFileRoute("/api/run-cti-worker")({
   server: {

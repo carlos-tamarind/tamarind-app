@@ -1,5 +1,6 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
+import type { ConversationTopicJob } from "../types/job";
 import { classifyCtiError } from "./classifyCtiError";
 import {
   markConversationTopicJobQuarantined,
@@ -10,7 +11,6 @@ import {
   getNextRetryAt,
   hasExceededTransientBackoffs,
 } from "./retry";
-import type { ConversationTopicJob } from "./types";
 
 const LOG_SCOPE = "cti-worker";
 

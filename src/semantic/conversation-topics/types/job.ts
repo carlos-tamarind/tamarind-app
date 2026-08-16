@@ -5,10 +5,4 @@ export type ConversationTopicJob =
 
 export type CtiJobStatus = Database["public"]["Enums"]["cti_job_status"];
 
-export type CtiTransitionPlan = { kind: "noop" };
-
 export type CommitCtiJobResult = "committed" | "not_found" | "not_processing" | "not_next";
-
-export interface ConversationTopicEngine {
-  planTransition(input: { job: ConversationTopicJob }): Promise<CtiTransitionPlan>;
-}

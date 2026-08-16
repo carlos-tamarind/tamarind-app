@@ -119,7 +119,7 @@ A pg_cron job calls the CTI worker endpoint every minute via pg_net HTTP POST wi
 
 ### Worker execution
 
-[`runCtiWorker`](../../src/semantic/conversation-topics/runCtiWorker.ts):
+[`runCtiWorker`](../../src/semantic/conversation-topics/worker/runCtiWorker.ts):
 
 1. Claims **one** next-in-order job per iteration via `claim_conversation_topic_job`
 2. Runs the black-box `conversationTopicEngine` stub (no topic mutations yet)

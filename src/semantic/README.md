@@ -13,12 +13,15 @@ src/semantic/
 │   ├── types.ts
 │   ├── embeddingProvider.ts
 │   └── providers/openai/
-├── conversation-topics/                     # CTI worker (single-job, cron-driven)
-│   ├── runCtiWorker.ts
-│   ├── classifyCtiError.ts
-│   ├── claimJob.ts
-│   ├── commitCtiJob.ts
-│   └── engine.ts
+├── conversation-topics/                     # CTI (worker + engine)
+│   ├── types/                               # job + plan types
+│   ├── errors.ts                            # CtiPermanentError, CtiTransientError
+│   ├── worker/                              # durable job lifecycle
+│   │   └── runCtiWorker.ts
+│   └── engine/                              # planTransition core
+│       ├── conversationTopicEngine.ts
+│       ├── planTransition.ts
+│       └── persistence/
 └── messages/                                # Message indexing pipeline
     ├── message-checksum/
     ├── message-normalization/
@@ -42,7 +45,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `messages/message-persistence/persistMessageSemantics.ts` | `persistMessageSemantics` | Persist with dedup |
 | `messages/message-checksum/computeMessageChecksum.ts` | `computeMessageChecksum` | SHA-256 dedup key |
 | `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Embedding worker entry |
-| `conversation-topics/runCtiWorker.ts` | `runCtiWorker` | CTI worker entry |
+| `conversation-topics/worker/runCtiWorker.ts` | `runCtiWorker` | CTI worker entry |
 | `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic provider instance |
 | `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI API helper |
 | `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |

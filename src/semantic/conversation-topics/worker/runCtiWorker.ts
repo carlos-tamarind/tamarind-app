@@ -1,9 +1,9 @@
 import { DebugLogger } from "@/lib/debugLogger";
 
+import { conversationTopicEngine } from "../engine/conversationTopicEngine";
 import { claimConversationTopicJob } from "./claimJob";
 import { commitCtiJob, releaseConversationTopicJob } from "./commitCtiJob";
 import { CTI_CONFIG } from "./config";
-import { conversationTopicEngine } from "./engine";
 import { handleCtiJobError } from "./handleCtiError";
 
 const LOG_SCOPE = "cti-worker";
