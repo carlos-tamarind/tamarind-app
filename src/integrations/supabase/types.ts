@@ -1105,7 +1105,7 @@ export type Database = {
         Returns: {
           conversation_id: string
           created_at: string
-          description: string | null
+          description: string
           embedding: string
           evidence_count: number
           first_seen_at: string
@@ -1113,7 +1113,7 @@ export type Database = {
           id: string
           is_candidate: boolean
           last_seen_at: string
-          name: string | null
+          name: string
           similarity: number
           updated_at: string
         }[]
