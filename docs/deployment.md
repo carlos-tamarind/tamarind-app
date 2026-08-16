@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding worker scheduler
+  ├── pg_cron + pg_net       Embedding + CTI worker schedulers
   └── Migrations             supabase/migrations/
 ```
 
@@ -53,7 +53,8 @@ Supabase Project
 | `SUPABASE_PUBLISHABLE_KEY` | Supabase anon key (beacon save route) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client for RLS bypass |
 | `OPENAI_API_KEY` | OpenAI embeddings API |
-| `EMBEDDING_WORKER_SECRET` | Cron endpoint authentication |
+| `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
+| `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
@@ -88,7 +89,8 @@ Required in `.env.local`:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY` (for embedding pipeline)
-- `EMBEDDING_WORKER_SECRET` (for cron endpoint testing)
+- `EMBEDDING_WORKER_SECRET` (for embedding cron endpoint testing)
+- `CTI_WORKER_SECRET` (for CTI cron endpoint testing)
 
 ## Supabase Setup
 
@@ -120,6 +122,29 @@ SELECT cron.schedule(
 ```
 
 Replace the URL and secret with your deployment values.
+
+## CTI Worker Cron
+
+After deploying, configure a separate pg_cron job for the CTI worker:
+
+```sql
+SELECT cron.schedule(
+  'run-cti-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-cti-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cti-worker-secret', 'your-cti-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Replace the URL and secret with your deployment values. Do not enable this against production traffic until the CTI engine is implemented (the current stub completes jobs without topic mutations).
 
 ## Database Migrations
 

@@ -103,6 +103,17 @@ export async function markMessageSemanticsEmbedded(id: string): Promise<void> {
   });
 }
 
+/** Marks semantics EMBEDDED and enqueues a CTI job in one DB transaction. */
+export async function finalizeEmbeddedMessage(messageSemanticsId: string): Promise<void> {
+  const supabase = await getAdmin();
+
+  const { error } = await supabase.rpc("finalize_embedded_message", {
+    p_message_semantics_id: messageSemanticsId,
+  });
+
+  if (error) throw error;
+}
+
 export async function markMessageSemanticsFailed(id: string, lastError: string): Promise<void> {
   await updateMessageSemantics(id, {
     embedding_status: "FAILED",
