@@ -643,6 +643,47 @@ export type Database = {
           },
         ]
       }
+      page_chunks: {
+        Row: {
+          checksum: string
+          content: string
+          created_at: string
+          id: string
+          page_id: string
+          position: number
+          token_count: number
+          updated_at: string
+        }
+        Insert: {
+          checksum: string
+          content: string
+          created_at?: string
+          id?: string
+          page_id: string
+          position: number
+          token_count: number
+          updated_at?: string
+        }
+        Update: {
+          checksum?: string
+          content?: string
+          created_at?: string
+          id?: string
+          page_id?: string
+          position?: number
+          token_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_chunks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_collaborators: {
         Row: {
           first_edited_at: string
@@ -675,6 +716,59 @@ export type Database = {
             columns: ["workspace_user_id"]
             isOneToOne: false
             referencedRelation: "workspace_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_embeddings: {
+        Row: {
+          attempts: number
+          checksum: string
+          chunk_id: string
+          created_at: string
+          embedded_at: string | null
+          embedding: string | null
+          embedding_model: string
+          embedding_status: Database["public"]["Enums"]["page_embedding_status"]
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          checksum: string
+          chunk_id: string
+          created_at?: string
+          embedded_at?: string | null
+          embedding?: string | null
+          embedding_model: string
+          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          checksum?: string
+          chunk_id?: string
+          created_at?: string
+          embedded_at?: string | null
+          embedding?: string | null
+          embedding_model?: string
+          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_embeddings_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "page_chunks"
             referencedColumns: ["id"]
           },
         ]
@@ -1065,6 +1159,29 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_page_embedding_batch: {
+        Args: { p_batch_size?: number; p_stale_after?: string }
+        Returns: {
+          attempts: number
+          checksum: string
+          chunk_id: string
+          created_at: string
+          embedded_at: string | null
+          embedding: string | null
+          embedding_model: string
+          embedding_status: Database["public"]["Enums"]["page_embedding_status"]
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "page_embeddings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       commit_cti_job: { Args: { p_job_id: string }; Returns: string }
       cti_is_next_processable: {
         Args: { _conversation_id: string; _message_id: string }
@@ -1207,6 +1324,12 @@ export type Database = {
         | "EMBEDDED"
         | "FAILED"
         | "SKIPPED"
+      page_embedding_status:
+        | "QUEUED"
+        | "PROCESSING"
+        | "RETRY_WAIT"
+        | "EMBEDDED"
+        | "FAILED"
       page_origin: "user" | "conversation" | "import" | "ai"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
@@ -1371,6 +1494,13 @@ export const Constants = {
         "EMBEDDED",
         "FAILED",
         "SKIPPED",
+      ],
+      page_embedding_status: [
+        "QUEUED",
+        "PROCESSING",
+        "RETRY_WAIT",
+        "EMBEDDED",
+        "FAILED",
       ],
       page_origin: ["user", "conversation", "import", "ai"],
       page_type: ["standard", "template", "generated", "imported"],
