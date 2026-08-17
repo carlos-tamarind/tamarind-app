@@ -21,6 +21,7 @@ import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as ApiPublicInternalRunPageChunkingWorkerRouteImport } from './routes/api/public/internal/run-page-chunking-worker'
 import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
 import { Route as ApiPublicInternalRunCtiWorkerRouteImport } from './routes/api/public/internal/run-cti-worker'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
@@ -87,6 +88,12 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicInternalRunPageChunkingWorkerRoute =
+  ApiPublicInternalRunPageChunkingWorkerRouteImport.update({
+    id: '/api/public/internal/run-page-chunking-worker',
+    path: '/api/public/internal/run-page-chunking-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalRunEmbeddingWorkerRoute =
   ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
     id: '/api/public/internal/run-embedding-worker',
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
+  '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
+  '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -171,6 +180,7 @@ export interface FileRoutesById {
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
+  '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
+    | '/api/public/internal/run-page-chunking-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
+    | '/api/public/internal/run-page-chunking-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -228,6 +240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/w/$workspaceId/settings'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
+    | '/api/public/internal/run-page-chunking-worker'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -246,6 +259,7 @@ export interface RootRouteChildren {
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
   ApiPublicInternalRunCtiWorkerRoute: typeof ApiPublicInternalRunCtiWorkerRoute
   ApiPublicInternalRunEmbeddingWorkerRoute: typeof ApiPublicInternalRunEmbeddingWorkerRoute
+  ApiPublicInternalRunPageChunkingWorkerRoute: typeof ApiPublicInternalRunPageChunkingWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -334,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/internal/run-page-chunking-worker': {
+      id: '/api/public/internal/run-page-chunking-worker'
+      path: '/api/public/internal/run-page-chunking-worker'
+      fullPath: '/api/public/internal/run-page-chunking-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunPageChunkingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/run-embedding-worker': {
       id: '/api/public/internal/run-embedding-worker'
       path: '/api/public/internal/run-embedding-worker'
@@ -420,6 +441,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalRunCtiWorkerRoute: ApiPublicInternalRunCtiWorkerRoute,
   ApiPublicInternalRunEmbeddingWorkerRoute:
     ApiPublicInternalRunEmbeddingWorkerRoute,
+  ApiPublicInternalRunPageChunkingWorkerRoute:
+    ApiPublicInternalRunPageChunkingWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
