@@ -88,6 +88,8 @@ The workspace shell uses search params `?c=` and `?p=` to open conversations and
 | `POST /api/generate-embeddings` | OpenAI embedding proxy |
 | `POST /api/run-embedding-worker` | Dev-only manual embedding worker trigger |
 | `POST /api/public/internal/run-embedding-worker` | Production cron target (secret-gated) |
+| `POST /api/run-page-chunking-worker` | Dev-only manual page chunking worker trigger |
+| `POST /api/public/internal/run-page-chunking-worker` | Production page-chunking cron target (secret-gated) |
 
 See [API Routes](../api/readme.md) for details.
 
@@ -144,7 +146,7 @@ Admin operations that bypass RLS are limited to trusted server-side code. User-f
 Two background mechanisms exist:
 
 1. **Inline semantics** — `waitUntil()` in Cloudflare Workers runs normalization/scoring after message insert. See [Cron & Background Jobs](../cron/readme.md).
-2. **Embedding worker** — External cron (pg_cron + pg_net) calls a secret-protected HTTP endpoint to batch-process queued embeddings.
+2. **Cron workers** — External cron (pg_cron + pg_net) calls secret-protected HTTP endpoints for message embeddings, CTI, and page chunking.
 
 ## Related Docs
 

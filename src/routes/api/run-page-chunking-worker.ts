@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { runPageChunkingWorker } from "@/semantic/pages/page-chunks/worker/runPageChunkingWorker";
+
 export const Route = createFileRoute("/api/run-page-chunking-worker")({
   server: {
     handlers: {
@@ -9,15 +11,8 @@ export const Route = createFileRoute("/api/run-page-chunking-worker")({
         }
 
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin.rpc("list_pages_due_for_chunking", {
-            p_idle: "5 minutes",
-            p_limit: 20,
-          });
-          if (error) throw new Error(error.message);
-
-          const pageIds = (data ?? []).map((page) => page.id);
-          return Response.json({ pagesDue: pageIds.length, pageIds });
+          const result = await runPageChunkingWorker();
+          return Response.json(result);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           return Response.json({ error: message }, { status: 500 });
