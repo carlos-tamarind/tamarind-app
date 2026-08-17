@@ -88,8 +88,11 @@ erDiagram
 |-------|---------|-------------------|
 | `pages` | Rich-text documents (TipTap JSON) | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
+| `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
+
+`page_chunks.checksum` is a hex SHA-256 supplied by the app and is **not** globally unique — the same text can appear on many pages. `position` is ordering only, never identity: reconciliation must delete/reinsert rows rather than update by position, and deleting a chunk cascades away its embeddings.
 
 ### Semantic Layer (Schema-Ready)
 
