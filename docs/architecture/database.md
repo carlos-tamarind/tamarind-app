@@ -60,6 +60,7 @@ erDiagram
 | `annotation_type` | `mention_user`, `mention_entity`, `ticket_ref`, `inline_page_match`, `semantic_hint` |
 | `relation_type` | `quoted_from`, `derived_from_message`, `cited_in`, `child_of`, `attached_to`, `linked_by_user` |
 | `embedding_status` | `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` |
+| `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
 
 ## Tables
 
