@@ -187,6 +187,7 @@ Write patterns:
 | 2026-07-24 | Add `message_embeddings`, retry columns, queue indexes |
 | 2026-07-29 | Drop `token_count`, add `claim_embedding_batch` RPC |
 | 2026-07-30 | Enable `pg_cron`, `pg_net` |
+| 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
 
 ## Related Docs
 
