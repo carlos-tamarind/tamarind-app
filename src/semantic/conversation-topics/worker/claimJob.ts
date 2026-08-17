@@ -23,5 +23,9 @@ export async function claimConversationTopicJob(): Promise<ConversationTopicJob 
     throw error;
   }
 
-  return (data as ConversationTopicJob | null) ?? null;
+  // A composite-returning RPC yields an all-null row when nothing is claimable.
+  const job = (data as ConversationTopicJob | null) ?? null;
+  if (!job || !job.id) return null;
+
+  return job;
 }
