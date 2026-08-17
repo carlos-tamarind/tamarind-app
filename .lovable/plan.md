@@ -23,19 +23,26 @@ New file under `supabase/migrations/`.
 
 Then regenerate `src/integrations/supabase/types.ts`.
 
-## 2. Worker (list-only)
+## 2. HTTP endpoints (no worker module)
 
-- `src/semantic/pages/page-chunking/config.ts` — `PAGE_CHUNKING_DEBOUNCE_MS` (5 min) and `PAGE_CHUNKING_BATCH_SIZE` (20), plus a helper turning the debounce into a Postgres interval string.
-- `src/semantic/pages/page-chunking/listPagesDueForChunking.ts` — calls the RPC through `supabaseAdmin`, throws on error, returns the rows.
-- `src/semantic/pages/page-chunking/runPageChunkingWorker.ts` — one tick: list due pages, log via `DebugLogger`, return `{ pagesDue, pageIds }`. No chunk writes; the engine lands in a later change. Uses `id` + `content` from each row when the engine ships — `plain_text` is only the emptiness signal inside the RPC.
-
-## 3. HTTP endpoints
+The worker itself (`runPageChunkingWorker.ts`, `listPagesDueForChunking.ts`, config) is out of scope. The endpoints call `list_pages_due_for_chunking` inline through `supabaseAdmin` (imported inside the handler) and return `{ pagesDue, pageIds }`, so the cron path is verifiable end to end before the engine lands.
 
 Mirroring the embedding worker exactly:
-- `src/routes/api/public/internal/run-page-chunking-worker.ts` — POST, dedicated `PAGE_CHUNKING_WORKER_SECRET` checked against the `x-page-chunking-worker-secret` header with `timingSafeEqual`, opaque 404 on mismatch, 503 when the secret is unset.
+- `src/routes/api/public/internal/run-page-chunking-worker.ts` — POST, dedicated `PAGE_CHUNKING_WORKER_SECRET` checked against the `x-page-chunking-worker-secret` header with `timingSafeEqual`, opaque 404 on mismatch, 503 when the secret is unset, `DebugLogger` scope `page-chunking-worker-cron`.
 - `src/routes/api/run-page-chunking-worker.ts` — dev-only POST (404 unless `import.meta.env.DEV` or `VITE_DEBUG_LOGS === "true"`).
 
-The secret itself and the pg_cron schedule are not part of this change; they are a separate manual step like the CTI cron.
+Both pass `p_idle: '5 minutes'` and `p_limit: 20` for now.
+
+## 3. Secret
+
+Generate a new high-entropy `PAGE_CHUNKING_WORKER_SECRET` and store it as a backend secret — distinct from `EMBEDDING_WORKER_SECRET` and `CTI_WORKER_SECRET`, same split as those two.
+
+## 4. pg_cron schedule
+
+Schedule `run-page-chunking-worker` every minute against the stable production host already used by the embedding and CTI jobs (`project--6c222d90-e90d-4100-a4e1-d2ef132f172e.lovable.app`), posting to `/api/public/internal/run-page-chunking-worker` with `Content-Type: application/json`, the `x-page-chunking-worker-secret` header, and body `{}`. Run it via the data tool (not a migration, since it carries the secret), then verify with `cron.job` and `cron.job_run_details`.
+
+Note: like the existing jobs, this only does real work once the project has a published build on that host; until then the cron hits the 404 placeholder page.
+
 
 ## Notes and risks
 
