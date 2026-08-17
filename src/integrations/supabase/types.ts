@@ -1217,6 +1217,33 @@ export type Database = {
       }
       is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      list_pages_due_for_chunking: {
+        Args: { p_idle?: string; p_limit?: number }
+        Returns: {
+          content: Json
+          conversation_id: string | null
+          created_at: string
+          created_by_workspace_user_id: string | null
+          entity_id: string | null
+          id: string
+          last_modified_at: string
+          origin_source_id: string | null
+          origin_type: Database["public"]["Enums"]["page_origin"]
+          owner_workspace_user_id: string | null
+          page_type: Database["public"]["Enums"]["page_type"]
+          parent_page_id: string | null
+          plain_text: string | null
+          title: string
+          visibility: Database["public"]["Enums"]["page_visibility"]
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       match_conversation_topics: {
         Args: { p_conversation_id: string; p_message_id: string }
         Returns: {
