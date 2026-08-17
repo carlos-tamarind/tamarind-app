@@ -41,6 +41,9 @@ erDiagram
 
     messages ||--|| message_semantics : has
     message_semantics ||--o{ message_embeddings : has
+
+    pages ||--o{ page_chunks : has
+    page_chunks ||--o{ page_embeddings : has
 ```
 
 ## Enums
