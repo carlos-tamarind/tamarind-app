@@ -41,6 +41,9 @@ erDiagram
 
     messages ||--|| message_semantics : has
     message_semantics ||--o{ message_embeddings : has
+
+    pages ||--o{ page_chunks : has
+    page_chunks ||--o{ page_embeddings : has
 ```
 
 ## Enums
@@ -57,6 +60,7 @@ erDiagram
 | `annotation_type` | `mention_user`, `mention_entity`, `ticket_ref`, `inline_page_match`, `semantic_hint` |
 | `relation_type` | `quoted_from`, `derived_from_message`, `cited_in`, `child_of`, `attached_to`, `linked_by_user` |
 | `embedding_status` | `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` |
+| `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
 
 ## Tables
 
@@ -84,8 +88,11 @@ erDiagram
 |-------|---------|-------------------|
 | `pages` | Rich-text documents (TipTap JSON) | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
+| `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
+
+`page_chunks.checksum` is a hex SHA-256 supplied by the app and is **not** globally unique — the same text can appear on many pages. `position` is ordering only, never identity: reconciliation must delete/reinsert rows rather than update by position, and deleting a chunk cascades away its embeddings.
 
 ### Semantic Layer (Schema-Ready)
 
@@ -104,6 +111,13 @@ erDiagram
 |-------|---------|-------------------|
 | `message_semantics` | Normalized text, quality score, embedding queue state | → `messages` (1:1, CASCADE); UNIQUE(message_id), UNIQUE(checksum) |
 | `message_embeddings` | Vector embeddings for semantic search | → `message_semantics` (CASCADE); `embedding_vector vector(1536)` |
+| `page_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
+
+**Page embedding queue.** `page_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
+
+**Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
+
+**Access.** `page_chunks` and `page_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `EXISTS (… FROM public.pages …)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
 
 ## Key Indexes
 
@@ -120,6 +134,10 @@ erDiagram
 | `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
+| `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
+| `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
+| `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Future page semantic search |
 
 ## Database Functions
 
@@ -133,6 +151,8 @@ erDiagram
 | `tiptap_to_plaintext(doc jsonb)` | Generated column helper for pages.plain_text |
 | `set_last_modified_at()` | Trigger: auto-update last_modified_at |
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
+| `claim_page_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
+| `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
@@ -167,6 +187,7 @@ Write patterns:
 | 2026-07-24 | Add `message_embeddings`, retry columns, queue indexes |
 | 2026-07-29 | Drop `token_count`, add `claim_embedding_batch` RPC |
 | 2026-07-30 | Enable `pg_cron`, `pg_net` |
+| 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
 
 ## Related Docs
 
