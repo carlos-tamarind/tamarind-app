@@ -92,7 +92,7 @@ erDiagram
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
 
-`page_chunks.checksum` is a hex SHA-256 supplied by the app and is **not** globally unique — the same text can appear on many pages. `position` is ordering only, never identity: reconciliation must delete/reinsert rows rather than update by position, and deleting a chunk cascades away its embeddings.
+`page_chunks.checksum` is a hex SHA-256 supplied by the app and is **not** globally unique — the same text can appear on many pages. `position` is ordering only, never identity: reconciliation matches on checksum and keeps chunk ids when content is unchanged; unmatched rows are deleted (cascading embeddings).
 
 ### Semantic Layer (Schema-Ready)
 
@@ -134,6 +134,7 @@ erDiagram
 | `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
+| `idx_pages_last_modified_at` | pages | `(last_modified_at)` | Page chunking due-list |
 | `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
 | `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
 | `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
@@ -152,6 +153,7 @@ erDiagram
 | `set_last_modified_at()` | Trigger: auto-update last_modified_at |
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
 | `claim_page_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
+| `list_pages_due_for_chunking(p_idle, p_limit)` | Pipeline: pages idle past debounce that need first chunk, re-chunk, or empty-page cleanup (service_role only) |
 | `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
@@ -188,6 +190,7 @@ Write patterns:
 | 2026-07-29 | Drop `token_count`, add `claim_embedding_batch` RPC |
 | 2026-07-30 | Enable `pg_cron`, `pg_net` |
 | 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
+| 2026-08-17 | Add `list_pages_due_for_chunking` RPC and `idx_pages_last_modified_at` |
 
 ## Related Docs
 

@@ -87,6 +87,19 @@ Steps:
 
 `QUARANTINED` jobs do not block later messages. `RETRY_WAIT` keeps the cursor on the failed job until backoff or the 24h halt expires.
 
+## Page Chunking Worker
+
+**Entry:** [`runPageChunkingWorker`](../../src/semantic/pages/page-chunks/worker/runPageChunkingWorker.ts)
+
+Triggered by external cron after page content has been idle for `PAGE_CHUNKING_DEBOUNCE_MS` (5 minutes). `pages.last_modified_at` is the pending signal; there is no `waitUntil` on save.
+
+Steps:
+1. `listPagesDueForChunking()` — RPC `list_pages_due_for_chunking`
+2. `chunkPageContent(content)` — TipTap structural pack (header glue, 500/650 tokens)
+3. `reconcilePageChunks()` — checksum identity, preserve ids, queue new embeddings as `QUEUED`
+
+Per-page failures are logged and do not abort the rest of the tick.
+
 ## Embedding Status Lifecycle
 
 ```

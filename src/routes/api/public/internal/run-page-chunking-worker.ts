@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { timingSafeEqual } from "node:crypto";
 
 import { DebugLogger } from "@/lib/debugLogger";
+import { runPageChunkingWorker } from "@/semantic/pages/page-chunks/worker/runPageChunkingWorker";
 
 const LOG_SCOPE = "page-chunking-worker-cron";
 const SECRET_HEADER = "x-page-chunking-worker-secret";
@@ -38,20 +39,13 @@ export const Route = createFileRoute("/api/public/internal/run-page-chunking-wor
         }
 
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin.rpc("list_pages_due_for_chunking", {
-            p_idle: "5 minutes",
-            p_limit: 20,
-          });
-          if (error) throw new Error(error.message);
-
-          const pageIds = (data ?? []).map((page) => page.id);
+          const result = await runPageChunkingWorker();
           DebugLogger.log({
             scope: LOG_SCOPE,
             event: "TICK_COMPLETE",
-            message: `${pageIds.length} pages due`,
+            message: `${result.processed} processed · ${result.queued} queued · ${result.errors} errors`,
           });
-          return Response.json({ pagesDue: pageIds.length, pageIds });
+          return Response.json(result);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           DebugLogger.log({

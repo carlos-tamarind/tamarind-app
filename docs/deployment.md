@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding + CTI worker schedulers
+  ├── pg_cron + pg_net       Embedding, CTI, and page-chunking worker schedulers
   └── Migrations             supabase/migrations/
 ```
 
@@ -55,6 +55,7 @@ Supabase Project
 | `OPENAI_API_KEY` | OpenAI embeddings API |
 | `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
+| `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
@@ -91,6 +92,7 @@ Required in `.env.local`:
 - `OPENAI_API_KEY` (for embedding pipeline)
 - `EMBEDDING_WORKER_SECRET` (for embedding cron endpoint testing)
 - `CTI_WORKER_SECRET` (for CTI cron endpoint testing)
+- `PAGE_CHUNKING_WORKER_SECRET` (for page chunking cron endpoint testing)
 
 ## Supabase Setup
 
@@ -145,6 +147,29 @@ SELECT cron.schedule(
 ```
 
 Replace the URL and secret with your deployment values. The worker now runs the full CTI engine (topic matching, optional LLM, and atomic apply+commit).
+
+## Page Chunking Worker Cron
+
+After deploying, configure a separate pg_cron job for the page chunking worker:
+
+```sql
+SELECT cron.schedule(
+  'run-page-chunking-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-page-chunking-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-page-chunking-worker-secret', 'your-page-chunking-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Replace the URL and secret with your deployment values. The worker chunks idle pages and queues `page_embeddings` as `QUEUED`; it does not call OpenAI.
 
 ## Database Migrations
 

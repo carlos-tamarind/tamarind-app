@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding and CTI workers.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, and page-chunking workers.
 
 ## Overview
 
@@ -26,9 +26,17 @@ flowchart TB
     Cti["apply_cti_plan_and_commit"]
   end
 
+  subgraph cronPages [Scheduled: page chunking]
+    PGCronPages["pg_cron (every minute)"]
+    PGNetPages["pg_net HTTP POST"]
+    WorkerPages["runPageChunkingWorker"]
+    Chunks["page_chunks + QUEUED embeddings"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
+  PGCronPages --> PGNetPages --> WorkerPages --> Chunks
 ```
 
 ## Inline Semantics Processing
@@ -160,6 +168,27 @@ WHERE id = '<job-id>';
 
 Quarantined messages are not replayed automatically (optional later backfill).
 
+## Page Chunking Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (separate from embedding/CTI)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job calls the page-chunking worker every minute via pg_net HTTP POST with the `x-page-chunking-worker-secret` header.
+
+### Worker execution
+
+[`runPageChunkingWorker`](../../src/semantic/pages/page-chunks/worker/runPageChunkingWorker.ts):
+
+1. Lists due pages via `list_pages_due_for_chunking` (idle ≥ `PAGE_CHUNKING_DEBOUNCE_MS`, default 5 minutes)
+2. Walks TipTap JSON into structural chunks (header glue, ~500 token target, 650 hard cap)
+3. Reconciles `page_chunks` by SHA-256 checksum (keeps row ids when content is unchanged)
+4. Inserts `page_embeddings` rows as `QUEUED` for new/changed chunks only
+
+This worker does **not** call OpenAI. Vector generation is a later epic (`claim_page_embedding_batch` is already in the schema).
+
+Content saves already bump `pages.last_modified_at`; that timestamp is the debounce signal. Empty never-chunked pages are skipped. Historical pages drain gradually, longest-idle first, `PAGE_CHUNKING_BATCH_SIZE` (20) per tick.
+
 ## Dev Manual Triggers
 
 For local testing without pg_cron:
@@ -167,6 +196,7 @@ For local testing without pg_cron:
 ```
 POST /api/run-embedding-worker
 POST /api/run-cti-worker
+POST /api/run-page-chunking-worker
 ```
 
 Available only in development mode (404 in production). See [API Routes](../api/readme.md).

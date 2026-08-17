@@ -1,6 +1,6 @@
 # Semantic Pipeline Overview
 
-The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker.
+The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_embeddings` as `QUEUED` (vectors are a later epic).
 
 Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
@@ -70,6 +70,8 @@ Phase B is triggered externally:
 |----------|---------|
 | [`src/routes/api/public/internal/run-embedding-worker.ts`](../../src/routes/api/public/internal/run-embedding-worker.ts) | pg_cron via pg_net (production) |
 | [`src/routes/api/run-embedding-worker.ts`](../../src/routes/api/run-embedding-worker.ts) | Manual trigger (dev-only) |
+| [`src/routes/api/public/internal/run-page-chunking-worker.ts`](../../src/routes/api/public/internal/run-page-chunking-worker.ts) | pg_cron via pg_net (production page chunking) |
+| [`src/routes/api/run-page-chunking-worker.ts`](../../src/routes/api/run-page-chunking-worker.ts) | Manual page chunking trigger (dev-only) |
 
 ## Database Tables
 
@@ -77,6 +79,8 @@ Phase B is triggered externally:
 |-------|------|
 | `message_semantics` | Normalized text, quality score, embedding queue state (1:1 with messages) |
 | `message_embeddings` | Vector embeddings linked to message_semantics rows |
+| `page_chunks` | Structural page segments (`content`, `checksum`, `token_count`, `position`) |
+| `page_embeddings` | Queue + vectors per chunk; chunking worker inserts `QUEUED` rows |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 
