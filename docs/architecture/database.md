@@ -134,6 +134,10 @@ erDiagram
 | `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
+| `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
+| `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
+| `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Future page semantic search |
 
 ## Database Functions
 
