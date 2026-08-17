@@ -151,6 +151,8 @@ erDiagram
 | `tiptap_to_plaintext(doc jsonb)` | Generated column helper for pages.plain_text |
 | `set_last_modified_at()` | Trigger: auto-update last_modified_at |
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
+| `claim_page_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
+| `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
