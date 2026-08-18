@@ -96,6 +96,7 @@ Required in `.env.local`:
 - `CTI_WORKER_SECRET` (for CTI cron endpoint testing)
 - `PAGE_CHUNKING_WORKER_SECRET` (for page chunking cron endpoint testing)
 - `PAGE_EMBEDDING_WORKER_SECRET` (for page embedding cron endpoint testing)
+- `PAGE_SEMANTIC_WORKER_SECRET` (for page semantic cron endpoint testing)
 
 ## Supabase Setup
 
