@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, and page-embedding workers.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, page-embedding, and page-semantic workers.
 
 ## Overview
 
