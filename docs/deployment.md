@@ -57,6 +57,7 @@ Supabase Project
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
 | `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
+| `PAGE_SEMANTIC_WORKER_SECRET` | Page semantic cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
