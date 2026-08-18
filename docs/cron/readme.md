@@ -181,7 +181,7 @@ A pg_cron job calls the page-chunking worker every minute via pg_net HTTP POST w
 [`runPageChunkingWorker`](../../src/semantic/pages/page-chunks/worker/runPageChunkingWorker.ts):
 
 1. Lists due pages via `list_pages_due_for_chunking` (idle ≥ `PAGE_CHUNKING_DEBOUNCE_MS`, default 5 minutes)
-2. Walks TipTap JSON into structural chunks (header glue, ~500 token target, 650 hard cap)
+2. Walks TipTap JSON into structural chunks (header glue, ~300 token target, 350 hard cap)
 3. Reconciles `page_chunks` by SHA-256 checksum (keeps row ids when content is unchanged)
 4. Inserts `page_embeddings` rows as `QUEUED` for new/changed chunks only
 
