@@ -1214,6 +1214,7 @@ export type Database = {
         }
         Returns: string
       }
+      can_read_page: { Args: { _page_id: string }; Returns: boolean }
       claim_conversation_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
