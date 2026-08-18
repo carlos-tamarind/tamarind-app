@@ -122,7 +122,7 @@ erDiagram
 
 **Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
 
-**Access.** `page_chunks` and `page_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `EXISTS (… FROM public.pages …)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+**Access.** `page_chunks`, `page_embeddings`, `page_semantics`, and `page_semantic_jobs` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `EXISTS (… FROM public.pages …)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
 
 ## Key Indexes
 
