@@ -95,7 +95,7 @@ Triggered by external cron after page content has been idle for `PAGE_CHUNKING_D
 
 Steps:
 1. `listPagesDueForChunking()` — RPC `list_pages_due_for_chunking`
-2. `chunkPageContent(content)` — TipTap structural pack (header glue, 500/650 tokens)
+2. `chunkPageContent(content)` — TipTap structural pack (header glue, 300/350 tokens)
 3. `reconcilePageChunks()` — checksum identity, preserve ids, queue new embeddings as `QUEUED`
 
 Per-page failures are logged and do not abort the rest of the tick.
