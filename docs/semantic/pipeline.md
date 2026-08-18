@@ -115,6 +115,23 @@ Steps:
 
 See [Page Embedding](page_embedding.md).
 
+## Page Semantic Worker
+
+**Entry:** [`runPageSemanticWorker`](../../src/semantic/pages/page-semantics/worker/runPageSemanticWorker.ts)
+
+Triggered by a separate external cron (`PAGE_SEMANTIC_WORKER_SECRET`). Each tick sweeps due pages then processes up to 8 LLM jobs.
+
+Steps:
+1. `list_pages_due_for_semantics` — idle ≥ 5 minutes, hash drift / never analyzed / empty cleanup
+2. Token-count threshold 300 (or no snapshot → enqueue). `enqueue_page_semantic_job`
+3. `claim_page_semantic_job` — one `QUEUED` / due `RETRY_WAIT`, stale `PROCESSING` recovery via `started_at`
+4. Live SHA-256 vs job hash; mismatch → `apply_page_semantic_result` `drifted` (no LLM)
+5. `llmProvider.complete` (`gpt-5.4-nano`) with title + `plain_text`
+6. On success: `apply_page_semantic_result` upserts `page_semantics` + `COMPLETED`
+7. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx circuit-breaks the tick
+
+See [Page Semantics](page_semantic.md).
+
 ## Embedding Status Lifecycle
 
 ```
@@ -170,4 +187,5 @@ Before insert, `computeMessageChecksum(normalizedText)` generates a SHA-256 hash
 - [Scoring](msg_scoring.md)
 - [Embedding](msg_embedding.md)
 - [Page Embedding](page_embedding.md)
+- [Page Semantics](page_semantic.md)
 - [Cron & Background Jobs](../cron/readme.md)

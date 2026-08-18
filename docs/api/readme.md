@@ -192,13 +192,11 @@ Manual trigger for the page semantic worker during local development.
 
 ```json
 {
-  "analyzed": 0,
-  "skipped": 0,
+  "analyzed": 2,
+  "skipped": 1,
   "failed": 0
 }
 ```
-
-> The analysis engine is not implemented yet — the runner is a thin placeholder, so the endpoint currently returns zeroes.
 
 ## POST /api/public/internal/run-page-semantic-worker
 

@@ -148,7 +148,7 @@ Admin operations that bypass RLS are limited to trusted server-side code. User-f
 Two background mechanisms exist:
 
 1. **Inline semantics** — `waitUntil()` in Cloudflare Workers runs normalization/scoring after message insert. See [Cron & Background Jobs](../cron/readme.md).
-2. **Cron workers** — External cron (pg_cron + pg_net) calls secret-protected HTTP endpoints for message embeddings, CTI, page chunking, and page embedding.
+2. **Cron workers** — External cron (pg_cron + pg_net) calls secret-protected HTTP endpoints for message embeddings, CTI, page chunking, page embedding, and page semantics.
 
 ## Related Docs
 
