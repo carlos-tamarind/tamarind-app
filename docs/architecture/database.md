@@ -191,6 +191,7 @@ Write patterns:
 | 2026-07-30 | Enable `pg_cron`, `pg_net` |
 | 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
 | 2026-08-17 | Add `list_pages_due_for_chunking` RPC and `idx_pages_last_modified_at` |
+| 2026-08-18 | Add `page_semantics`, `page_semantic_jobs`, `page_semantic_job_status` enum, and the page-semantics RPCs |
 
 ## Related Docs
 
