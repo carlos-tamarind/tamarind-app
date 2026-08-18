@@ -162,7 +162,11 @@ erDiagram
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
 | `claim_page_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
 | `list_pages_due_for_chunking(p_idle, p_limit)` | Pipeline: pages idle past debounce that need first chunk, re-chunk, or empty-page cleanup (service_role only) |
-| `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
+| `list_pages_due_for_semantics(p_idle, p_limit)` | Pipeline: idle pages whose live `plain_text` SHA-256 differs from `page_semantics.page_snapshot_hash` (or never analyzed / emptied). Returns `page_id, title, plain_text, page_snapshot, page_snapshot_hash`; `p_limit` capped at 100. Token threshold stays in the app (service_role only) |
+| `claim_page_semantic_job(p_stale_after)` | Pipeline: claim one analysis job, `SKIP LOCKED`, recovers stale `PROCESSING` via `started_at`, bumps `attempts` (service_role only) |
+| `enqueue_page_semantic_job(p_page_id, p_hash)` | Pipeline: upsert the in-flight job — overwrites hash and resets `QUEUED`/`RETRY_WAIT` rows, no-ops while `PROCESSING`. Returns `enqueued` / `requeued` / `processing` (service_role only) |
+| `apply_page_semantic_result(p_job_id, p_topic_name, p_topic_description, p_page_snapshot, p_page_snapshot_hash, p_llm_model)` | Pipeline: atomic commit — re-checks the live page hash, upserts `page_semantics` and completes the job. Returns `committed` / `drifted` / `not_processing` / `not_found` (service_role only) |
+| `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` / `set_page_semantics_updated_at()` / `set_page_semantic_jobs_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
