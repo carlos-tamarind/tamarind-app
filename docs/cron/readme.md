@@ -33,10 +33,18 @@ flowchart TB
     Chunks["page_chunks + QUEUED embeddings"]
   end
 
+  subgraph cronPageEmbed [Scheduled: page embedding]
+    PGCronPageEmbed["pg_cron (every minute)"]
+    PGNetPageEmbed["pg_net HTTP POST"]
+    WorkerPageEmbed["runPageEmbeddingWorker"]
+    PageEmbed["OpenAI → page_embeddings"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
   PGCronPages --> PGNetPages --> WorkerPages --> Chunks
+  PGCronPageEmbed --> PGNetPageEmbed --> WorkerPageEmbed --> PageEmbed
 ```
 
 ## Inline Semantics Processing
@@ -204,8 +212,9 @@ A pg_cron job calls the page embedding worker every minute via pg_net HTTP POST 
 1. Claims up to 20 rows via `claim_page_embedding_batch` (`QUEUED` + `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
 2. Loads the matching `page_chunks` text and compares the live checksum against the claimed row
 3. Bumps `updated_at` as a heartbeat before the OpenAI call, so overlapping ticks cannot double-embed
-4. Embeds the batch with `text-embedding-3-small`
-5. Persists guarded: `UPDATE ... WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?`
+4. Embeds the batch with each row’s `embedding_model` (chunking default is `text-embedding-3-small`)
+5. Persists guarded: `UPDATE ... WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?` (vector + `EMBEDDED`, `attempts` reset; does not rewrite `embedding_model`)
+6. Transient 429/5xx requeue then circuit-break the tick (`TICK_CIRCUIT_BREAK`)
 
 ### Invariants
 
@@ -236,5 +245,6 @@ Available only in development mode (404 in production). See [API Routes](../api/
 
 - [Semantic Pipeline](../semantic/pipeline.md) — Full processing flow
 - [Embedding](../semantic/msg_embedding.md) — Worker details
+- [Page Embedding](../semantic/page_embedding.md) — Page chunk vector worker
 - [API Routes](../api/readme.md) — HTTP endpoints
 - [Deployment](../deployment.md) — Environment setup

@@ -73,6 +73,8 @@ Phase B is triggered externally:
 | [`src/routes/api/run-embedding-worker.ts`](../../src/routes/api/run-embedding-worker.ts) | Manual trigger (dev-only) |
 | [`src/routes/api/public/internal/run-page-chunking-worker.ts`](../../src/routes/api/public/internal/run-page-chunking-worker.ts) | pg_cron via pg_net (production page chunking) |
 | [`src/routes/api/run-page-chunking-worker.ts`](../../src/routes/api/run-page-chunking-worker.ts) | Manual page chunking trigger (dev-only) |
+| [`src/routes/api/public/internal/run-page-embedding-worker.ts`](../../src/routes/api/public/internal/run-page-embedding-worker.ts) | pg_cron via pg_net (production page embedding) |
+| [`src/routes/api/run-page-embedding-worker.ts`](../../src/routes/api/run-page-embedding-worker.ts) | Manual page embedding trigger (dev-only) |
 
 ## Database Tables
 
@@ -81,7 +83,7 @@ Phase B is triggered externally:
 | `message_semantics` | Normalized text, quality score, embedding queue state (1:1 with messages) |
 | `message_embeddings` | Vector embeddings linked to message_semantics rows |
 | `page_chunks` | Structural page segments (`content`, `checksum`, `token_count`, `position`) |
-| `page_embeddings` | Queue + vectors per chunk; chunking worker inserts `QUEUED` rows |
+| `page_embeddings` | Queue + vectors per chunk; chunking inserts `QUEUED`, the page embedding worker writes `EMBEDDED` |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 

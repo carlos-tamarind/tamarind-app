@@ -100,6 +100,21 @@ Steps:
 
 Per-page failures are logged and do not abort the rest of the tick.
 
+## Page Embedding Worker
+
+**Entry:** [`runPageEmbeddingWorker`](../../src/semantic/pages/page-embeddings/worker/runPageEmbeddingWorker.ts)
+
+Triggered by a separate external cron (`PAGE_EMBEDDING_WORKER_SECRET`). Processes up to 5 batches per tick, 20 rows per batch.
+
+Steps:
+1. `claimPageEmbeddingBatch()` — RPC `claim_page_embedding_batch` locks `QUEUED` / due `RETRY_WAIT` (and stale `PROCESSING`) as `PROCESSING`
+2. Load `page_chunks` text; skip missing chunks; requeue checksum drift as `QUEUED`
+3. Heartbeat `updated_at`, then `embeddingProvider.embedBatch()` using each row’s `embedding_model`
+4. On success: guarded persist → `EMBEDDED` (vector + `embedded_at`, `attempts` reset; `embedding_model` unchanged)
+5. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx circuit-breaks the rest of the tick
+
+See [Page Embedding](page_embedding.md).
+
 ## Embedding Status Lifecycle
 
 ```
@@ -154,4 +169,5 @@ Before insert, `computeMessageChecksum(normalizedText)` generates a SHA-256 hash
 - [Normalization](msg_normalization.md)
 - [Scoring](msg_scoring.md)
 - [Embedding](msg_embedding.md)
+- [Page Embedding](page_embedding.md)
 - [Cron & Background Jobs](../cron/readme.md)
