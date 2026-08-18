@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, and page-embedding schedulers
+  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, page-embedding, and page-semantic schedulers
   └── Migrations             supabase/migrations/
 ```
 
