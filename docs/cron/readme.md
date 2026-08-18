@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, and page-chunking workers.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, and page-embedding workers.
 
 ## Overview
 
@@ -185,9 +185,33 @@ A pg_cron job calls the page-chunking worker every minute via pg_net HTTP POST w
 3. Reconciles `page_chunks` by SHA-256 checksum (keeps row ids when content is unchanged)
 4. Inserts `page_embeddings` rows as `QUEUED` for new/changed chunks only
 
-This worker does **not** call OpenAI. Vector generation is a later epic (`claim_page_embedding_batch` is already in the schema).
+This worker does **not** call OpenAI. Vector generation belongs to the page embedding worker below.
 
 Content saves already bump `pages.last_modified_at`; that timestamp is the debounce signal. Empty never-chunked pages are skipped. Historical pages drain gradually, longest-idle first, `PAGE_CHUNKING_BATCH_SIZE` (20) per tick.
+
+## Page Embedding Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (separate secret from the other workers)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job calls the page embedding worker every minute via pg_net HTTP POST with the `x-page-embedding-worker-secret` header (`PAGE_EMBEDDING_WORKER_SECRET`).
+
+### Worker execution
+
+[`runPageEmbeddingWorker`](../../src/semantic/pages/page-embeddings/worker/runPageEmbeddingWorker.ts):
+
+1. Claims up to 20 rows via `claim_page_embedding_batch` (`QUEUED` + `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
+2. Loads the matching `page_chunks` text and compares the live checksum against the claimed row
+3. Bumps `updated_at` as a heartbeat before the OpenAI call, so overlapping ticks cannot double-embed
+4. Embeds the batch with `text-embedding-3-small`
+5. Persists guarded: `UPDATE ... WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?`
+
+### Invariants
+
+- **Heartbeat is an app contract**, not a column. Any UPDATE fires `trg_page_embeddings_updated_at`; the worker must touch rows before long calls.
+- **Retries follow the CTI pattern.** Transient errors → `RETRY_WAIT` with exponential backoff; after `MAX_TRANSIENT_BACKOFFS` (5) the row gets a 24h `next_retry_at` with `attempts` reset. `FAILED` is only for permanent errors and is never claimed.
+- **Drift is a skip, not a failure.** Missing chunk → no-op (CASCADE already removed the row); checksum mismatch → requeued as `QUEUED` with the live checksum and logged.
 
 ## Dev Manual Triggers
 
@@ -197,6 +221,7 @@ For local testing without pg_cron:
 POST /api/run-embedding-worker
 POST /api/run-cti-worker
 POST /api/run-page-chunking-worker
+POST /api/run-page-embedding-worker
 ```
 
 Available only in development mode (404 in production). See [API Routes](../api/readme.md).
