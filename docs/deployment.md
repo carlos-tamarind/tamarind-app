@@ -198,6 +198,30 @@ SELECT cron.schedule(
 
 Use a dedicated secret — do not reuse `EMBEDDING_WORKER_SECRET`, so a leak or rotation stays scoped to one endpoint. The worker claims `QUEUED`/`RETRY_WAIT` rows via `claim_page_embedding_batch`, embeds the matching chunk text, and persists the vector only while the row is still `PROCESSING` with an unchanged checksum.
 
+## Page Semantic Worker Cron
+
+After deploying, configure a separate pg_cron job for the page semantic worker:
+
+```sql
+SELECT cron.schedule(
+  'run-page-semantic-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-page-semantic-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-page-semantic-worker-secret', 'your-page-semantic-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. The page chunking cron stays the sweeper; no extra sweeper secret is needed. The runner is a placeholder until the analysis engine lands.
+
+
 ## Database Migrations
 
 Migrations are SQL files in [`supabase/migrations/`](../../supabase/migrations/). Apply via Supabase CLI or dashboard:
