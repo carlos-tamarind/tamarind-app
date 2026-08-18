@@ -58,16 +58,15 @@ export async function persistPageEmbedding(options: {
   id: string;
   checksum: string;
   embedding: number[];
-  model: string;
 }): Promise<boolean> {
   const supabase = await getAdmin();
   const { data, error } = await supabase
     .from("page_embeddings")
     .update({
       embedding: formatEmbeddingVector(options.embedding),
-      embedding_model: options.model,
       embedding_status: "EMBEDDED",
       embedded_at: new Date().toISOString(),
+      attempts: 0,
       last_error: null,
       next_retry_at: null,
     })

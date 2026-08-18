@@ -36,6 +36,7 @@ type BatchOutcome = {
   embedded: number;
   skipped: number;
   failed: number;
+  circuitBreak: boolean;
 };
 
 async function handleBatchError(
@@ -86,6 +87,7 @@ async function processClaimedBatch(): Promise<BatchOutcome> {
     embedded: 0,
     skipped: 0,
     failed: 0,
+    circuitBreak: false,
   };
   if (claimedRows.length === 0) return outcome;
 
@@ -131,55 +133,67 @@ async function processClaimedBatch(): Promise<BatchOutcome> {
 
   if (embeddable.length === 0) return outcome;
 
-  // Heartbeat before the long call so stale recovery does not double-embed.
-  await touchPageEmbeddings(embeddable.map((item) => item.row.id));
-
-  const timer = DebugLogger.time("generate-page-embedding", "EMBEDDING_TIME");
-  const result = await embeddingProvider.embedBatch({
-    model: PAGE_EMBEDDING_CONFIG.PAGE_EMBEDDING_MODEL,
-    texts: embeddable.map((item) => item.content),
-  });
-  timer.end();
-
-  if (!isEmbedSuccess(result)) {
-    const message = "error" in result.body ? result.body.error : "Unknown embedding error";
-    await handleBatchError(
-      embeddable.map((item) => item.row),
-      result.status,
-      message,
-    );
-    outcome.failed += embeddable.length;
-    return outcome;
+  const byModel = new Map<string, Array<{ row: PageEmbeddingRow; content: string }>>();
+  for (const item of embeddable) {
+    const model = item.row.embedding_model;
+    const group = byModel.get(model);
+    if (group) group.push(item);
+    else byModel.set(model, [item]);
   }
 
-  const { embeddings, model } = result.body;
+  for (const [model, items] of byModel) {
+    // Heartbeat before the long call so stale recovery does not double-embed.
+    await touchPageEmbeddings(items.map((item) => item.row.id));
 
-  for (let index = 0; index < embeddable.length; index += 1) {
-    const item = embeddable[index]!;
-    const vector = embeddings[index];
-    if (!vector) {
-      outcome.failed += 1;
-      await markPageEmbeddingFailed(item.row.id, "Provider returned no vector for this text");
-      continue;
+    const timer = DebugLogger.time("generate-page-embedding", "EMBEDDING_TIME");
+    const result = await embeddingProvider.embedBatch({
+      model,
+      texts: items.map((item) => item.content),
+    });
+    timer.end();
+
+    if (!isEmbedSuccess(result)) {
+      const message = "error" in result.body ? result.body.error : "Unknown embedding error";
+      await handleBatchError(
+        items.map((item) => item.row),
+        result.status,
+        message,
+      );
+      outcome.failed += items.length;
+      if (isTransientEmbeddingError(result.status)) {
+        outcome.circuitBreak = true;
+      }
+      return outcome;
     }
 
-    const persisted = await persistPageEmbedding({
-      id: item.row.id,
-      checksum: item.row.checksum,
-      embedding: vector.embedding,
-      model,
-    });
+    const { embeddings } = result.body;
 
-    if (persisted) {
-      outcome.embedded += 1;
-    } else {
-      outcome.skipped += 1;
-      DebugLogger.log({
-        scope: LOG_SCOPE,
-        event: "PERSIST_SKIPPED",
-        message: `${item.row.id} · row drifted during embed`,
-        level: "warn",
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index]!;
+      const vector = embeddings[index];
+      if (!vector) {
+        outcome.failed += 1;
+        await markPageEmbeddingFailed(item.row.id, "Provider returned no vector for this text");
+        continue;
+      }
+
+      const persisted = await persistPageEmbedding({
+        id: item.row.id,
+        checksum: item.row.checksum,
+        embedding: vector.embedding,
       });
+
+      if (persisted) {
+        outcome.embedded += 1;
+      } else {
+        outcome.skipped += 1;
+        DebugLogger.log({
+          scope: LOG_SCOPE,
+          event: "PERSIST_SKIPPED",
+          message: `${item.row.id} · row drifted during embed`,
+          level: "warn",
+        });
+      }
     }
   }
 
@@ -204,6 +218,16 @@ export async function runPageEmbeddingWorker(): Promise<RunPageEmbeddingWorkerRe
     result.embedded += outcome.embedded;
     result.skipped += outcome.skipped;
     result.failed += outcome.failed;
+
+    if (outcome.circuitBreak) {
+      DebugLogger.log({
+        scope: LOG_SCOPE,
+        event: "TICK_CIRCUIT_BREAK",
+        message: "transient embedding error; stopping tick early",
+        level: "warn",
+      });
+      break;
+    }
 
     if (outcome.claimed < PAGE_EMBEDDING_CONFIG.PAGE_EMBEDDING_BATCH_SIZE) break;
   }

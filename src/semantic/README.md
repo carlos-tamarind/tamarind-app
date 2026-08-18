@@ -1,6 +1,6 @@
 # Semantic Module
 
-The `src/semantic` module implements Tamarind's message intelligence pipeline and page chunking. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for future search. Pages are structurally chunked on a debounce sweeper and queued for a later embedding worker.
+The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_embeddings` rows.
 
 This is a **server-only** module. It uses the Supabase admin client (lazy-loaded) and must not be imported from client-side code.
 
@@ -32,11 +32,14 @@ src/semantic/
 │   ├── message-scoring/models/mvp-v1/
 │   ├── message-persistence/
 │   └── message-embedding/
-└── pages/                                   # Page chunking (embed later)
-    └── page-chunks/
-        ├── engine/                          # TipTap pack + token limits
-        ├── persistence/                     # checksum reconcile
-        └── worker/                          # runPageChunkingWorker
+└── pages/                                   # Page chunking + embedding
+    ├── page-chunks/
+    │   ├── engine/                          # TipTap pack + token limits
+    │   ├── persistence/                     # checksum reconcile
+    │   └── worker/                          # runPageChunkingWorker
+    └── page-embeddings/
+        ├── persistence/                     # claim, heartbeat, persist
+        └── worker/                          # runPageEmbeddingWorker
 ```
 
 There is no barrel `index.ts`. Import specific files directly.
@@ -61,6 +64,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
 | `pages/page-chunks/worker/runPageChunkingWorker.ts` | `runPageChunkingWorker` | Page chunking sweeper entry |
 | `pages/page-chunks/engine/config.ts` | `PAGE_CHUNK_CONFIG` | Debounce, pack sizes, embedding model |
+| `pages/page-embeddings/worker/runPageEmbeddingWorker.ts` | `runPageEmbeddingWorker` | Page embedding worker entry |
 
 ## Inbound Dependencies (Who Calls This Module)
 
@@ -75,6 +79,8 @@ There is no barrel `index.ts`. Import specific files directly.
 | `src/routes/api/generate-embeddings.ts` | `generateMessageEmbeddingsFromRaw` |
 | `src/routes/api/run-page-chunking-worker.ts` | `runPageChunkingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-chunking-worker.ts` | `runPageChunkingWorker` (cron) |
+| `src/routes/api/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (dev-only) |
+| `src/routes/api/public/internal/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (cron) |
 
 ## Outbound Dependencies
 
@@ -89,6 +95,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `process.env.EMBEDDING_WORKER_SECRET` | Embedding cron endpoint auth |
 | `process.env.CTI_WORKER_SECRET` | CTI cron endpoint auth |
 | `process.env.PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint auth |
+| `process.env.PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint auth |
 | `gpt-tokenizer` | cl100k_base token counts for page chunks |
 | Supabase RPC `claim_embedding_batch` | Atomic batch claim |
 | Supabase RPC `claim_conversation_topic_job` | Atomic single CTI job claim |
@@ -96,6 +103,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | Supabase RPC `apply_cti_plan_and_commit` | Apply topic plan + complete job |
 | Supabase RPC `finalize_embedded_message` | EMBEDDED + CTI job enqueue |
 | Supabase RPC `list_pages_due_for_chunking` | Pages idle past debounce that need chunking |
+| Supabase RPC `claim_page_embedding_batch` | Atomic page-embedding batch claim |
 | DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_embeddings` | Persistence |
 
 ## Data Flow
@@ -138,7 +146,19 @@ Page content save (last_modified_at)
   → page_embeddings.embedding_status = QUEUED (new/changed chunks only)
 ```
 
-No OpenAI call in this phase. Embedding the queued rows is a later epic.
+No OpenAI call in this phase.
+
+### Page embedding (async, cron-driven)
+
+```
+Cron POST /api/public/internal/run-page-embedding-worker
+  → runPageEmbeddingWorker
+  → claim_page_embedding_batch RPC
+  → load page_chunks text + checksum guard
+  → embeddingProvider.embedBatch (row.embedding_model)
+  → guarded persist → EMBEDDED
+  → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
+```
 
 ### Phase C: CTI (async, cron-driven)
 
@@ -167,6 +187,7 @@ NEW → QUEUED → PROCESSING → EMBEDDED
 | `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
+| `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client for persistence |
 
 ## Documentation
@@ -177,3 +198,4 @@ Detailed breakdown in [`docs/semantic/`](../docs/semantic/readme.md):
 - [Normalization](../docs/semantic/msg_normalization.md)
 - [Scoring](../docs/semantic/msg_scoring.md)
 - [Embedding](../docs/semantic/msg_embedding.md)
+- [Page Embedding](../docs/semantic/page_embedding.md)

@@ -20,7 +20,8 @@ flowchart LR
 2. Chunk text is loaded in one follow-up query keyed by `chunk_id`. The claim RPC intentionally does not join chunk text.
 3. The live chunk checksum is compared with the claimed row's checksum before spending an API call.
 4. `touchPageEmbeddings` bumps `updated_at` (heartbeat) immediately before the embed call.
-5. Persist is guarded: `WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?`. Zero rows updated means the row drifted; the worker logs a skip and moves on.
+5. Persist is guarded: `WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?`. Success writes the vector, sets `EMBEDDED`, clears `last_error` / `next_retry_at`, and resets `attempts`. It does **not** change `embedding_model` (the queued value stays the unique key). Zero rows updated means the row drifted; the worker logs a skip and moves on.
+6. The embed call uses each claimed row’s `embedding_model`. A transient 429/5xx requeues the batch then **circuit-breaks the tick** so the rest of `MAX_BATCHES_PER_TICK` is not spent on a rate-limited provider.
 
 ## Configuration
 
