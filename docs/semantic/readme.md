@@ -1,6 +1,6 @@
 # Semantic Pipeline Overview
 
-The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_embeddings` as `QUEUED` (vectors are a later epic).
+The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_embeddings` as `QUEUED`, which the page embedding worker turns into vectors.
 
 Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
@@ -12,6 +12,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 | [Normalization](msg_normalization.md) | Text cleanup and skip gates |
 | [Scoring](msg_scoring.md) | MVP v1 heuristic quality model |
 | [Embedding](msg_embedding.md) | Batch worker and OpenAI provider |
+| [Page Embedding](page_embedding.md) | Page chunk vector worker, retries, and drift guards |
 
 ## Purpose
 
