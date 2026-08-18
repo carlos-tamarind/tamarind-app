@@ -111,12 +111,19 @@ export async function markPageEmbeddingFailed(id: string, lastError: string): Pr
   if (error) throw error;
 }
 
-/** Return a claimed row to the queue without counting it as a failure. */
-export async function releasePageEmbedding(id: string): Promise<void> {
+/**
+ * Return a claimed row to the queue without counting it as a failure. When the
+ * live chunk checksum drifted, store it so the next tick embeds the right text.
+ */
+export async function releasePageEmbedding(id: string, checksum?: string): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
     .from("page_embeddings")
-    .update({ embedding_status: "QUEUED", next_retry_at: null })
+    .update({
+      embedding_status: "QUEUED",
+      next_retry_at: null,
+      ...(checksum ? { checksum } : {}),
+    })
     .eq("id", id)
     .eq("embedding_status", "PROCESSING");
   if (error) throw error;
