@@ -16,6 +16,7 @@ import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiRunPageSemanticWorkerRouteImport } from './routes/api/run-page-semantic-worker'
 import { Route as ApiRunPageEmbeddingWorkerRouteImport } from './routes/api/run-page-embedding-worker'
 import { Route as ApiRunPageChunkingWorkerRouteImport } from './routes/api/run-page-chunking-worker'
 import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
@@ -66,6 +67,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunPageSemanticWorkerRoute =
+  ApiRunPageSemanticWorkerRouteImport.update({
+    id: '/api/run-page-semantic-worker',
+    path: '/api/run-page-semantic-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiRunPageEmbeddingWorkerRoute =
   ApiRunPageEmbeddingWorkerRouteImport.update({
     id: '/api/run-page-embedding-worker',
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
+  '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -188,6 +196,7 @@ export interface FileRoutesByTo {
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
+  '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -213,6 +222,7 @@ export interface FileRoutesById {
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
+  '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
+    | '/api/run-page-semantic-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
+    | '/api/run-page-semantic-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -285,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
+    | '/api/run-page-semantic-worker'
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
@@ -310,6 +323,7 @@ export interface RootRouteChildren {
   ApiRunEmbeddingWorkerRoute: typeof ApiRunEmbeddingWorkerRoute
   ApiRunPageChunkingWorkerRoute: typeof ApiRunPageChunkingWorkerRoute
   ApiRunPageEmbeddingWorkerRoute: typeof ApiRunPageEmbeddingWorkerRoute
+  ApiRunPageSemanticWorkerRoute: typeof ApiRunPageSemanticWorkerRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
   ApiPublicInternalRunCtiWorkerRoute: typeof ApiPublicInternalRunCtiWorkerRoute
   ApiPublicInternalRunEmbeddingWorkerRoute: typeof ApiPublicInternalRunEmbeddingWorkerRoute
@@ -367,6 +381,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-page-semantic-worker': {
+      id: '/api/run-page-semantic-worker'
+      path: '/api/run-page-semantic-worker'
+      fullPath: '/api/run-page-semantic-worker'
+      preLoaderRoute: typeof ApiRunPageSemanticWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/run-page-embedding-worker': {
@@ -523,6 +544,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRunEmbeddingWorkerRoute: ApiRunEmbeddingWorkerRoute,
   ApiRunPageChunkingWorkerRoute: ApiRunPageChunkingWorkerRoute,
   ApiRunPageEmbeddingWorkerRoute: ApiRunPageEmbeddingWorkerRoute,
+  ApiRunPageSemanticWorkerRoute: ApiRunPageSemanticWorkerRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
   ApiPublicInternalRunCtiWorkerRoute: ApiPublicInternalRunCtiWorkerRoute,
   ApiPublicInternalRunEmbeddingWorkerRoute:
