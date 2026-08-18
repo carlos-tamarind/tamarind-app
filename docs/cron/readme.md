@@ -222,6 +222,16 @@ A pg_cron job calls the page embedding worker every minute via pg_net HTTP POST 
 - **Retries follow the CTI pattern.** Transient errors → `RETRY_WAIT` with exponential backoff; after `MAX_TRANSIENT_BACKOFFS` (5) the row gets a 24h `next_retry_at` with `attempts` reset. `FAILED` is only for permanent errors and is never claimed.
 - **Drift is a skip, not a failure.** Missing chunk → no-op (CASCADE already removed the row); checksum mismatch → requeued as `QUEUED` with the live checksum and logged.
 
+## Page Semantic Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (dedicated secret)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job calls the page semantic worker every minute via pg_net HTTP POST with the `x-page-semantic-worker-secret` header (`PAGE_SEMANTIC_WORKER_SECRET`).
+
+The database groundwork is in place — `page_semantics`, `page_semantic_jobs`, plus `list_pages_due_for_semantics`, `claim_page_semantic_job`, `enqueue_page_semantic_job`, and `apply_page_semantic_result`. The runner ([`runPageSemanticWorker`](../../src/semantic/pages/page-semantics/worker/runPageSemanticWorker.ts)) is currently a placeholder returning zeroes; the sweep, token threshold, LLM call, and retry policy land with the analysis engine.
+
 ## Dev Manual Triggers
 
 For local testing without pg_cron:
@@ -231,7 +241,9 @@ POST /api/run-embedding-worker
 POST /api/run-cti-worker
 POST /api/run-page-chunking-worker
 POST /api/run-page-embedding-worker
+POST /api/run-page-semantic-worker
 ```
+
 
 Available only in development mode (404 in production). See [API Routes](../api/readme.md).
 
