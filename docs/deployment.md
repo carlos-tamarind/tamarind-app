@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, and page-embedding schedulers
+  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, page-embedding, and page-semantic schedulers
   └── Migrations             supabase/migrations/
 ```
 
@@ -57,6 +57,7 @@ Supabase Project
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
 | `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
+| `PAGE_SEMANTIC_WORKER_SECRET` | Page semantic cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
@@ -95,6 +96,7 @@ Required in `.env.local`:
 - `CTI_WORKER_SECRET` (for CTI cron endpoint testing)
 - `PAGE_CHUNKING_WORKER_SECRET` (for page chunking cron endpoint testing)
 - `PAGE_EMBEDDING_WORKER_SECRET` (for page embedding cron endpoint testing)
+- `PAGE_SEMANTIC_WORKER_SECRET` (for page semantic cron endpoint testing)
 
 ## Supabase Setup
 
@@ -195,6 +197,30 @@ SELECT cron.schedule(
 ```
 
 Use a dedicated secret — do not reuse `EMBEDDING_WORKER_SECRET`, so a leak or rotation stays scoped to one endpoint. The worker claims `QUEUED`/`RETRY_WAIT` rows via `claim_page_embedding_batch`, embeds the matching chunk text, and persists the vector only while the row is still `PROCESSING` with an unchanged checksum.
+
+## Page Semantic Worker Cron
+
+After deploying, configure a separate pg_cron job for the page semantic worker:
+
+```sql
+SELECT cron.schedule(
+  'run-page-semantic-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-page-semantic-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-page-semantic-worker-secret', 'your-page-semantic-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. The page chunking cron stays the sweeper; no extra sweeper secret is needed. The runner is a placeholder until the analysis engine lands.
+
 
 ## Database Migrations
 
