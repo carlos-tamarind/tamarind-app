@@ -773,6 +773,97 @@ export type Database = {
           },
         ]
       }
+      page_semantic_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          page_id: string
+          page_snapshot_hash: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["page_semantic_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          page_id: string
+          page_snapshot_hash: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["page_semantic_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          page_id?: string
+          page_snapshot_hash?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["page_semantic_job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_semantic_jobs_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_semantics: {
+        Row: {
+          created_at: string
+          llm_model: string
+          page_id: string
+          page_snapshot: string
+          page_snapshot_hash: string
+          topic_description: string
+          topic_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          llm_model: string
+          page_id: string
+          page_snapshot: string
+          page_snapshot_hash: string
+          topic_description: string
+          topic_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          llm_model?: string
+          page_id?: string
+          page_snapshot?: string
+          page_snapshot_hash?: string
+          topic_description?: string
+          topic_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_semantics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pages: {
         Row: {
           content: Json
@@ -1112,6 +1203,17 @@ export type Database = {
         Args: { p_job_id: string; p_plan?: Json }
         Returns: string
       }
+      apply_page_semantic_result: {
+        Args: {
+          p_job_id: string
+          p_llm_model: string
+          p_page_snapshot: string
+          p_page_snapshot_hash: string
+          p_topic_description: string
+          p_topic_name: string
+        }
+        Returns: string
+      }
       claim_conversation_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
@@ -1182,6 +1284,28 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_page_semantic_job: {
+        Args: { p_stale_after?: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          page_id: string
+          page_snapshot_hash: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["page_semantic_job_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "page_semantic_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       commit_cti_job: { Args: { p_job_id: string }; Returns: string }
       cti_is_next_processable: {
         Args: { _conversation_id: string; _message_id: string }
@@ -1197,6 +1321,10 @@ export type Database = {
       }
       current_workspace_user_id: {
         Args: { _workspace_id: string }
+        Returns: string
+      }
+      enqueue_page_semantic_job: {
+        Args: { p_hash: string; p_page_id: string }
         Returns: string
       }
       escape_ilike_pattern: { Args: { p: string }; Returns: string }
@@ -1243,6 +1371,16 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_pages_due_for_semantics: {
+        Args: { p_idle?: string; p_limit?: number }
+        Returns: {
+          page_id: string
+          page_snapshot: string
+          page_snapshot_hash: string
+          plain_text: string
+          title: string
+        }[]
       }
       match_conversation_topics: {
         Args: { p_conversation_id: string; p_message_id: string }
@@ -1358,6 +1496,12 @@ export type Database = {
         | "EMBEDDED"
         | "FAILED"
       page_origin: "user" | "conversation" | "import" | "ai"
+      page_semantic_job_status:
+        | "QUEUED"
+        | "PROCESSING"
+        | "RETRY_WAIT"
+        | "COMPLETED"
+        | "FAILED"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
       pinned_asset_type: "conversation" | "page"
@@ -1530,6 +1674,13 @@ export const Constants = {
         "FAILED",
       ],
       page_origin: ["user", "conversation", "import", "ai"],
+      page_semantic_job_status: [
+        "QUEUED",
+        "PROCESSING",
+        "RETRY_WAIT",
+        "COMPLETED",
+        "FAILED",
+      ],
       page_type: ["standard", "template", "generated", "imported"],
       page_visibility: ["private", "conversation", "workspace", "external"],
       pinned_asset_type: ["conversation", "page"],
