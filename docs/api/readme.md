@@ -150,6 +150,38 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Response:** Same shape as the dev endpoint.
 
+## POST /api/run-page-embedding-worker
+
+**File:** [`src/routes/api/run-page-embedding-worker.ts`](../../src/routes/api/run-page-embedding-worker.ts)
+
+Manual trigger for the page embedding worker during local development.
+
+**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
+
+**Response:**
+
+```json
+{
+  "batchesProcessed": 1,
+  "claimed": 20,
+  "embedded": 19,
+  "skipped": 1,
+  "failed": 0
+}
+```
+
+## POST /api/public/internal/run-page-embedding-worker
+
+**File:** [`src/routes/api/public/internal/run-page-embedding-worker.ts`](../../src/routes/api/public/internal/run-page-embedding-worker.ts)
+
+Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-page-embedding-worker-secret` header matching `PAGE_EMBEDDING_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret.
+
+**Response:** Same shape as the dev endpoint.
+
+
+
 ## Server Functions vs REST
 
 | Use server functions when | Use REST routes when |
