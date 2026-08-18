@@ -180,6 +180,38 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Response:** Same shape as the dev endpoint.
 
+## POST /api/run-page-semantic-worker
+
+**File:** [`src/routes/api/run-page-semantic-worker.ts`](../../src/routes/api/run-page-semantic-worker.ts)
+
+Manual trigger for the page semantic worker during local development.
+
+**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
+
+**Response:**
+
+```json
+{
+  "analyzed": 0,
+  "skipped": 0,
+  "failed": 0
+}
+```
+
+> The analysis engine is not implemented yet — the runner is a thin placeholder, so the endpoint currently returns zeroes.
+
+## POST /api/public/internal/run-page-semantic-worker
+
+**File:** [`src/routes/api/public/internal/run-page-semantic-worker.ts`](../../src/routes/api/public/internal/run-page-semantic-worker.ts)
+
+Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-page-semantic-worker-secret` header matching `PAGE_SEMANTIC_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
+
+**Response:** Same shape as the dev endpoint.
+
+
+
 
 
 ## Server Functions vs REST
