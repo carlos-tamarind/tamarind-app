@@ -1,6 +1,6 @@
 # Semantic Pipeline Overview
 
-The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_embeddings` as `QUEUED`, which the page embedding worker turns into vectors.
+The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_embeddings` as `QUEUED`, which the page embedding worker turns into vectors. A page-semantic worker produces an LLM topic name and description per page on `page_semantics`.
 
 Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
@@ -13,6 +13,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 | [Scoring](msg_scoring.md) | MVP v1 heuristic quality model |
 | [Embedding](msg_embedding.md) | Batch worker and OpenAI provider |
 | [Page Embedding](page_embedding.md) | Page chunk vector worker, retries, and drift guards |
+| [Page Semantics](page_semantic.md) | Page-level LLM topic name/description worker |
 
 ## Purpose
 
@@ -75,6 +76,8 @@ Phase B is triggered externally:
 | [`src/routes/api/run-page-chunking-worker.ts`](../../src/routes/api/run-page-chunking-worker.ts) | Manual page chunking trigger (dev-only) |
 | [`src/routes/api/public/internal/run-page-embedding-worker.ts`](../../src/routes/api/public/internal/run-page-embedding-worker.ts) | pg_cron via pg_net (production page embedding) |
 | [`src/routes/api/run-page-embedding-worker.ts`](../../src/routes/api/run-page-embedding-worker.ts) | Manual page embedding trigger (dev-only) |
+| [`src/routes/api/public/internal/run-page-semantic-worker.ts`](../../src/routes/api/public/internal/run-page-semantic-worker.ts) | pg_cron via pg_net (production page semantics) |
+| [`src/routes/api/run-page-semantic-worker.ts`](../../src/routes/api/run-page-semantic-worker.ts) | Manual page semantic trigger (dev-only) |
 
 ## Database Tables
 
@@ -84,6 +87,8 @@ Phase B is triggered externally:
 | `message_embeddings` | Vector embeddings linked to message_semantics rows |
 | `page_chunks` | Structural page segments (`content`, `checksum`, `token_count`, `position`) |
 | `page_embeddings` | Queue + vectors per chunk; chunking inserts `QUEUED`, the page embedding worker writes `EMBEDDED` |
+| `page_semantics` | Last successful page topic name/description + content snapshot |
+| `page_semantic_jobs` | Page analysis queue (`QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `FAILED`) |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 

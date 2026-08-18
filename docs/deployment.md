@@ -219,7 +219,7 @@ SELECT cron.schedule(
 );
 ```
 
-Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. The page chunking cron stays the sweeper; no extra sweeper secret is needed. The runner is a placeholder until the analysis engine lands.
+Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. Each tick sweeps due pages (`list_pages_due_for_semantics`) then claims LLM jobs via `claim_page_semantic_job`.
 
 
 ## Database Migrations

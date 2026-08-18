@@ -40,11 +40,19 @@ flowchart TB
     PageEmbed["OpenAI → page_embeddings"]
   end
 
+  subgraph cronPageSemantic [Scheduled: page semantics]
+    PGCronPageSemantic["pg_cron (every minute)"]
+    PGNetPageSemantic["pg_net HTTP POST"]
+    WorkerPageSemantic["runPageSemanticWorker"]
+    PageSemantic["LLM → page_semantics"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
   PGCronPages --> PGNetPages --> WorkerPages --> Chunks
   PGCronPageEmbed --> PGNetPageEmbed --> WorkerPageEmbed --> PageEmbed
+  PGCronPageSemantic --> PGNetPageSemantic --> WorkerPageSemantic --> PageSemantic
 ```
 
 ## Inline Semantics Processing
@@ -230,7 +238,18 @@ A pg_cron job calls the page embedding worker every minute via pg_net HTTP POST 
 
 A pg_cron job calls the page semantic worker every minute via pg_net HTTP POST with the `x-page-semantic-worker-secret` header (`PAGE_SEMANTIC_WORKER_SECRET`).
 
-The database groundwork is in place — `page_semantics`, `page_semantic_jobs`, plus `list_pages_due_for_semantics`, `claim_page_semantic_job`, `enqueue_page_semantic_job`, and `apply_page_semantic_result`. The runner ([`runPageSemanticWorker`](../../src/semantic/pages/page-semantics/worker/runPageSemanticWorker.ts)) is currently a placeholder returning zeroes; the sweep, token threshold, LLM call, and retry policy land with the analysis engine.
+### Worker execution
+
+[`runPageSemanticWorker`](../../src/semantic/pages/page-semantics/worker/runPageSemanticWorker.ts):
+
+1. Lists due pages via `list_pages_due_for_semantics` (idle ≥ 5 minutes)
+2. Enqueues jobs when there is no snapshot, or the token-count delta vs `page_snapshot` is ≥ 300; cleans empty pages that still have a semantics row
+3. Claims up to 8 jobs via `claim_page_semantic_job` (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
+4. Compares live `plain_text` SHA-256 to the job hash; drift → `apply_page_semantic_result` `drifted` (no LLM)
+5. Calls OpenAI `gpt-5.4-nano` for `{ name, description }`, then `apply_page_semantic_result` (`committed` upserts `page_semantics`)
+6. Transient 429/5xx → `RETRY_WAIT` with backoff (5× then 24h cooldown); permanent → `FAILED`; infra errors circuit-break the tick
+
+See [Page Semantics](../semantic/page_semantic.md).
 
 ## Dev Manual Triggers
 
@@ -258,5 +277,6 @@ Available only in development mode (404 in production). See [API Routes](../api/
 - [Semantic Pipeline](../semantic/pipeline.md) — Full processing flow
 - [Embedding](../semantic/msg_embedding.md) — Worker details
 - [Page Embedding](../semantic/page_embedding.md) — Page chunk vector worker
+- [Page Semantics](../semantic/page_semantic.md) — Page-level LLM topic worker
 - [API Routes](../api/readme.md) — HTTP endpoints
 - [Deployment](../deployment.md) — Environment setup
