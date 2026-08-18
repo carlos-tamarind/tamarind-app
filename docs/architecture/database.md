@@ -144,6 +144,9 @@ erDiagram
 | `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
 | `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
 | `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Future page semantic search |
+| `uniq_page_semantic_jobs_inflight` | page_semantic_jobs | Partial UNIQUE: `(page_id) WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` | One in-flight analysis job per page |
+| `idx_page_semantic_jobs_claimable` | page_semantic_jobs | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page semantic worker |
+| `idx_page_semantic_jobs_queue` | page_semantic_jobs | `(status, next_retry_at, created_at)` | Queue inspection |
 
 ## Database Functions
 
