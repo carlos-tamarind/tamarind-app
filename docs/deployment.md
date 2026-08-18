@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding, CTI, and page-chunking worker schedulers
+  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, and page-embedding schedulers
   └── Migrations             supabase/migrations/
 ```
 
@@ -56,6 +56,7 @@ Supabase Project
 | `EMBEDDING_WORKER_SECRET` | Embedding cron endpoint authentication |
 | `CTI_WORKER_SECRET` | CTI cron endpoint authentication |
 | `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
+| `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
@@ -93,6 +94,7 @@ Required in `.env.local`:
 - `EMBEDDING_WORKER_SECRET` (for embedding cron endpoint testing)
 - `CTI_WORKER_SECRET` (for CTI cron endpoint testing)
 - `PAGE_CHUNKING_WORKER_SECRET` (for page chunking cron endpoint testing)
+- `PAGE_EMBEDDING_WORKER_SECRET` (for page embedding cron endpoint testing)
 
 ## Supabase Setup
 
@@ -170,6 +172,29 @@ SELECT cron.schedule(
 ```
 
 Replace the URL and secret with your deployment values. The worker chunks idle pages and queues `page_embeddings` as `QUEUED`; it does not call OpenAI.
+
+## Page Embedding Worker Cron
+
+After deploying, configure a separate pg_cron job for the page embedding worker:
+
+```sql
+SELECT cron.schedule(
+  'run-page-embedding-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-page-embedding-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-page-embedding-worker-secret', 'your-page-embedding-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret — do not reuse `EMBEDDING_WORKER_SECRET`, so a leak or rotation stays scoped to one endpoint. The worker claims `QUEUED`/`RETRY_WAIT` rows via `claim_page_embedding_batch`, embeds the matching chunk text, and persists the vector only while the row is still `PROCESSING` with an unchanged checksum.
 
 ## Database Migrations
 
