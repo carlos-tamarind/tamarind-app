@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthLayout } from "@/components/auth-layout";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -30,17 +31,16 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-center">New password</h1>
+    <AuthLayout title="New password" subtitle="Choose a password of at least 8 characters.">
+      <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="password">New password</Label>
           <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
         </div>
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? "Saving…" : "Update password"}
         </Button>
       </form>
-    </div>
+    </AuthLayout>
   );
 }

@@ -15,8 +15,6 @@ The interface layer is the user-facing React application. It handles routing, UI
 | Icons | Lucide React |
 | Toasts | Sonner |
 
-The app is branded **Mento** in the UI metadata (`"Contextual knowledge graph for teams."`).
-
 ## Component Organization
 
 ```

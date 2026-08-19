@@ -8,9 +8,6 @@ import {
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -18,20 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  PanelLeftOpen,
-  Settings,
-  LogOut,
-  FilePlusCorner,
-  
-  MessageSquarePlus,
-  
-  PanelLeftClose,
-  User as UserIcon,
-  Users,
-  Menu,
-  CirclePlus,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
 import { z } from "zod";
 
@@ -48,16 +32,15 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ConversationWindow } from "@/components/conversation/conversation-window";
 import { PageWindow } from "@/components/page/page-window";
 import { NavigationPanel } from "@/components/navigation-panel";
-
+import { SearchOverlay } from "@/components/search/search-overlay";
+import { CommandPalette } from "@/components/command-palette";
+import { StatusBar } from "@/components/status-bar";
+import { EmptyStateHome } from "@/components/empty-state-home";
+import { SaveStatusProvider } from "@/lib/save-status-context";
+import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
 
 const workspaceSearchSchema = z.object({
   c: z.string().uuid().optional(),
@@ -71,17 +54,17 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 
 const COLLAPSE_THRESHOLD = 20;
 
-
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
   const navigate = useNavigate();
-  
+
   const [railOpen, setRailOpen] = useState(false);
-  const [tab, setTab] = useState<"conversations" | "pages">("conversations");
   const [convDialogOpen, setConvDialogOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [newPageOpen, setNewPageOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
   const toggleRail = useCallback(() => setRailOpen((v) => !v), []);
@@ -127,19 +110,48 @@ function WorkspaceShell() {
       ),
     [conversations],
   );
-  const directConversations = sortedConversations.filter((c) => c.type === "direct");
-  const groupConversations = sortedConversations.filter((c) => c.type === "group");
 
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
-  const profileName = profile?.displayName ?? profile?.email ?? "Me";
 
-  const handleNewPage = () => setNewPageOpen(true);
+  const handleNewPage = useCallback(() => setNewPageOpen(true), []);
+  const handleNewConversation = useCallback(() => setConvDialogOpen(true), []);
+  const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
+  const handleOpenProfile = useCallback(() => setProfileOpen(true), []);
+
+  const toggleNavPanel = useCallback(() => {
+    const panel = navPanelRef.current;
+    if (!panel) return;
+    if (folded) panel.expand();
+    else panel.collapse();
+  }, [folded]);
+
+  useHotkey(HOTKEYS.commandPalette, () => setPaletteOpen((v) => !v), {
+    allowInInput: true,
+  });
+  useHotkey(HOTKEYS.search, () => setSearchOpen(true), { allowInInput: true });
+  useHotkey(HOTKEYS.toggleNav, toggleNavPanel);
+  useHotkey(HOTKEYS.workspaceSettings, () => {
+    void navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } });
+  });
 
   const conversationId = search.c;
   const pageId = search.p;
   const hasConversation = !!conversationId;
   const hasPage = !!pageId;
   const bothOpen = hasConversation && hasPage;
+
+  const statusContext = useMemo(() => {
+    const parts: string[] = [];
+    if (conversationId) {
+      const conv = sortedConversations.find((c) => c.id === conversationId);
+      if (conv) parts.push(conv.title);
+    }
+    if (pageId) {
+      const page = sortedPages.find((p) => p.id === pageId);
+      if (page) parts.push(page.title || "Untitled");
+    }
+    return parts.join("  ·  ");
+  }, [conversationId, pageId, sortedConversations, sortedPages]);
 
   const handleMainLayout = useCallback(
     (layout: Record<string, number>) => {
@@ -165,9 +177,6 @@ function WorkspaceShell() {
     [bothOpen, navigate, workspaceId],
   );
 
-
-
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/login" });
@@ -175,193 +184,206 @@ function WorkspaceShell() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex h-screen w-screen bg-background text-foreground">
-        <div
-          className={`shrink-0 overflow-hidden border-r bg-muted shadow-[2px_0_8px_-2px_hsl(0_0%_0%/0.10)] transition-[width] duration-150 ${
-            railOpen ? "w-[60px]" : "w-0"
-          }`}
-        >
-          <div className="flex h-full w-[60px] flex-col">
-            <div className="h-14 shrink-0 border-b" />
-            <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
-              {(workspaces ?? []).map((w) => (
-                <button
-                  key={w.workspaceId}
-                  onClick={() =>
-                    navigate({
-                      to: "/w/$workspaceId",
-                      params: { workspaceId: w.workspaceId },
-                    })
+      <SaveStatusProvider>
+        <div className="flex h-screen w-screen flex-col bg-background text-foreground">
+          <div className="flex min-h-0 flex-1">
+            <div
+              className={`shrink-0 overflow-hidden border-r bg-surface transition-[width] duration-(--motion-base) ease-(--ease-out) ${
+                railOpen ? "w-12" : "w-0"
+              }`}
+            >
+              <div className="flex h-full w-12 flex-col">
+                <div className="h-12 shrink-0 border-b" />
+                <div className="flex flex-1 flex-col items-center gap-1 overflow-y-auto py-2">
+                  {(workspaces ?? []).map((w) => {
+                    const active = w.workspaceId === workspaceId;
+                    return (
+                      <Tooltip key={w.workspaceId}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() =>
+                              navigate({
+                                to: "/w/$workspaceId",
+                                params: { workspaceId: w.workspaceId },
+                              })
+                            }
+                            className="relative flex h-9 w-full items-center justify-center"
+                            aria-label={w.name}
+                            aria-current={active ? "true" : undefined}
+                          >
+                            {active ? (
+                              <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
+                            ) : null}
+                            <span
+                              className={`flex size-7 items-center justify-center rounded-md text-[11px] font-semibold transition-colors duration-(--motion-fast) ${
+                                active
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                              }`}
+                            >
+                              {w.name.slice(0, 2).toUpperCase()}
+                            </span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{w.name}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+                <div className="flex h-12 shrink-0 items-center justify-center border-t">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to="/w/$workspaceId/settings"
+                        params={{ workspaceId }}
+                        className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                        aria-label="Workspace settings"
+                      >
+                        <Settings className="size-4" strokeWidth={1.5} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Workspace settings</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+
+            <ResizablePanelGroup orientation="horizontal" className="h-full flex-1">
+              <ResizablePanel
+                id="nav"
+                panelRef={navPanelRef}
+                defaultSize="22%"
+                minSize="18%"
+                maxSize="33%"
+                collapsible
+                collapsedSize="60px"
+                onResize={(size) => {
+                  const pct = size.asPercentage;
+                  if (pct <= 17) {
+                    if (!folded) setFolded(true);
+                  } else if (folded) {
+                    setFolded(false);
                   }
-                  className={`flex size-8 items-center justify-center rounded-md text-sm font-semibold ${
-                    w.workspaceId === workspaceId
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background hover:bg-accent"
-                  }`}
-                  title={w.name}
-                >
-                  {w.name.slice(0, 2).toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <div className="flex h-14 shrink-0 items-center justify-center border-t">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/w/$workspaceId/settings"
-                    params={{ workspaceId }}
-                    className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                    aria-label="Workspace settings"
-                  >
-                    <Settings className="size-4" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Workspace settings</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-        </div>
-
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="h-full flex-1"
-        >
-
-
-          <ResizablePanel
-            id="nav"
-            panelRef={navPanelRef}
-            defaultSize="22%"
-            minSize="18%"
-            maxSize="33%"
-            collapsible
-            collapsedSize="60px"
-            onResize={(size) => {
-              const pct = size.asPercentage;
-              if (pct <= 17) {
-                if (!folded) setFolded(true);
-              } else if (folded) {
-                setFolded(false);
-              }
-            }}
-          >
-            <NavigationPanel
-              workspaceId={workspaceId}
-              workspaceName={current?.name}
-              folded={folded}
-              railOpen={railOpen}
-              onToggleRail={toggleRail}
-              panelRef={navPanelRef}
-              conversations={sortedConversations}
-              pages={sortedPages}
-              activeConversationId={conversationId}
-              activePageId={pageId}
-              profile={profile}
-              onNewConversation={() => setConvDialogOpen(true)}
-              onNewPage={handleNewPage}
-              onOpenProfile={() => setProfileOpen(true)}
-              onLogout={handleLogout}
-            />
-
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel id="main" minSize="40%">
-            <main className="h-full overflow-hidden">
-              {!hasConversation && !hasPage ? (
-                <EmptyState
+                }}
+              >
+                <NavigationPanel
                   workspaceId={workspaceId}
-                  onNewConversation={() => setConvDialogOpen(true)}
+                  workspaceName={current?.name}
+                  folded={folded}
+                  railOpen={railOpen}
+                  onToggleRail={toggleRail}
+                  panelRef={navPanelRef}
+                  conversations={sortedConversations}
+                  pages={sortedPages}
+                  activeConversationId={conversationId}
+                  activePageId={pageId}
+                  profile={profile}
+                  onNewConversation={handleNewConversation}
                   onNewPage={handleNewPage}
+                  onOpenProfile={handleOpenProfile}
+                  onOpenSearch={handleOpenSearch}
+                  onLogout={handleLogout}
                 />
-              ) : bothOpen ? (
-                <ResizablePanelGroup
-                  orientation="horizontal"
-                  onLayoutChanged={handleMainLayout}
-                  key={`split-${conversationId}-${pageId}`}
-                >
-                  <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
+              </ResizablePanel>
+
+              <ResizableHandle />
+
+              <ResizablePanel id="main" minSize="40%">
+                <main className="h-full overflow-hidden">
+                  {!hasConversation && !hasPage ? (
+                    <EmptyStateHome
+                      workspaceId={workspaceId}
+                      onNewConversation={handleNewConversation}
+                      onNewPage={handleNewPage}
+                      onOpenSearch={handleOpenSearch}
+                    />
+                  ) : bothOpen ? (
+                    <ResizablePanelGroup
+                      orientation="horizontal"
+                      onLayoutChanged={handleMainLayout}
+                      key={`split-${conversationId}-${pageId}`}
+                    >
+                      <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
+                        <ConversationWindow
+                          key={conversationId}
+                          workspaceId={workspaceId}
+                          conversationId={conversationId!}
+                        />
+                      </ResizablePanel>
+                      <ResizableHandle />
+                      <ResizablePanel id="page" defaultSize="50%" minSize="10%">
+                        <PageWindow
+                          key={pageId}
+                          workspaceId={workspaceId}
+                          pageId={pageId!}
+                        />
+                      </ResizablePanel>
+                    </ResizablePanelGroup>
+                  ) : hasConversation ? (
                     <ConversationWindow
                       key={conversationId}
                       workspaceId={workspaceId}
                       conversationId={conversationId!}
                     />
-                  </ResizablePanel>
-                  <ResizableHandle />
-                  <ResizablePanel id="page" defaultSize="50%" minSize="10%">
+                  ) : (
                     <PageWindow
                       key={pageId}
                       workspaceId={workspaceId}
                       pageId={pageId!}
                     />
-                  </ResizablePanel>
-                </ResizablePanelGroup>
-              ) : hasConversation ? (
-                <ConversationWindow
-                  key={conversationId}
-                  workspaceId={workspaceId}
-                  conversationId={conversationId!}
-                />
-              ) : (
-                <PageWindow
-                  key={pageId}
-                  workspaceId={workspaceId}
-                  pageId={pageId!}
-                />
-              )}
-            </main>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                  )}
+                </main>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
 
-        <NewConversationDialog
-          workspaceId={workspaceId}
-          open={convDialogOpen}
-          onOpenChange={setConvDialogOpen}
-        />
+          <StatusBar
+            workspaceName={current?.name}
+            context={statusContext}
+            onOpenPalette={() => setPaletteOpen(true)}
+          />
 
-        <NewPageDialog
-          workspaceId={workspaceId}
-          open={newPageOpen}
-          onOpenChange={setNewPageOpen}
-        />
+          <NewConversationDialog
+            workspaceId={workspaceId}
+            open={convDialogOpen}
+            onOpenChange={setConvDialogOpen}
+          />
 
-        <ProfileDialog
-          workspaceId={workspaceId}
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-        />
+          <NewPageDialog
+            workspaceId={workspaceId}
+            open={newPageOpen}
+            onOpenChange={setNewPageOpen}
+          />
 
-        <Outlet />
-      </div>
+          <ProfileDialog
+            workspaceId={workspaceId}
+            open={profileOpen}
+            onOpenChange={setProfileOpen}
+          />
+
+          <SearchOverlay
+            open={searchOpen}
+            onOpenChange={setSearchOpen}
+            workspaceId={workspaceId}
+          />
+
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            workspaceId={workspaceId}
+            workspaces={workspaces ?? []}
+            conversations={sortedConversations}
+            pages={sortedPages}
+            onNewConversation={handleNewConversation}
+            onNewPage={handleNewPage}
+            onOpenProfile={handleOpenProfile}
+            onOpenSearch={handleOpenSearch}
+            onToggleNav={toggleNavPanel}
+          />
+
+          <Outlet />
+        </div>
+      </SaveStatusProvider>
     </TooltipProvider>
-  );
-}
-
-function EmptyState({
-  onNewConversation,
-  onNewPage,
-}: {
-  workspaceId: string;
-  onNewConversation: () => void;
-  onNewPage: () => void;
-}) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-      <p className="max-w-md text-base text-muted-foreground">
-        Pick a conversation or page from the sidebar to get started, or create a
-        new one:
-      </p>
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <Button variant="secondary" onClick={onNewConversation}>
-          <MessageSquarePlus className="size-4" />
-          New conversation
-        </Button>
-        <Button variant="secondary" onClick={onNewPage}>
-          <FilePlusCorner className="size-4" />
-          New page
-        </Button>
-      </div>
-    </div>
   );
 }

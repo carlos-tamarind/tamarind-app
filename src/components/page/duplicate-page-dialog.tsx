@@ -203,7 +203,7 @@ export function DuplicatePageDialog({
           else onOpenChange(true);
         }}
       >
-        <DialogContent>
+        <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Duplicate page</DialogTitle>
             <DialogDescription>
@@ -311,7 +311,7 @@ export function DuplicatePageDialog({
         open={confirmOpen}
         onOpenChange={(o) => setConfirmOpen(o)}
       >
-        <DialogContent>
+        <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Duplicate page</DialogTitle>
             <DialogDescription>{confirmText}</DialogDescription>

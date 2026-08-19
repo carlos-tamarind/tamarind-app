@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { MemberPickerRow } from "@/components/member-picker-row";
 import {
   Collapsible,
   CollapsibleContent,
@@ -137,7 +137,7 @@ export function SharePageDialog({
           else onOpenChange(true);
         }}
       >
-        <DialogContent>
+        <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>Share page</DialogTitle>
             <DialogDescription>
@@ -147,26 +147,25 @@ export function SharePageDialog({
 
           <div className="space-y-3">
             <Collapsible defaultOpen>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent/40">
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-(--motion-fast) hover:bg-accent">
                 Share with specific users:
-                <ChevronDown className="size-4" />
+                <ChevronDown className="size-4 text-muted-foreground" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border">
+              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border p-1">
                 {otherMembers.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     No other members in this workspace.
                   </p>
                 ) : (
-                  <ul className="divide-y">
+                  <ul>
                     {otherMembers.map((m) => (
                       <li key={m.workspaceUserId}>
-                        <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-accent/40">
-                          <Checkbox
-                            checked={selectedUsers.has(m.workspaceUserId)}
-                            onCheckedChange={() => toggleUser(m.workspaceUserId)}
-                          />
-                          <span className="text-sm">{m.label}</span>
-                        </label>
+                        <MemberPickerRow
+                          label={m.label}
+                          avatarUrl={m.avatarUrl}
+                          checked={selectedUsers.has(m.workspaceUserId)}
+                          onToggle={() => toggleUser(m.workspaceUserId)}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -175,26 +174,24 @@ export function SharePageDialog({
             </Collapsible>
 
             <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent/40">
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-(--motion-fast) hover:bg-accent">
                 Share with entire group conversations:
-                <ChevronDown className="size-4" />
+                <ChevronDown className="size-4 text-muted-foreground" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border">
+              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border p-1">
                 {groupConvs.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     You have no group conversations.
                   </p>
                 ) : (
-                  <ul className="divide-y">
+                  <ul>
                     {groupConvs.map((c) => (
                       <li key={c.id}>
-                        <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-accent/40">
-                          <Checkbox
-                            checked={selectedConvs.has(c.id)}
-                            onCheckedChange={() => toggleConv(c.id)}
-                          />
-                          <span className="text-sm">{c.title}</span>
-                        </label>
+                        <MemberPickerRow
+                          label={c.title}
+                          checked={selectedConvs.has(c.id)}
+                          onToggle={() => toggleConv(c.id)}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -224,7 +221,7 @@ export function SharePageDialog({
           else setConfirmOpen(true);
         }}
       >
-        <DialogContent>
+        <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Share page</DialogTitle>
             <DialogDescription>

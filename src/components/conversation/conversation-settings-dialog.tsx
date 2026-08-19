@@ -97,7 +97,7 @@ export function ConversationSettingsDialog({
   return (
     <TooltipProvider delayDuration={200}>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Conversation settings</DialogTitle>
           </DialogHeader>
