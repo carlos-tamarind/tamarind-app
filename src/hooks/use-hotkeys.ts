@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
  * and Shift+N at the OS/chrome level — page JavaScript never sees them, and
  * preventDefault cannot reclaim them. Do not add bindings using those.
  *
- * Binding syntax: "mod+k", "mod+f", "mod+\\", "mod+,", "escape".
+ * Binding syntax: "mod+k", "mod+f", "mod+\\", "mod+,", "mod+.", "mod+shift+l", "escape".
  * `mod` resolves to Cmd on macOS and Ctrl everywhere else.
  */
 
@@ -188,6 +188,8 @@ export const HOTKEYS = {
   toggleNav: "mod+\\",
   toggleWorkspaces: "mod+shift+\\",
   workspaceSettings: "mod+,",
+  profile: "mod+.",
+  clearSearch: "mod+shift+l",
   send: "mod+enter",
   bold: "mod+b",
   italic: "mod+i",

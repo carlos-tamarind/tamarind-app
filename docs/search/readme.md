@@ -27,7 +27,7 @@ Teams capture knowledge in conversations and pages. Search lets members:
 flowchart TB
   subgraph UI
     Nav["navigation-panel.tsx"]
-    Hotkeys["⌘F / command palette"]
+    Hotkeys["⌘F / command palette / ⌘⇧L clear"]
     Overlay["search-overlay.tsx"]
     Hook["use-search-request.ts"]
   end

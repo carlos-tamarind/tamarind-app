@@ -1207,8 +1207,10 @@ export function ConversationWindow({
             id="composer"
             panelRef={composerPanelRef}
             collapsible
-            collapsedSize="var(--footer-row)"
-            defaultSize="var(--footer-row)"
+            // Literal rem: react-resizable-panels does not parse CSS variables.
+            // Keep in sync with --footer-row in styles.css.
+            collapsedSize="3rem"
+            defaultSize="3rem"
             minSize="16%"
             maxSize="45%"
           >

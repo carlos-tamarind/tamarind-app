@@ -541,6 +541,7 @@ export function NavigationPanel({
         <Link
           to="/w/$workspaceId/settings"
           params={{ workspaceId }}
+          search={(prev) => prev}
           className="ml-auto min-w-0 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
           aria-label="Workspace settings"
         >

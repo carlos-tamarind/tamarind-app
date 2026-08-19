@@ -27,8 +27,9 @@ Rendered as a shadcn `Dialog` (~55vw, max 720px), visually aligned with the comm
 |---------|-------|
 | Placeholder | `Search anything…` |
 | Dialog title (sr-only) | `Search` |
-| Trigger search | 1500ms debounce on typing; **Enter** searches immediately (or opens the highlighted result) |
-| Keyboard | Arrow keys move highlight; Enter opens |
+| Trigger search | 1500ms debounce on typing; **Enter** in the query field searches immediately |
+| Keyboard | The query field is the virtual first item of a circular list. Arrow Down from the query highlights the first result; Arrow Up from the query highlights the last. Arrow Up on the first result (and Arrow Down on the last) return focus to the query. Enter on a highlighted result opens it; Enter in the query always searches. |
+| Clear | Circle-X in the query field (**Clear query**) or **⌘⇧L** clears the query and results (scope chips stay). |
 
 ### Scope Filters
 
@@ -77,7 +78,7 @@ Snippets appear when `matchedField === "content"`. Maximum **20 results** per se
 
 ## Selecting a Result
 
-Clicking a result (or Enter on the highlight) closes the overlay and navigates within the workspace:
+Clicking a result (or **Enter** on a highlighted result — not while the query field is focused) closes the overlay and navigates within the workspace:
 
 | Asset type | Navigation |
 |------------|------------|
@@ -101,7 +102,7 @@ Message hits do **not** scroll to or highlight the specific message. People sear
 
 Query text, scope, and previous results persist while the overlay is closed and reopened during the same session. A new search runs only when the query signature changes (query, scope, or dev strategy toggles).
 
-Closing the overlay cancels any pending debounced search but does not reset the input or results.
+Closing the overlay cancels any pending debounced search but does not reset the input or results. **Clear query** / **⌘⇧L** resets the input and results without closing the overlay.
 
 ## What Search Does Not Provide
 

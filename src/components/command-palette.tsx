@@ -86,6 +86,7 @@ export function CommandPalette({
   const navLabel = useShortcutLabel(HOTKEYS.toggleNav);
   const workspacesLabel = useShortcutLabel(HOTKEYS.toggleWorkspaces);
   const settingsLabel = useShortcutLabel(HOTKEYS.workspaceSettings);
+  const profileLabel = useShortcutLabel(HOTKEYS.profile);
   const [query, setQuery] = useState("");
   const [showAllConversations, setShowAllConversations] = useState(false);
   const [showAllPages, setShowAllPages] = useState(false);
@@ -250,7 +251,11 @@ export function CommandPalette({
           <CommandItem
             onSelect={() =>
               run(() =>
-                navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } }),
+                navigate({
+                  to: "/w/$workspaceId/settings",
+                  params: { workspaceId },
+                  search: (prev) => prev,
+                }),
               )
             }
             keywords={["invites", "members", "admin"]}
@@ -264,6 +269,9 @@ export function CommandPalette({
           <CommandItem onSelect={() => run(onOpenProfile)} keywords={["account", "me"]}>
             <UserIcon />
             Profile
+            <CommandShortcut>
+              <Kbd>{profileLabel}</Kbd>
+            </CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => run(onLogout)} keywords={["sign out", "exit"]}>
             <LogOut />

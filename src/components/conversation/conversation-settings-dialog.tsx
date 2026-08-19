@@ -97,7 +97,7 @@ export function ConversationSettingsDialog({
   return (
     <TooltipProvider delayDuration={200}>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent size="sm">
+        <DialogContent size="detail">
           <DialogHeader>
             <DialogTitle>Conversation settings</DialogTitle>
           </DialogHeader>

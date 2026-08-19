@@ -144,8 +144,13 @@ function WorkspaceShell() {
   useHotkey(HOTKEYS.toggleNav, toggleNavPanel);
   useHotkey(HOTKEYS.toggleWorkspaces, toggleRail);
   useHotkey(HOTKEYS.workspaceSettings, () => {
-    void navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } });
+    void navigate({
+      to: "/w/$workspaceId/settings",
+      params: { workspaceId },
+      search: (prev) => prev,
+    });
   });
+  useHotkey(HOTKEYS.profile, () => handleOpenProfile(), { allowInInput: true });
 
   const conversationId = search.c;
   const pageId = search.p;
@@ -278,6 +283,7 @@ function WorkspaceShell() {
                       <Link
                         to="/w/$workspaceId/settings"
                         params={{ workspaceId }}
+                        search={(prev) => prev}
                         className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
                         aria-label="Workspace settings"
                       >

@@ -16,7 +16,7 @@ Conversations are the primary communication channel in Tamarind. They support di
 |-----------|------|---------|
 | `ConversationWindow` | [`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx) | Main chat interface |
 | `NewConversationDialog` | [`new-conversation-dialog.tsx`](../../src/components/new-conversation-dialog.tsx) | Pick members, find-or-create conversation |
-| `ConversationSettingsDialog` | [`conversation-settings-dialog.tsx`](../../src/components/conversation/conversation-settings-dialog.tsx) | Title, participants, linked pages |
+| `ConversationSettingsDialog` | [`conversation-settings-dialog.tsx`](../../src/components/conversation/conversation-settings-dialog.tsx) | Title, participants, linked pages (`DialogContent` size `detail`, 630px) |
 | `AddParticipantsDialog` | [`add-participants-dialog.tsx`](../../src/components/conversation/add-participants-dialog.tsx) | Add members to group |
 | `EditableTitle` | [`editable-title.tsx`](../../src/components/conversation/editable-title.tsx) | Inline title editing |
 
@@ -38,7 +38,7 @@ The composer is a collapsible vertical panel in the conversation column.
 
 | State | Behavior |
 |-------|----------|
-| Minimized (default on first open) | Same height as the nav profile/logout row (`--footer-row`, 3rem). Only the placeholder **Start writing a message…**. No buttons, no hover formatting, not resizable |
+| Minimized (default on first open) | Same height as the nav profile/logout row (`--footer-row`, 3rem). The composer `ResizablePanel` must use a literal `"3rem"` for `collapsedSize`/`defaultSize` — `react-resizable-panels` does not parse CSS variables. Nav CSS can keep `h-[var(--footer-row)]`. Only the placeholder **Start writing a message…**. No buttons, no hover formatting, not resizable |
 | Expanded | ~20% of the column (resizable 16–45%). Formatting toolbar, secondary **New page**, **Send** with ⌘↵ hint |
 
 - Click or focus expands. Blur with empty content collapses. Blur with text stays expanded.

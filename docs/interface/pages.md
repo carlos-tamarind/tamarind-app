@@ -23,9 +23,9 @@ Pages are rich-text documents where teams distill and organize knowledge. They s
 |-----------|------|---------|
 | `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Main page editor |
 | `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Title + visibility; blank, conversation-scoped, or from-messages |
-| `PageSettingsDialog` | [`page-settings-dialog.tsx`](../../src/components/page/page-settings-dialog.tsx) | Page metadata and settings |
+| `PageSettingsDialog` | [`page-settings-dialog.tsx`](../../src/components/page/page-settings-dialog.tsx) | Page metadata and settings (`DialogContent` size `detail`, 630px) |
 | `SharePageDialog` | [`share-page-dialog.tsx`](../../src/components/page/share-page-dialog.tsx) | Share to members or conversations |
-| `DuplicatePageDialog` | [`duplicate-page-dialog.tsx`](../../src/components/page/duplicate-page-dialog.tsx) | Copy page to another context |
+| `DuplicatePageDialog` | [`duplicate-page-dialog.tsx`](../../src/components/page/duplicate-page-dialog.tsx) | Copy page to another context (main dialog `md` so the visibility row fits) |
 
 ## Page Editor Features
 

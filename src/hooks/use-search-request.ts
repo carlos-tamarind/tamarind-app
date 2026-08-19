@@ -117,6 +117,16 @@ export function useSearchRequest({
     void executeSearch();
   }, [open, query, clearDebounce, executeSearch]);
 
+  const reset = useCallback(() => {
+    requestIdRef.current += 1;
+    lastSignatureRef.current = null;
+    clearDebounce();
+    setResults([]);
+    setHasSearched(false);
+    setHasError(false);
+    setIsLoading(false);
+  }, [clearDebounce]);
+
   useEffect(() => {
     if (!open) {
       requestIdRef.current += 1;
@@ -142,5 +152,5 @@ export function useSearchRequest({
     return clearDebounce;
   }, [open, signature, clearDebounce, executeSearch]);
 
-  return { isLoading, searchNow, results, hasSearched, hasError };
+  return { isLoading, searchNow, reset, results, hasSearched, hasError };
 }
