@@ -40,7 +40,7 @@ Scope chips filter which asset types are searched. Clicking an active chip desel
 
 The sliders button toggles filter visibility. Tooltip: **Filter your search**.
 
-Semantic search runs only for **All** and **Conversations & messages** scopes. **Pages** and **Users & conversations** use keyword search only.
+Semantic search runs for **All**, **Conversations & messages**, and **Pages**. **Users & conversations** uses keyword search only.
 
 ### Dev-Only Strategy Toggles
 

@@ -40,7 +40,7 @@ Hybrid keyword and semantic search over workspace pages, conversations, messages
 | [Overview](search/readme.md) | Subsystem purpose, architecture, and strategy summary |
 | [Pipeline](search/pipeline.md) | End-to-end query flow from UI to merged results |
 | [Keyword Search](search/keyword.md) | Trigram-based keyword strategy and RPCs |
-| [Semantic Search](search/semantic.md) | Vector similarity over message embeddings |
+| [Semantic Search](search/semantic.md) | Vector similarity over message and page-chunk embeddings |
 | [User Search](search/user_search.md) | How users open search, filter, and act on results |
 
 ### Interface

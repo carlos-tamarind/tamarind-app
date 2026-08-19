@@ -30,8 +30,8 @@ sequenceDiagram
       Orch->>KW: scope RPCs
       KW->>DB: search_*_keyword
       SF->>Orch: semantic
-      Orch->>SEM: search_messages_semantic
-      SEM->>DB: vector RPC
+      Orch->>SEM: search_messages_semantic / search_pages_semantic
+      SEM->>DB: vector RPCs
     end
     Orch->>Orch: mergeSearchResults
     Orch-->>SF: keywordResults, semanticResults, mergedResults
@@ -96,7 +96,7 @@ Builds a [`SearchRequest`](../../src/search/types.ts):
 
 ### Query Embedding
 
-When scope supports semantic search (`all` or `conversations`), the pipeline embeds the query via [`embedSearchQuery`](../../src/semantic/embedding/embedSearchQuery.ts) using the same OpenAI provider as the indexing pipeline (`text-embedding-3-small`).
+When scope supports semantic search (`all`, `conversations`, or `pages`), the pipeline embeds the query via [`embedSearchQuery`](../../src/semantic/embedding/embedSearchQuery.ts) using the same OpenAI provider as the indexing pipeline (`text-embedding-3-small`).
 
 | Timeout | Behavior |
 |---------|----------|
@@ -154,6 +154,7 @@ type SearchResult = {
 | Keyword strategy | 2s | Empty keyword results |
 | Semantic strategy | 2s | Empty semantic results |
 | Individual keyword RPC | None (strategy-level only) | RPC error logged; other RPCs in scope still run |
+| Individual semantic RPC | None (strategy-level only) | RPC error logged; the other corpus in `all` still runs |
 
 The system is designed to degrade gracefully: a slow embedding provider or semantic query does not block keyword results.
 
@@ -162,4 +163,4 @@ The system is designed to degrade gracefully: a slow embedding provider or seman
 - [Keyword Search](keyword.md) — Keyword strategy and RPC details
 - [Semantic Search](semantic.md) — Semantic strategy and scoring weights
 - [User Search](user_search.md) — UI trigger and result interaction
-- [Semantic Pipeline](../semantic/pipeline.md) — How message embeddings are produced
+- [Semantic Pipeline](../semantic/pipeline.md) — How message and page embeddings are produced

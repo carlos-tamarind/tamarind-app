@@ -67,4 +67,5 @@ Unlike message embeddings, exhausting retries never sets `FAILED` — the row la
 
 - [Cron & Background Jobs](../cron/readme.md)
 - [Message Embedding](msg_embedding.md)
+- [Semantic Search](../search/semantic.md) — query-time use of `EMBEDDED` page vectors
 - [Deployment](../deployment.md)

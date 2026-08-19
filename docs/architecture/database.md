@@ -143,7 +143,7 @@ erDiagram
 | `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
 | `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
 | `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
-| `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Future page semantic search |
+| `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Page semantic search |
 | `uniq_page_semantic_jobs_inflight` | page_semantic_jobs | Partial UNIQUE: `(page_id) WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` | One in-flight analysis job per page |
 | `idx_page_semantic_jobs_claimable` | page_semantic_jobs | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page semantic worker |
 | `idx_page_semantic_jobs_queue` | page_semantic_jobs | `(status, next_retry_at, created_at)` | Queue inspection |
@@ -172,6 +172,7 @@ erDiagram
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
+| `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page) |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
 ## Row-Level Security
@@ -204,6 +205,7 @@ Write patterns:
 | 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
 | 2026-08-17 | Add `list_pages_due_for_chunking` RPC and `idx_pages_last_modified_at` |
 | 2026-08-18 | Add `page_semantics`, `page_semantic_jobs`, `page_semantic_job_status` enum, and the page-semantics RPCs |
+| 2026-08-19 | Add `search_pages_semantic` RPC |
 
 ## Related Docs
 
