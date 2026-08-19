@@ -1456,6 +1456,25 @@ export type Database = {
           title: string
         }[]
       }
+      search_pages_semantic: {
+        Args: {
+          p_embedding: string
+          p_embedding_model?: string
+          p_limit: number
+          p_recency_half_life_days?: number
+          p_similarity_threshold?: number
+          p_weight_recency?: number
+          p_weight_similarity?: number
+          p_workspace_id: string
+        }
+        Returns: {
+          asset_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
       search_people_keyword: {
         Args: { p_limit: number; p_query: string; p_workspace_id: string }
         Returns: {
