@@ -11,7 +11,7 @@ Tamarind is organized around workspaces — isolated tenant environments where t
 | Role | `user_roles` | Catalog: admin, member, viewer |
 | Invite | `workspace_invites` | Token-based email invitations |
 
-A user can belong to multiple workspaces. The workspace rail in the UI allows switching between them.
+A user can belong to multiple workspaces. The workspace rail in the UI (⌘⇧\\) and the command palette **Switch to …** items switch between them.
 
 ## Roles
 
@@ -64,7 +64,7 @@ Feature capabilities are defined in [`src/lib/features.ts`](../../src/lib/featur
 
 **File:** [`src/routes/_authenticated.w.$workspaceId.settings.tsx`](../../src/routes/_authenticated.w.$workspaceId.settings.tsx)
 
-Admin-only modal overlay for:
+Admin-only overlay (also opened with **⌘,**). Provides:
 
 - Creating email invites (select role, copy link)
 - Viewing pending invites

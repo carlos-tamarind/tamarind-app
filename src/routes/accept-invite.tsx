@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthLayout } from "@/components/auth-layout";
 
 const searchSchema = z.object({ token: z.string().min(8).max(128) });
 
@@ -93,16 +94,19 @@ function AcceptInvitePage() {
   // Not signed in → welcome → signup
   if (step === "welcome") {
     return (
-      <Centered>
-        <div className="space-y-4 text-center">
-          <h1 className="text-xl font-semibold">Join {data.workspaceName}</h1>
-          <p className="text-sm text-muted-foreground">
-            You were invited as <strong>{data.email}</strong> ({data.roleKey}).
-            Create your account to accept.
-          </p>
-          <Button onClick={() => setStep("signup")}>Continue</Button>
-        </div>
-      </Centered>
+      <AuthLayout
+        title={`Join ${data.workspaceName}`}
+        subtitle={
+          <>
+            You were invited as <strong className="text-foreground">{data.email}</strong>{" "}
+            ({data.roleKey}). Create your account to accept.
+          </>
+        }
+      >
+        <Button size="lg" className="w-full" onClick={() => setStep("signup")}>
+          Continue
+        </Button>
+      </AuthLayout>
     );
   }
 
@@ -160,15 +164,11 @@ function SignupForm({
   };
 
   return (
-    <Centered>
+    <AuthLayout
+      title="Create your account"
+      subtitle="Set a password to finish joining the workspace."
+    >
       <form onSubmit={handleSubmit} className="w-full space-y-4">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Set a password to finish joining the workspace.
-          </p>
-        </div>
-
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" value={email} disabled />
@@ -226,18 +226,20 @@ function SignupForm({
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? "Creating account…" : "Create account"}
         </Button>
       </form>
-    </Centered>
+    </AuthLayout>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md text-sm">{children}</div>
+      <div className="w-full max-w-md text-center text-sm text-muted-foreground">
+        {children}
+      </div>
     </div>
   );
 }

@@ -24,12 +24,36 @@ Conversations are the primary communication channel in Tamarind. They support di
 
 The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx)) provides:
 
-- **Message list** with day separators and author avatars
-- **TipTap composer** for rich-text message input
+- **Message list** — grouped runs, left-aligned, avatars on the first message of a run, subtle tint on own messages, sticky day separators
+- **Selection** — click messages to select; a floating bar exposes quote, copy, create page, and related actions. **Esc** clears the selection
+- **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar)
+- **TipTap composer** — see below
 - **@mentions** — `@user` for workspace members, `@@page` for pages
-- **Realtime updates** — new messages appear via Supabase Realtime INSERT subscription
-- **Create page from messages** — select messages and distill into a page
+- **Realtime updates** — new messages via Supabase Realtime INSERT
 - **Conversation settings** — rename, manage participants, view linked pages
+
+## Composer
+
+The composer is a collapsible vertical panel in the conversation column.
+
+| State | Behavior |
+|-------|----------|
+| Minimized (default on first open) | Same height as the nav profile/logout row (`--footer-row`, 3rem). Only the placeholder **Start writing a message…**. No buttons, no hover formatting, not resizable |
+| Expanded | ~20% of the column (resizable 16–45%). Formatting toolbar, secondary **New page**, **Send** with ⌘↵ hint |
+
+- Click or focus expands. Blur with empty content collapses. Blur with text stays expanded.
+- **Enter** inserts a line break. **Send** is the button or **⌘↵** / Ctrl+Enter. Mention popovers still consume Enter while open.
+- Long text wraps (`min-w-0` + ProseMirror `overflow-wrap`).
+
+### Session drafts
+
+[`src/lib/composer-drafts.ts`](../../src/lib/composer-drafts.ts) stores HTML in `sessionStorage` (`tamarind:composer-drafts`), keyed by conversation id.
+
+- Debounced write on TipTap `onUpdate`; removed on successful send or empty editor
+- Restored on mount (including after switching conversations or opening/closing a page beside the thread, which remounts `ConversationWindow`); a restored draft expands the composer
+- Cleared on logout (`clearComposerDrafts` in the workspace shell)
+
+No database persistence.
 
 ## Message Flow
 
@@ -42,7 +66,7 @@ sequenceDiagram
   participant RT as Supabase Realtime
   participant Sem as Semantic Pipeline
 
-  User->>CW: Type and send message
+  User->>CW: Type and send (button or ⌘↵)
   CW->>SF: sendMessage(conversationId, content)
   SF->>DB: INSERT messages (via supabaseAdmin)
   SF->>Sem: enqueueMessageSemanticsProcessing
@@ -51,7 +75,7 @@ sequenceDiagram
   CW->>CW: Merge into liveMessages
 ```
 
-Initial message history is loaded via React Query + `listMessages`. Realtime handles only subsequent INSERTs.
+Initial history loads via React Query + `listMessages`. Realtime handles subsequent INSERTs.
 
 ## Server Functions
 
@@ -60,7 +84,7 @@ All in [`src/lib/conversations.functions.ts`](../../src/lib/conversations.functi
 | Function | Method | Purpose |
 |----------|--------|---------|
 | `listWorkspaceMembers` | GET | Members for @mention autocomplete |
-| `listMyConversations` | GET | User's conversations in workspace |
+| `listMyConversations` | GET | User's conversations in workspace (`lastModifiedAt` included) |
 | `findOrCreateConversation` | POST | Find existing direct or create new |
 | `getConversation` | GET | Conversation details + participants |
 | `listMessages` | GET | Message history for a conversation |
@@ -71,6 +95,8 @@ All in [`src/lib/conversations.functions.ts`](../../src/lib/conversations.functi
 | `listMentionablePages` | GET | Pages available for @@mention |
 | `renameConversation` | POST | Update group conversation title |
 | `createPageFromMessages` | POST | Create page from selected messages |
+
+Recent-activity empty state uses [`listRecentActivity`](../../src/lib/activity.functions.ts) (authorship-based, not `last_modified_at`).
 
 ## Mentions
 
@@ -85,13 +111,15 @@ Mention list UI: [`src/components/editor/mention-list.tsx`](../../src/components
 
 ## Create Page from Messages
 
-Users can select one or more messages and create a page that captures that knowledge. `createPageFromMessages`:
+Users can select one or more messages (or use hover **Create page**) and create a page that captures that knowledge. `createPageFromMessages`:
 
 1. Creates a new page with quoted message content
 2. Links the page to the conversation
 3. Posts an announcement message in the conversation
 
 This triggers the semantic pipeline for the announcement message.
+
+The New Page dialog has **title** and **visibility** only (no template picker).
 
 ## Participants
 
@@ -101,7 +129,7 @@ This triggers the semantic pipeline for the announcement message.
 
 ## Related Docs
 
-- [User Interface](user_interface.md) — Where conversations appear in the shell
+- [User Interface](user_interface.md) — Shell, hotkeys, split-view close
 - [Pages](pages.md) — Creating pages from messages
 - [Realtime](../architecture/realtime.md) — Message subscription details
 - [Semantic Pipeline](../semantic/pipeline.md) — Message processing after send

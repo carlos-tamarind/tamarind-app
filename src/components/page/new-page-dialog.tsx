@@ -30,9 +30,6 @@ type Visibility = "private" | "workspace" | "conversation";
 type Mode = "blank" | "fromMessages";
 
 const MAX_TITLE = 50;
-const FROM_MESSAGES_TEMPLATE = "from-messages";
-const FROM_MESSAGES_TEMPLATE_LABEL =
-  "New conversation page from message selection";
 
 function graphemeLength(value: string) {
   return Array.from(value).length;
@@ -159,7 +156,7 @@ export function NewPageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>New page</DialogTitle>
         </DialogHeader>
@@ -213,26 +210,6 @@ export function NewPageDialog({
                     </SelectItem>
                   </>
                 )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">
-              Page template
-            </label>
-            <Select
-              disabled
-              value={isFromMessages ? FROM_MESSAGES_TEMPLATE : "none"}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="No templates available" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No templates available</SelectItem>
-                <SelectItem value={FROM_MESSAGES_TEMPLATE}>
-                  {FROM_MESSAGES_TEMPLATE_LABEL}
-                </SelectItem>
               </SelectContent>
             </Select>
           </div>

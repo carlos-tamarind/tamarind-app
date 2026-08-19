@@ -20,8 +20,10 @@ Teams generate knowledge constantly — in Slack threads, standups, design revie
 | Area | Capabilities |
 |------|-------------|
 | **Workspaces** | Multi-workspace support, role-based access (admin/member/viewer), email invites |
-| **Conversations** | Direct and group chats, @mentions (members and pages), create pages from messages |
+| **Conversations** | Direct and group chats, @mentions, quote/create-page from messages, collapsible composer, session drafts |
 | **Pages** | TipTap rich-text editor, slash commands, visibility controls, autosave, share and duplicate |
+| **Search** | Hybrid keyword + semantic overlay (⌘F); command palette (⌘K) |
+| **Shell** | Nav + workspace rails, status bar, light/dark/system theme |
 | **Realtime** | Live message delivery, page viewing presence |
 | **Semantic pipeline** | Message normalization, heuristic quality scoring, OpenAI vector embeddings |
 | **Auth** | Email/password, Google/Apple/Microsoft OAuth, password reset, invite-based onboarding |
@@ -30,7 +32,7 @@ Teams generate knowledge constantly — in Slack threads, standups, design revie
 
 Tamarind is building toward a contextual knowledge graph for teams. The current codebase includes schema and infrastructure for capabilities not yet fully wired:
 
-- **Semantic search** — find knowledge across conversations and pages by meaning, not just keywords (`search.semantic` feature flag, `message_embeddings` with HNSW index)
+- **Deeper semantic search** — hybrid overlay is live; plan-gated strategy enforcement and message-level deep links are not (`search.semantic` feature key, `message_embeddings` with HNSW index)
 - **Knowledge graph** — unified entity model linking pages, messages, and users with annotations and relations (`entities`, `entity_annotations`, `entity_relations` tables)
 - **AI-assisted pages** — generate documentation from conversation context (`page_origin: ai`, `ai.suggestions` feature flag)
 - **Decision tracking** — scoring rules already detect decision language in messages; future UI will surface and link decisions
@@ -50,7 +52,7 @@ These are grounded in existing schema and feature flags, not speculative roadmap
 | Auth | Supabase Auth + Lovable OAuth |
 | Realtime | Supabase Realtime |
 | Editor | TipTap |
-| UI | Tailwind CSS 4, shadcn/ui |
+| UI | Tailwind CSS 4, shadcn/ui, cmdk |
 | Embeddings | OpenAI text-embedding-3-small |
 
 ## Getting Started
@@ -74,7 +76,8 @@ Architecture and subsystem documentation lives in [`docs/`](docs/README.md):
 
 - [Architecture](docs/architecture/overview.md) — System design, database, auth, realtime
 - [Semantic Pipeline](docs/semantic/readme.md) — Message normalization, scoring, embedding
-- [Interface](docs/interface/readme.md) — UI, conversations, pages, onboarding
+- [Interface](docs/interface/readme.md) — UI, theming, hotkeys, conversations, pages, onboarding
+- [Search](docs/search/readme.md) — Hybrid keyword and semantic retrieval
 - [API Routes](docs/api/readme.md) — REST endpoints
 - [Deployment](docs/deployment.md) — Environment and hosting setup
 

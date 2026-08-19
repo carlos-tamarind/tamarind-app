@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthLayout } from "@/components/auth-layout";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
@@ -27,20 +28,24 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-center">Reset password</h1>
+    <AuthLayout
+      title="Reset password"
+      subtitle="We'll email you a link to set a new one."
+    >
+      <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? "Sending…" : "Send reset link"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          <Link to="/login" className="underline">Back to sign in</Link>
+          <Link to="/login" className="underline underline-offset-2 hover:text-foreground">
+            Back to sign in
+          </Link>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }

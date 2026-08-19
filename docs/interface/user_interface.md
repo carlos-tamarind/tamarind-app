@@ -1,55 +1,55 @@
 # User Interface
 
-The main application UI is the workspace shell — a three-panel layout for navigating conversations and pages within a workspace.
+The main application UI is the workspace shell — workspace rail, navigation, main content, and a status bar — for conversations and pages within a workspace.
 
 **Primary file:** [`src/routes/_authenticated.w.$workspaceId.tsx`](../../src/routes/_authenticated.w.$workspaceId.tsx)
 
 ## Workspace Shell Layout
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph shell [Workspace Shell]
-    Rail["Workspace Rail\n(switch workspaces)"]
-    Nav["Nav Panel\n(conversations or pages list)"]
-    Main["Main Area\n(conversation and/or page)"]
+    direction LR
+    Rail["Workspace rail"]
+    Nav["Nav panel + icon rail"]
+    Main["Main area"]
   end
-
-  Rail --- Nav --- Main
+  Status["Status bar"]
+  shell --- Status
 ```
 
-### Workspace Rail
+| Band | Role |
+|------|------|
+| Workspace rail | Switch workspaces; settings at the bottom. Uses `--surface-workspace` so it reads darker than the nav. Width `--nav-rail` (3.75rem). Hidden until opened. |
+| Nav panel | Conversations / pages / knowledge lists plus a matching icon rail. Folded and unfolded icon strips share the same `--nav-rail` width. |
+| Main area | Empty state, conversation, page, or split view |
+| Status bar | Workspace name, open asset(s) with icons, save status, version, theme, ⌘K |
 
-Leftmost narrow panel for switching between workspaces the user belongs to. Also provides links to:
+### Workspace rail
 
-- Workspace settings (`/w/$workspaceId/settings`)
-- Profile dialog
-- Sign out
+Toggled with **⌘⇧\\** (Ctrl+Shift+\\ on Windows/Linux) or the Menu button in the nav header. Contains workspace initials and a link to workspace settings.
 
-Collapsible on smaller viewports.
+### Nav panel
 
-### Nav Panel
+Resizable, collapsible. Icon rail (always visible when the panel is open or folded):
 
-Resizable panel with two tabs:
+| Icon | Action |
+|------|--------|
+| Conversations | Open conversations section |
+| Pages | Open pages section |
+| Search | Open search overlay (⌘F) |
+| Knowledge base | Placeholder (“coming soon”) |
+| Create | New conversation / new page |
 
-| Tab | Content |
-|-----|---------|
-| Conversations | List of direct and group conversations; create new via dialog |
-| Pages | List of accessible pages; create new via dialog |
-
-Each item navigates by updating search params on the workspace route.
+Sections use uppercase labels (`Section` in [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx)). Fold and open-section state persist in `localStorage`.
 
 ### Search
 
-The nav panel provides a **Search** button (header icon when expanded, rail button when folded) that opens a modal overlay. Users type a query, optionally filter by scope (All, Conversations & messages, Pages, Users & conversations), and select from merged keyword + semantic results.
+Search lives **on the icon rail in both folded and unfolded states**. It is not duplicated in the unfolded header.
 
-Selecting a result navigates via the same search params as the nav panel:
+See [User Search](../search/user_search.md) for the overlay.
 
-- Page hit → `?p=<pageId>`
-- Conversation or message hit → `?c=<conversationId>`
-
-See [User Search](../search/user_search.md) for the full interaction model.
-
-### Main Area
+### Main area
 
 Displays one or both content windows based on URL search params:
 
@@ -58,18 +58,16 @@ Displays one or both content windows based on URL search params:
 | `?c=$conversationId` | `ConversationWindow` | Chat interface |
 | `?p=$pageId` | `PageWindow` | TipTap page editor |
 
-Both can be open simultaneously in a split-pane layout using `ResizablePanelGroup`.
+Both can be open in a split-pane layout (`ResizablePanelGroup`). Example: `/w/abc123?c=conv-uuid&p=page-uuid`
 
-Example URL: `/w/abc123?c=conv-uuid&p=page-uuid`
+**Close-on-drag:** if a pane is dragged below ~20% width, that asset is closed (search param cleared). While dragging toward that threshold, [`CloseHintOverlay`](../../src/components/close-hint-overlay.tsx) shows a progressive blur/scrim and **Close conversation** / **Close page**.
 
 ## Navigation Model
 
-The workspace route uses search params rather than nested routes for the main content:
-
 ```
-/w/$workspaceId              → empty state (no conversation or page open)
-/w/$workspaceId?c=uuid       → conversation open
-/w/$workspaceId?p=uuid       → page open
+/w/$workspaceId              → empty state
+/w/$workspaceId?c=uuid       → conversation
+/w/$workspaceId?p=uuid       → page
 /w/$workspaceId?c=uuid&p=uuid → split view
 ```
 
@@ -78,26 +76,65 @@ Legacy nested routes redirect to search params:
 - `/w/$workspaceId/c/$conversationId` → `?c=$conversationId`
 - `/w/$workspaceId/p/$pageId` → `?p=$pageId`
 
+## Empty State
+
+[`EmptyStateHome`](../../src/components/empty-state-home.tsx) when neither `c` nor `p` is set:
+
+- Headline: **Welcome to Tamarind** (wordmark)
+- If the user has authored messages or edited pages: quiet heading **Pick up where you left:** above a boxed list (up to 4 items from [`listRecentActivity`](../../src/lib/activity.functions.ts))
+- If not: tagline, **Search anything** (⌘F), “or”
+- **New conversation** and **New page** secondary buttons always shown
+
+## Status Bar
+
+[`status-bar.tsx`](../../src/components/status-bar.tsx) sits in document flow (24px-class height plus 2px). Left: workspace name, then conversation/page titles with the same icons as the nav. Right: save/sync (from [`SaveStatusProvider`](../../src/lib/save-status-context.tsx)), version + environment, theme toggle, Commands ⌘K.
+
+## Command Palette
+
+[`command-palette.tsx`](../../src/components/command-palette.tsx) (`cmdk`). Open with **⌘K**. Groups:
+
+- **Actions** — new conversation, new page, search everything
+- **Conversations / Pages** — last-modified first; 3 shown, **Show more** up to 30; typing the filter shows up to 30 immediately
+- **Navigation** — toggle nav (⌘\\), toggle workspaces (⌘⇧\\), settings (⌘,), profile, logout, switch workspace
+- **Theme** — light / dark / system
+
+## Keyboard Shortcuts
+
+Canonical bindings: [`src/hooks/use-hotkeys.ts`](../../src/hooks/use-hotkeys.ts). `mod` is Cmd on macOS and Ctrl elsewhere. Bindings that browsers keep (⌘N, ⌘T, ⌘W) are not used.
+
+| Binding | Action |
+|---------|--------|
+| ⌘K | Toggle command palette |
+| ⌘F | Open search overlay (replaces Find-in-page while Tamarind is focused) |
+| ⌘\\ | Toggle navigation panel |
+| ⌘⇧\\ | Toggle workspaces rail |
+| ⌘, | Workspace settings |
+| ⌘↵ | Send message (composer) |
+| Esc | Clear conversation message selection |
+
+Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
+
 ## Key UI Components
 
 | Component | File | Role |
 |-----------|------|------|
-| `ConversationWindow` | [`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx) | Full chat UI |
+| `NavigationPanel` | [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx) | Icon rail + lists |
+| `ConversationWindow` | [`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx) | Chat UI |
 | `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Page editor |
+| `EmptyStateHome` | [`empty-state-home.tsx`](../../src/components/empty-state-home.tsx) | Home empty state |
+| `StatusBar` | [`status-bar.tsx`](../../src/components/status-bar.tsx) | Bottom ambient bar |
+| `CommandPalette` | [`command-palette.tsx`](../../src/components/command-palette.tsx) | ⌘K palette |
+| `SearchOverlay` | [`search-overlay.tsx`](../../src/components/search/search-overlay.tsx) | Workspace search |
+| `CloseHintOverlay` | [`close-hint-overlay.tsx`](../../src/components/close-hint-overlay.tsx) | Split-view close preview |
 | `NewConversationDialog` | [`new-conversation-dialog.tsx`](../../src/components/new-conversation-dialog.tsx) | Create conversation |
 | `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Create page |
 | `ProfileDialog` | [`profile-dialog.tsx`](../../src/components/profile/profile-dialog.tsx) | User profile |
-| `SearchOverlay` | [`search-overlay.tsx`](../../src/components/search/search-overlay.tsx) | Workspace search modal |
 
 ## Responsive Behavior
 
-- Workspace rail collapses on mobile (`use-mobile` hook)
-- Nav panel can be toggled open/closed
-- Split-pane layout adapts to available width
-
-## Empty State
-
-When no conversation or page is selected, the main area shows a prompt to select or create content from the nav panel.
+- Workspace rail is off by default and toggled; same width as the nav icon rail
+- Nav panel collapsible (`collapsedSize` matches `--nav-rail`)
+- Split-pane layout adapts to available width; dragging a pane past the close threshold drops that asset
 
 ## Related Docs
 

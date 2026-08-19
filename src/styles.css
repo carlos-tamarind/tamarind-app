@@ -13,6 +13,10 @@
  * The :root and .dark blocks define the actual color values using oklch.
  * All colors MUST use oklch format.
  *
+ * The palette is anchored on a single accent — teal #0D635D — with an
+ * otherwise near-neutral ramp at hue ~200 so greys sit under the accent
+ * instead of competing with it.
+ *
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
  * 2. Register it in @theme inline as --color-<name>: var(--<name>)
@@ -28,6 +32,10 @@
   --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-workspace: var(--surface-workspace);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -40,9 +48,13 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-subtle-foreground: var(--accent-subtle-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
@@ -59,80 +71,155 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
 }
 
 :root {
-  --radius: 0.625rem;
+  color-scheme: light;
+
+  --radius: 0.5rem;
+  /* Folded nav width; 3.75rem = 60px at 16px, 72px after the 120% root scale. */
+  --nav-rail: 3.75rem;
+  /* Profile/logout bar in nav; minimized conversation composer matches this. */
+  --footer-row: 3rem;
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.21 0.012 200);
+
+  /* Nav rail, sidebar, status bar — one step off the canvas. */
+  --surface: oklch(0.984 0.002 200);
+  --surface-foreground: oklch(0.21 0.012 200);
+  /* Workspace strip — a step darker so it reads as a distinct rail. */
+  --surface-workspace: oklch(0.955 0.004 200);
+  /* Popovers and dialogs — lifted above the canvas. */
+  --surface-raised: oklch(1 0 0);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.21 0.012 200);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.21 0.012 200);
+
+  --primary: oklch(0.452 0.075 187.5);
+  --primary-foreground: oklch(0.985 0.004 190);
+
+  --secondary: oklch(0.968 0.004 200);
+  --secondary-foreground: oklch(0.28 0.012 200);
+
+  --muted: oklch(0.968 0.004 200);
+  --muted-foreground: oklch(0.545 0.012 200);
+
+  /* Neutral hover. */
+  --accent: oklch(0.958 0.005 200);
+  --accent-foreground: oklch(0.21 0.012 200);
+  /* Accent-tinted selected/active state. */
+  --accent-subtle: oklch(0.962 0.014 187.5);
+  --accent-subtle-foreground: oklch(0.35 0.055 187.5);
+
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
+  --destructive-foreground: oklch(0.985 0.004 250);
+  --success: oklch(0.58 0.11 155);
+
+  --border: oklch(0.922 0.004 200);
+  --border-strong: oklch(0.865 0.006 200);
+  --input: oklch(0.922 0.004 200);
+  --ring: oklch(0.452 0.075 187.5);
+
+  --chart-1: oklch(0.452 0.075 187.5);
   --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-3: oklch(0.646 0.222 41.116);
   --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --chart-5: oklch(0.398 0.07 227.392);
+
+  --sidebar: oklch(0.984 0.002 200);
+  --sidebar-foreground: oklch(0.21 0.012 200);
+  --sidebar-primary: oklch(0.452 0.075 187.5);
+  --sidebar-primary-foreground: oklch(0.985 0.004 190);
+  --sidebar-accent: oklch(0.958 0.005 200);
+  --sidebar-accent-foreground: oklch(0.21 0.012 200);
+  --sidebar-border: oklch(0.922 0.004 200);
+  --sidebar-ring: oklch(0.452 0.075 187.5);
+
+  --elevation-xs: 0 1px 2px 0 oklch(0 0 0 / 0.04);
+  --elevation-sm: 0 1px 3px 0 oklch(0 0 0 / 0.06), 0 1px 2px -1px oklch(0 0 0 / 0.05);
+  --elevation-md: 0 4px 12px -2px oklch(0 0 0 / 0.08), 0 2px 4px -2px oklch(0 0 0 / 0.04);
+  --elevation-lg: 0 12px 32px -8px oklch(0 0 0 / 0.12), 0 4px 8px -4px oklch(0 0 0 / 0.06);
+
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
+  color-scheme: dark;
+
+  --background: oklch(0.165 0.008 200);
+  --foreground: oklch(0.96 0.003 200);
+
+  --surface: oklch(0.192 0.008 200);
+  --surface-foreground: oklch(0.96 0.003 200);
+  --surface-workspace: oklch(0.145 0.008 200);
+  --surface-raised: oklch(0.232 0.009 200);
+
+  --card: oklch(0.205 0.008 200);
+  --card-foreground: oklch(0.96 0.003 200);
+  --popover: oklch(0.232 0.009 200);
+  --popover-foreground: oklch(0.96 0.003 200);
+
+  /* Lifted from the brand teal so it stays legible on a dark canvas. */
+  --primary: oklch(0.705 0.088 187.5);
+  --primary-foreground: oklch(0.17 0.02 190);
+
+  --secondary: oklch(0.265 0.01 200);
+  --secondary-foreground: oklch(0.96 0.003 200);
+
+  --muted: oklch(0.265 0.01 200);
+  --muted-foreground: oklch(0.685 0.012 200);
+
+  --accent: oklch(0.285 0.011 200);
+  --accent-foreground: oklch(0.96 0.003 200);
+  --accent-subtle: oklch(0.285 0.03 187.5);
+  --accent-subtle-foreground: oklch(0.83 0.06 187.5);
+
+  --destructive: oklch(0.652 0.19 25.5);
+  --destructive-foreground: oklch(0.985 0.004 250);
+  --success: oklch(0.7 0.12 155);
+
+  --border: oklch(1 0 0 / 9%);
+  --border-strong: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.705 0.088 187.5);
+
+  --chart-1: oklch(0.705 0.088 187.5);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  --sidebar: oklch(0.192 0.008 200);
+  --sidebar-foreground: oklch(0.96 0.003 200);
+  --sidebar-primary: oklch(0.705 0.088 187.5);
+  --sidebar-primary-foreground: oklch(0.17 0.02 190);
+  --sidebar-accent: oklch(0.285 0.011 200);
+  --sidebar-accent-foreground: oklch(0.96 0.003 200);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.705 0.088 187.5);
+
+  --elevation-xs: 0 1px 2px 0 oklch(0 0 0 / 0.24);
+  --elevation-sm: 0 1px 3px 0 oklch(0 0 0 / 0.32), 0 1px 2px -1px oklch(0 0 0 / 0.28);
+  --elevation-md: 0 4px 12px -2px oklch(0 0 0 / 0.4), 0 2px 4px -2px oklch(0 0 0 / 0.3);
+  --elevation-lg: 0 12px 32px -8px oklch(0 0 0 / 0.55), 0 4px 8px -4px oklch(0 0 0 / 0.35);
 }
 
 @layer base {
+  html {
+    /* 18.4px — rem-based utilities scale 15% without rewriting every class. */
+    font-size: 115%;
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -140,12 +227,59 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    /* tnum keeps timestamps, counts and versions from reflowing. */
+    font-feature-settings: "cv11", "ss01", "tnum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 24%, transparent);
+  }
+
+  /* Keyboard baseline. Primitives that draw their own ring opt out with
+     focus-visible:outline-none, so this only catches bare elements. */
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+/* Thin, self-effacing scrollbars that only assert themselves on hover. */
+@layer utilities {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent)
+      transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--muted-foreground) 26%, transparent);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
 /* TipTap editor */
 .ProseMirror {
   outline: none;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -158,22 +292,25 @@
   margin-top: 0.6em;
 }
 .ProseMirror h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: 1.2em;
+  font-size: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
+  margin-top: 1.4em;
 }
 .ProseMirror h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.25;
-  margin-top: 1em;
+  font-size: 1.375rem;
+  font-weight: 650;
+  letter-spacing: -0.014em;
+  line-height: 1.3;
+  margin-top: 1.2em;
 }
 .ProseMirror h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  line-height: 1.3;
-  margin-top: 0.9em;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin-top: 1em;
 }
 .ProseMirror ul,
 .ProseMirror ol {
@@ -186,15 +323,14 @@
   list-style: decimal;
 }
 .ProseMirror blockquote {
-  border-left: 3px solid var(--border);
+  border-left: 2px solid var(--border-strong);
   padding-left: 1rem;
   color: var(--muted-foreground);
-  font-style: italic;
 }
 .ProseMirror code {
   background-color: color-mix(in oklab, var(--muted) 70%, transparent);
   padding: 0.1em 0.35em;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.9em;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -202,7 +338,7 @@
   background-color: var(--muted);
   color: var(--foreground);
   padding: 0.75rem 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.875rem;
@@ -217,53 +353,52 @@
   border-top: 1px solid var(--border);
   margin: 1.5em 0;
 }
-.ProseMirror strong { font-weight: 700; }
+.ProseMirror strong { font-weight: 650; }
 .ProseMirror em { font-style: italic; }
 .ProseMirror u { text-decoration: underline; }
 .ProseMirror s { text-decoration: line-through; }
+
+/* Mention chips. Colors come from tokens so both themes work; the inline
+   SVGs already carry stroke="currentColor" and inherit from the chip. */
 .mention-member,
 .mention-page,
 .mention-conversation {
   display: inline-flex;
   align-items: center;
   gap: 0.25em;
-  padding: 0 4px;
+  padding: 0.05em 0.35em;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  color: #000 !important;
-  background-color: color-mix(in oklab, var(--muted) 70%, transparent);
+  color: var(--accent-subtle-foreground);
+  background-color: var(--accent-subtle);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+.mention-member:hover,
+.mention-page:hover,
+.mention-conversation:hover {
+  background-color: color-mix(in oklab, var(--primary) 18%, transparent);
 }
 .mention-member-self {
   cursor: default;
-}
-.ProseMirror a {
-  color: hsl(var(--primary));
-  text-decoration: underline;
-  cursor: pointer;
-}
-.prose a.message-link,
-.prose a[href] {
-  text-decoration: underline;
-  cursor: pointer;
-}
-.prose-invert a[href] {
-  color: inherit;
-  text-decoration: underline;
-  opacity: 0.9;
 }
 .mention-icon {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
-  color: #000 !important;
-  stroke: #000 !important;
-  fill: none !important;
-  opacity: 1 !important;
-  visibility: visible !important;
 }
-.mention-icon * {
-  stroke: #000 !important;
+.ProseMirror a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.prose a.message-link,
+.prose a[href] {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
@@ -281,15 +416,20 @@
 /* Quoted message blocks (composer + rendered messages) */
 .msg-quote {
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background-color: color-mix(in oklab, var(--muted) 65%, transparent);
+  border-left: 2px solid color-mix(in oklab, var(--primary) 55%, transparent);
+  border-radius: 6px;
+  background-color: color-mix(in oklab, var(--muted) 55%, transparent);
   padding: 6px 10px;
   margin: 4px 0;
   position: relative;
   cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+.msg-quote:hover {
+  background-color: color-mix(in oklab, var(--muted) 85%, transparent);
 }
 .msg-quote .msg-quote {
-  background-color: color-mix(in oklab, var(--muted) 45%, transparent);
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
 }
 .msg-quote::before {
   content: attr(data-author) " · " attr(data-created-at);
@@ -322,9 +462,20 @@
 }
 
 .msg-flash {
-  animation: msg-flash-anim 1.4s ease-out;
+  animation: msg-flash-anim 1.4s var(--ease-out);
 }
 @keyframes msg-flash-anim {
-  0% { background-color: color-mix(in oklab, var(--primary) 35%, transparent); }
+  0% { background-color: color-mix(in oklab, var(--primary) 30%, transparent); }
   100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

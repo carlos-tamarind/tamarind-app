@@ -27,6 +27,7 @@ Teams capture knowledge in conversations and pages. Search lets members:
 flowchart TB
   subgraph UI
     Nav["navigation-panel.tsx"]
+    Hotkeys["⌘F / command palette"]
     Overlay["search-overlay.tsx"]
     Hook["use-search-request.ts"]
   end
@@ -47,7 +48,9 @@ flowchart TB
     Vec["search_messages_semantic\nsearch_pages_semantic"]
   end
 
-  Nav --> Overlay --> Hook --> Exec --> Build --> Orch
+  Nav --> Overlay
+  Hotkeys --> Overlay
+  Overlay --> Hook --> Exec --> Build --> Orch
   Orch --> KW --> Trgm
   Orch --> SEM --> Vec
   Orch --> Merge["mergeSearchResults"]

@@ -4,20 +4,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Bold,
-  ChevronDown,
-  ChevronUp,
-  CircleCheckBig,
+  Check,
   Code,
   Copy,
   FilePlus,
   FileText,
   Italic,
   Loader2,
+  MessageSquareDashed,
   MoreHorizontal,
   Quote,
   Send,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -25,6 +25,11 @@ import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Kbd } from "@/components/ui/kbd";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HOTKEYS, useHotkey, useShortcutLabel } from "@/hooks/use-hotkeys";
 import {
   Popover,
   PopoverContent,
@@ -41,6 +46,7 @@ import {
   ResizablePanelGroup,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import type { PanelImperativeHandle } from "react-resizable-panels";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getConversation,
@@ -62,6 +68,11 @@ import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conv
 import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
+import {
+  getComposerDraft,
+  removeComposerDraft,
+  setComposerDraft,
+} from "@/lib/composer-drafts";
 
 type Message = {
   id: string;
@@ -394,10 +405,16 @@ export function ConversationWindow({
   const [newPagePresetTitle, setNewPagePresetTitle] = useState<string>("");
   const [newPageMessageIds, setNewPageMessageIds] = useState<string[]>([]);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [composerExpanded, setComposerExpanded] = useState(false);
+  const composerPanelRef = useRef<PanelImperativeHandle>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [mcmExpanded, setMcmExpanded] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const sendLabel = useShortcutLabel(HOTKEYS.send);
+  const boldLabel = useShortcutLabel(HOTKEYS.bold);
+  const italicLabel = useShortcutLabel(HOTKEYS.italic);
+  const codeLabel = useShortcutLabel(HOTKEYS.code);
 
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -407,14 +424,11 @@ export function ConversationWindow({
       return next;
     });
   };
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-    setMcmExpanded(false);
-  };
+  const clearSelection = () => setSelectedIds(new Set());
 
-  useEffect(() => {
-    if (selectedIds.size === 0 && mcmExpanded) setMcmExpanded(false);
-  }, [selectedIds, mcmExpanded]);
+  // Only claims Escape while something is selected, so dialogs and overlays
+  // opened on top of the thread keep their own dismissal.
+  useHotkey("escape", () => clearSelection(), { enabled: selectedIds.size > 0 });
 
   const { data: conv } = useQuery({
     queryKey: ["conversation", conversationId],
@@ -438,12 +452,10 @@ export function ConversationWindow({
   });
 
   useEffect(() => {
-    setLiveMessages([]);
-    setSelectedIds(new Set());
     return () => {
-      setSelectedIds(new Set());
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [conversationId]);
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -577,19 +589,21 @@ export function ConversationWindow({
           handleSend();
           return true;
         }
-        if (event.key === "Enter" && !event.shiftKey) {
-          if (mentionOpenRef.current > 0) return false;
-          event.preventDefault();
-          handleSend();
-          return true;
-        }
         return false;
       },
 
 
     },
     onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
-    onUpdate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
+    onUpdate: ({ editor }) => {
+      const empty = !hasSendableContent(editor);
+      setIsEmpty(empty);
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        if (empty) removeComposerDraft(conversationId);
+        else setComposerDraft(conversationId, editor.getHTML());
+      }, 200);
+    },
   });
 
   const handleSend = async () => {
@@ -601,6 +615,7 @@ export function ConversationWindow({
       await sendMsg({ data: { conversationId, rawText: html } });
       editor.commands.clearContent();
       setIsEmpty(true);
+      removeComposerDraft(conversationId);
       clearSelection();
     } catch (e) {
       console.error(e);
@@ -609,11 +624,48 @@ export function ConversationWindow({
     }
   };
 
-  const handleQuoteSelection = () => {
-    if (!editor || selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
+  const expandComposer = () => {
+    const panel = composerPanelRef.current;
+    if (panel?.isCollapsed()) panel.expand();
+    panel?.resize("20%");
+    setComposerExpanded(true);
+    requestAnimationFrame(() => editor?.commands.focus());
+  };
+
+  const collapseComposerIfEmpty = () => {
+    if (editor && hasSendableContent(editor)) return;
+    composerPanelRef.current?.collapse();
+    setComposerExpanded(false);
+  };
+
+  useEffect(() => {
+    if (!editor) return;
+    const draft = getComposerDraft(conversationId);
+    if (!draft) return;
+    editor.commands.setContent(draft);
+    setIsEmpty(!hasSendableContent(editor));
+    const id = requestAnimationFrame(() => {
+      const panel = composerPanelRef.current;
+      if (panel?.isCollapsed()) panel.expand();
+      panel?.resize("20%");
+      setComposerExpanded(true);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [editor, conversationId]);
+
+  // Chronological order regardless of the order ids were selected in. Shared
+  // by every bulk action so the hover bar and the selection bar can never
+  // diverge in behaviour.
+  const sortByOrder = (ids: string[]) => {
     const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
-    ids.sort((a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0));
+    return [...ids].sort(
+      (a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0),
+    );
+  };
+
+  const handleQuoteSelection = (targetIds?: string[]) => {
+    const ids = sortByOrder(targetIds ?? Array.from(selectedIds));
+    if (!editor || ids.length === 0) return;
     const byId = new Map(messages.map((m) => [m.id, m]));
     const nodes: string[] = [];
     for (const id of ids) {
@@ -641,14 +693,15 @@ export function ConversationWindow({
     // Append trailing empty paragraph so caret lands somewhere writable.
     const html = nodes.join("") + "<p></p>";
     editor.chain().focus("end").insertContent(html).run();
+    composerPanelRef.current?.expand();
+    composerPanelRef.current?.resize("20%");
+    setComposerExpanded(true);
     clearSelection();
   };
 
-  const handleCopySelection = async () => {
-    if (selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
-    ids.sort((a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0));
+  const handleCopySelection = async (targetIds?: string[]) => {
+    const ids = sortByOrder(targetIds ?? Array.from(selectedIds));
+    if (ids.length === 0) return;
     const byId = new Map(messages.map((m) => [m.id, m]));
     const parts: string[] = [];
     for (const id of ids) {
@@ -676,14 +729,9 @@ export function ConversationWindow({
     setNewPageOpen(true);
   };
 
-  const handleCreatePageFromSelection = () => {
-    if (selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    // Preserve chronological order using current messages list.
-    const orderIndex = new Map(messages.map((m, i) => [m.id, i]));
-    ids.sort(
-      (a, b) => (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0),
-    );
+  const handleCreatePageFromSelection = (targetIds?: string[]) => {
+    const ids = sortByOrder(targetIds ?? Array.from(selectedIds));
+    if (ids.length === 0) return;
     const now = new Date();
     const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
     const preset = `Messages from ${displayTitle} on ${stamp}`.slice(0, 50);
@@ -771,8 +819,22 @@ export function ConversationWindow({
 
   if (!conv) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Loading…
+      <div className="flex h-full min-h-0 flex-col" aria-busy="true">
+        <div className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="ml-auto size-7 rounded-md" />
+        </div>
+        <div className="flex-1 space-y-5 overflow-hidden px-6 py-5">
+          {[68, 52, 80, 44, 62].map((width, i) => (
+            <div key={i} className="flex gap-2.5">
+              <Skeleton className="size-6 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4" style={{ width: `${width}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -790,256 +852,135 @@ export function ConversationWindow({
     >
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col">
-        {selectedIds.size > 0 ? (
-          (() => {
-            const plural = selectedIds.size > 1 ? "messages" : "message";
-            const noop = () => {};
-            return (
-              <div className="flex flex-col gap-2 border-b px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    ← {selectedIds.size} selected
-                  </span>
-                  <Button size="sm" variant="ghost" onClick={clearSelection}>
-                    Cancel
-                  </Button>
-                </div>
-                {mcmExpanded ? (
-                  <div className="flex flex-col rounded-md border bg-popover/40 p-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={handleCreatePageFromSelection}
-                        >
-                          <FilePlus className="size-4" />
-                          Create new page
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        Creates a new page using the selected message as placeholder.
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={noop}
-                        >
-                          <FileText className="size-4" />
-                          Add to page
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        Adds the contents of the selected message to an existing page.
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={handleQuoteSelection}
-                        >
-                          <Quote className="size-4" />
-                          Quote {plural}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        Quotes the selected message inside the new message area.
-                      </TooltipContent>
-                    </Tooltip>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={handleCopySelection}
-                    >
-                      <Copy className="size-4" />
-                      Copy {plural} to clipboard
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-full justify-start text-destructive hover:text-destructive"
-                      onClick={noop}
-                    >
-                      <Trash2 className="size-4" />
-                      Delete {plural}
-                    </Button>
-                    <div className="mt-1 flex justify-end border-t pt-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setMcmExpanded(false)}
-                      >
-                        Less <ChevronUp className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 items-center">
-                    <div className="justify-self-start">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleCreatePageFromSelection}
-                      >
-                        New page
-                      </Button>
-                    </div>
-                    <div className="justify-self-center">
-                      <Button size="sm" variant="ghost" onClick={handleQuoteSelection}>
-                        Quote
-                      </Button>
-                    </div>
-                    <div className="justify-self-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setMcmExpanded(true)}
-                      >
-                        More <ChevronDown className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()
-        ) : (
-          <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4">
-            <div className="min-w-0 flex-1 pr-3">
-              <EditableTitle
-                value={displayTitle}
-                editable={isGroup}
-                onSave={handleRename}
-                className="text-base font-semibold"
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {isGroup ? (
-                <Popover>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <PopoverTrigger asChild>
-                        <Button size="icon" variant="ghost" aria-label="Participants">
-                          <Users className="size-4" />
-                        </Button>
-                      </PopoverTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Participants</TooltipContent>
-                  </Tooltip>
-                  <PopoverContent align="end" className="w-64">
-                    <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                      Participants ({conv.participants.length})
-                    </div>
-                    <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
-                      {conv.participants.map((p) => (
-                        <li key={p.workspaceUserId}>
-                          <UserLink
-                            workspaceId={workspaceId}
-                            workspaceUserId={p.workspaceUserId}
-                            myWorkspaceUserId={myWorkspaceUserId}
-                            label={p.displayName}
-                            isMe={p.isMe}
-                          />
-                          {p.isMe && (
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              (you)
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => setAddOpen(true)}
-                    >
-                      Add participants
-                    </Button>
-                  </PopoverContent>
-                </Popover>
-              ) : (
+        <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b px-3">
+          <div className="min-w-0 flex-1 pr-2">
+            <EditableTitle
+              value={displayTitle}
+              editable={isGroup}
+              onSave={handleRename}
+              className="text-sm font-semibold tracking-[-0.01em]"
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {isGroup ? (
+              <Popover>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Participants"
-                      onClick={() => setAddOpen(true)}
-                    >
-                      <Users className="size-4" />
-                    </Button>
+                    <PopoverTrigger asChild>
+                      <Button size="icon" variant="ghost" aria-label="Participants">
+                        <Users className="size-4" strokeWidth={1.5} />
+                      </Button>
+                    </PopoverTrigger>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Participants</TooltipContent>
                 </Tooltip>
-              )}
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Settings"
-                onClick={() => setSettingsOpen(true)}
-              >
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </div>
-          </header>
-        )}
+                <PopoverContent align="end" className="w-64">
+                  <div className="mb-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                    Participants ({conv.participants.length})
+                  </div>
+                  <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
+                    {conv.participants.map((p) => (
+                      <li key={p.workspaceUserId}>
+                        <UserLink
+                          workspaceId={workspaceId}
+                          workspaceUserId={p.workspaceUserId}
+                          myWorkspaceUserId={myWorkspaceUserId}
+                          label={p.displayName}
+                          isMe={p.isMe}
+                        />
+                        {p.isMe && (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            (you)
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setAddOpen(true)}
+                  >
+                    Add participants
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Participants"
+                    onClick={() => setAddOpen(true)}
+                  >
+                    <Users className="size-4" strokeWidth={1.5} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Participants</TooltipContent>
+              </Tooltip>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <MoreHorizontal className="size-4" strokeWidth={1.5} />
+            </Button>
+          </div>
+        </header>
 
         <ResizablePanelGroup
           orientation="vertical"
           className="flex min-h-[520px] flex-1 flex-col"
         >
-          <ResizablePanel id="messages" defaultSize="80%" minSize="65%">
+          <ResizablePanel id="messages" defaultSize="80%" minSize="50%">
+            <div className="relative h-full">
             <div
               ref={scrollerRef}
-              className="h-full overflow-y-auto overflow-x-hidden px-6 py-4"
+              className="h-full overflow-y-auto overflow-x-hidden"
               onClick={handleMessageClick}
             >
               {messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  No messages yet — say hi.
-                </div>
+                <EmptyState
+                  icon={MessageSquareDashed}
+                  title="No messages yet"
+                  description="Say hi to get the conversation started."
+                />
               ) : (
-                <ul className="space-y-3">
+                <div role="log" className="px-4 pb-14 pt-2">
                   {messages.map((m, i) => {
                     const author = conv.participants.find(
                       (p) => p.workspaceUserId === m.authorWorkspaceUserId,
                     );
                     const isMe = author?.isMe ?? false;
                     const prev = messages[i - 1];
-                    const showName =
-                      !isMe &&
-                      (!prev ||
-                        prev.authorWorkspaceUserId !== m.authorWorkspaceUserId);
                     const currentDate = localDateKey(m.createdAt);
                     const previousDate = prev ? localDateKey(prev.createdAt) : null;
                     const showDaySeparator = !prev || currentDate !== previousDate;
-
+                    // Consecutive messages from one author collapse into a run:
+                    // only the first carries an avatar and a name.
+                    const startsRun =
+                      showDaySeparator ||
+                      !prev ||
+                      prev.authorWorkspaceUserId !== m.authorWorkspaceUserId;
+                    const label =
+                      author?.label ?? m.authorLabel ?? "Archived user";
                     const isSelected = selectedIds.has(m.id);
+                    const anySelected = selectedIds.size > 0;
+
                     return (
-                      <>
+                      <div key={m.id}>
                         {showDaySeparator && (
-                          <li
-                            key={`day-${currentDate}`}
-                            className="flex flex-col items-center pt-6 pb-4 first:pt-0"
-                          >
-                            <span className="text-xs italic text-muted-foreground">
+                          <div className="sticky top-0 z-10 flex justify-center py-3">
+                            <span className="rounded-full border bg-surface/90 px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground backdrop-blur-sm">
                               {formatDaySeparator(m.createdAt)}
                             </span>
-                            <hr className="mt-2 w-2/3 border-t border-border/60" />
-                          </li>
+                          </div>
                         )}
-                        <li
-                          key={m.id}
+                        <div
                           data-message-id={m.id}
                           onClick={(e) => {
                             const t = e.target as HTMLElement;
@@ -1048,166 +989,343 @@ export function ConversationWindow({
                               t.closest("span.mention-member") ||
                               t.closest("a[href]") ||
                               t.closest(".msg-quote-header[data-author-id]") ||
-                              t.closest("div.msg-quote")
+                              t.closest("div.msg-quote") ||
+                              t.closest("[data-quick-actions]")
                             )
                               return;
                             toggleSelected(m.id);
                           }}
-                          className={`-mx-6 cursor-pointer rounded-sm px-6 py-1 transition-colors ${
-                            isSelected ? "bg-muted/60" : "hover:bg-muted/40"
+                          className={`group/msg relative flex cursor-pointer gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
+                            startsRun ? "mt-2 pb-0.5 pt-1 first:mt-0" : "py-0.5"
+                          } ${
+                            isSelected
+                              ? "bg-accent-subtle"
+                              : isMe
+                                ? "bg-accent-subtle/35 hover:bg-accent-subtle/60"
+                                : "hover:bg-accent"
                           }`}
                         >
-                          <div
-                            className={`flex items-center gap-2 ${
-                              isMe ? "justify-end" : "justify-start"
-                            }`}
-                          >
-                            {!isMe && isSelected && (
-                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                          <div className="w-6 shrink-0">
+                            {startsRun ? (
+                              <Avatar className="size-6">
+                                {author?.avatarUrl ? (
+                                  <AvatarImage src={author.avatarUrl} />
+                                ) : null}
+                                <AvatarFallback className="text-[10px] font-medium">
+                                  {label.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <span className="mt-px block text-right text-[10px] leading-5 tabular-nums text-muted-foreground opacity-0 transition-opacity duration-(--motion-fast) group-hover/msg:opacity-100">
+                                {formatMessageTimestamp(m.createdAt).slice(-8, -3)}
+                              </span>
                             )}
-                            <div
-                              className={`flex min-w-0 flex-col transition-transform ${
-                                isMe ? "items-end" : "items-start"
-                              } ${
-                                isSelected
-                                  ? isMe
-                                    ? "-translate-x-2"
-                                    : "translate-x-2"
-                                  : ""
-                              }`}
-                            >
-                              {showName && (
-                                <span className="mb-0.5 px-2 text-xs text-muted-foreground">
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            {startsRun && (
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-medium">
                                   <UserLink
                                     workspaceId={workspaceId}
                                     workspaceUserId={m.authorWorkspaceUserId}
                                     myWorkspaceUserId={myWorkspaceUserId}
-                                    label={
-                                      author?.label ??
-                                      m.authorLabel ??
-                                      "Archived user"
-                                    }
+                                    label={label}
                                   />
                                 </span>
-                              )}
-                              <div
-                                className={`prose prose-sm max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm [&>p]:my-0 ${
-                                  isMe
-                                    ? "prose-invert bg-primary text-primary-foreground"
-                                    : "bg-muted text-foreground"
-                                }`}
-                                dangerouslySetInnerHTML={{
-                                  __html: sanitizeMessageHtml(
-                                    m.rawText,
-                                    myWorkspaceUserId,
-                                  ),
-                                }}
-                              />
-                              <span className="mt-0.5 px-2 text-[10px] text-muted-foreground">
-                                {formatMessageTimestamp(m.createdAt)}
-                              </span>
-                            </div>
-                            {isMe && isSelected && (
-                              <CircleCheckBig className="size-4 shrink-0 text-primary" />
+                                <span className="text-[10px] tabular-nums text-muted-foreground">
+                                  {formatMessageTimestamp(m.createdAt)}
+                                </span>
+                              </div>
                             )}
+                            <div
+                              className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeMessageHtml(
+                                  m.rawText,
+                                  myWorkspaceUserId,
+                                ),
+                              }}
+                            />
                           </div>
-                        </li>
-                      </>
+
+                          {isSelected && (
+                            <Check
+                              className="mt-1 size-3.5 shrink-0 text-primary"
+                              strokeWidth={2.5}
+                            />
+                          )}
+
+                          {!anySelected && (
+                            <div
+                              data-quick-actions=""
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className="absolute right-3 top-0 flex -translate-y-1/2 items-center gap-0.5 rounded-md border bg-surface-raised p-0.5 opacity-0 shadow-sm transition-opacity duration-(--motion-fast) focus-within:opacity-100 group-hover/msg:opacity-100"
+                            >
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="size-6"
+                                    aria-label="Quote & reply"
+                                    onClick={() => handleQuoteSelection([m.id])}
+                                  >
+                                    <Quote className="size-3.5" strokeWidth={1.5} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Quote & reply</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="size-6"
+                                    aria-label="Create page"
+                                    onClick={() =>
+                                      handleCreatePageFromSelection([m.id])
+                                    }
+                                  >
+                                    <FilePlus className="size-3.5" strokeWidth={1.5} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Create page</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
+              )}
+            </div>
+
+              {selectedIds.size > 0 && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
+                  <div className="pointer-events-auto flex items-center gap-1 rounded-lg border bg-surface-raised p-1 shadow-md">
+                    <span className="px-2 text-xs font-medium tabular-nums text-muted-foreground">
+                      {selectedIds.size} selected
+                    </span>
+                    <span className="mx-0.5 h-5 w-px bg-border" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCreatePageFromSelection()}
+                        >
+                          <FilePlus className="size-3.5" strokeWidth={1.5} />
+                          New page
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Creates a new page using the selected message as placeholder.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="ghost" onClick={() => {}}>
+                          <FileText className="size-3.5" strokeWidth={1.5} />
+                          Add to page
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Adds the contents of the selected message to an existing page.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleQuoteSelection()}
+                        >
+                          <Quote className="size-3.5" strokeWidth={1.5} />
+                          Quote
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Quotes the selected message inside the new message area.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Copy to clipboard"
+                          onClick={() => handleCopySelection()}
+                        >
+                          <Copy className="size-3.5" strokeWidth={1.5} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Copy to clipboard</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Delete"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => {}}
+                        >
+                          <Trash2 className="size-3.5" strokeWidth={1.5} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Delete</TooltipContent>
+                    </Tooltip>
+                    <span className="mx-0.5 h-5 w-px bg-border" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Cancel selection"
+                          onClick={clearSelection}
+                        >
+                          <X className="size-3.5" strokeWidth={1.5} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Cancel
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          Esc
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
               )}
             </div>
           </ResizablePanel>
-          <ResizableHandle />
+          {composerExpanded ? <ResizableHandle /> : null}
           <ResizablePanel
             id="composer"
-            defaultSize="20%"
-            minSize="22%"
+            panelRef={composerPanelRef}
+            collapsible
+            collapsedSize="var(--footer-row)"
+            defaultSize="var(--footer-row)"
+            minSize="16%"
             maxSize="45%"
           >
-            <div className="flex h-full flex-col border-t bg-background">
-              <div className="flex items-center gap-1 border-b px-2 py-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      onClick={() => editor?.chain().focus().toggleBold().run()}
-                      aria-label="Bold"
-                    >
-                      <Bold className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Bold text</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      onClick={() => editor?.chain().focus().toggleItalic().run()}
-                      aria-label="Italic"
-                    >
-                      <Italic className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Italic text</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      onClick={() => editor?.chain().focus().toggleCode().run()}
-                      aria-label="Code"
-                    >
-                      <Code className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Inline code</TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2">
-                <div className="flex min-h-0 flex-1 overflow-y-auto rounded-md border [&>div]:h-full [&>div]:w-full">
+            <div className="flex h-full min-w-0 flex-col border-t bg-background p-2">
+              <div
+                className="group/composer flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface transition-colors duration-(--motion-fast) focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25"
+                onBlur={(event) => {
+                  const next = event.relatedTarget as Node | null;
+                  if (next && event.currentTarget.contains(next)) return;
+                  collapseComposerIfEmpty();
+                }}
+              >
+                {!composerExpanded ? (
+                  <button
+                    type="button"
+                    className="flex h-full w-full items-center px-3 text-left text-sm text-muted-foreground"
+                    onClick={expandComposer}
+                  >
+                    Start writing a message…
+                  </button>
+                ) : (
+                  <>
+                <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&>div]:h-full [&>div]:w-full [&>div]:min-w-0">
                   <EditorContent editor={editor} />
                 </div>
 
-                <div className="flex flex-col justify-end gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleNewPage}
-                        aria-label="New conversation page"
-                      >
-                        <FilePlus className="size-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">New conversation page</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        onClick={handleSend}
-                        disabled={isEmpty || sending}
-                        aria-label="Send message"
-                      >
-                        {sending ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Send className="size-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">Send message</TooltipContent>
-                  </Tooltip>
+                <div className="flex shrink-0 items-center gap-0.5 px-1.5 pb-1.5">
+                  <div className="flex items-center gap-0.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          onClick={() => editor?.chain().focus().toggleBold().run()}
+                          aria-label="Bold"
+                        >
+                          <Bold className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Bold text
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {boldLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          onClick={() => editor?.chain().focus().toggleItalic().run()}
+                          aria-label="Italic"
+                        >
+                          <Italic className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Italic text
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {italicLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          onClick={() => editor?.chain().focus().toggleCode().run()}
+                          aria-label="Code"
+                        >
+                          <Code className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Inline code
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {codeLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="ml-auto flex items-center gap-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleNewPage}
+                      aria-label="New conversation page"
+                    >
+                      <FilePlus className="size-4" strokeWidth={1.5} />
+                      New page
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSend}
+                      disabled={isEmpty || sending}
+                      aria-label="Send message"
+                    >
+                      {sending ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Send className="size-3.5" strokeWidth={2} />
+                      )}
+                      Send
+                      <Kbd className="h-4 border-primary-foreground/25 bg-primary-foreground/15 text-primary-foreground/80">
+                        {sendLabel}
+                      </Kbd>
+                    </Button>
+                  </div>
                 </div>
+                  </>
+                )}
               </div>
             </div>
           </ResizablePanel>

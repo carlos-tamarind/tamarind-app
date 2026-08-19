@@ -37,7 +37,7 @@ function SettingsModal() {
         if (!open) navigate({ to: "/w/$workspaceId", params: { workspaceId } });
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>Workspace settings</DialogTitle>
         </DialogHeader>

@@ -47,7 +47,8 @@ sequenceDiagram
 | Behavior | Detail |
 |----------|--------|
 | Debounce | 1500ms after query or filter change |
-| Immediate search | Enter key calls `searchNow()` |
+| Immediate search | Enter key calls `searchNow()`, or opens the highlighted result if any |
+| Keyboard | Arrow keys move the highlighted row in the overlay |
 | Signature | Re-search only when `workspaceId`, `query`, `scope`, or dev strategy toggles change |
 | Stale requests | Incrementing request ID drops out-of-order responses |
 | Overlay closed | Cancels pending debounce; does not clear prior results |

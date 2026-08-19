@@ -8,6 +8,7 @@ import { bootstrapFirstWorkspace } from "@/lib/workspaces.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthLayout } from "@/components/auth-layout";
 
 export const Route = createFileRoute("/bootstrap")({
   component: BootstrapPage,
@@ -55,14 +56,11 @@ function BootstrapPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Set up Mento</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create the first workspace and admin account.
-          </p>
-        </div>
+    <AuthLayout
+      title="Set up Tamarind"
+      subtitle="Create the first workspace and admin account."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="workspace">Workspace name</Label>
           <Input id="workspace" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} required />
@@ -115,10 +113,10 @@ function BootstrapPage() {
             </button>
           </div>
         </div>
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? "Creating…" : "Create workspace"}
         </Button>
       </form>
-    </div>
+    </AuthLayout>
   );
 }

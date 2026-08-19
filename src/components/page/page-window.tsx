@@ -11,7 +11,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import { Copy, Building2, Link2, FileLock, MessageSquareLock, MessageSquareShare, MoreHorizontal } from "lucide-react";
+import { Copy, Building2, FileText, Link2, FileLock, MessageSquareLock, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -31,6 +31,14 @@ import { MentionList, type MentionItem } from "@/components/editor/mention-list"
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useSaveStatus } from "@/lib/save-status-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,6 +171,7 @@ export function PageWindow({
   });
 
   const [title, setTitle] = useState("");
+  const [titleCondensed, setTitleCondensed] = useState(false);
   const [presence, setPresence] = useState<Array<{ userId: string; name: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -181,8 +190,14 @@ export function PageWindow({
   const savePageRef = useRef(savePage);
   const inFlightSaveRef = useRef<Promise<boolean> | null>(null);
   savePageRef.current = savePage;
-  const draftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
+  const draftKey = useMemo(() => `tamarind:page-draft:${pageId}`, [pageId]);
+  const legacyDraftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
   const hydratedForPageRef = useRef<string | null>(null);
+  const { status: saveStatus, setStatus: setSaveStatus } = useSaveStatus();
+
+  // The editor unmounts on page switch and on split-view close; leaving a
+  // stale "Saved" in the status bar would misreport the next surface.
+  useEffect(() => () => setSaveStatus("idle"), [setSaveStatus]);
 
 
   const isValidDoc = (v: any): boolean =>
@@ -375,6 +390,7 @@ export function PageWindow({
       }
 
       const run = (async () => {
+        setSaveStatus("saving");
         try {
           await savePageRef.current({ data: patch });
           if (contentDirty && contentVersion > contentSavedVersion.current)
@@ -417,9 +433,11 @@ export function PageWindow({
           }
           if (contentDirty)
             queryClient.invalidateQueries({ queryKey: ["page-backlinks"] });
+          setSaveStatus("saved");
           return true;
         } catch {
           // Leave versions unchanged; next scheduleFlush will retry.
+          setSaveStatus("error");
           if (!options.silent) {
             toast.error("Page changes could not be saved. Please try again before leaving.");
           }
@@ -473,7 +491,17 @@ export function PageWindow({
     let draftHasContent = false;
     if (typeof window !== "undefined") {
       try {
-        const raw = window.localStorage.getItem(draftKey);
+        let raw = window.localStorage.getItem(draftKey);
+        if (raw === null) {
+          // Drafts written before the Mento → Tamarind rename. Migrate once so
+          // a rename never silently discards someone's unsaved work.
+          const legacy = window.localStorage.getItem(legacyDraftKey);
+          if (legacy !== null) {
+            raw = legacy;
+            window.localStorage.setItem(draftKey, legacy);
+            window.localStorage.removeItem(legacyDraftKey);
+          }
+        }
         const draft = raw ? JSON.parse(raw) : null;
         const serverTime = data.lastModifiedAt
           ? new Date(data.lastModifiedAt).getTime()
@@ -530,7 +558,7 @@ export function PageWindow({
       scheduleFlushRef.current?.();
     }
     isHydratingRef.current = false;
-  }, [data, draftKey, editor, pageId]);
+  }, [data, draftKey, legacyDraftKey, editor, pageId]);
 
   useEffect(() => {
     hydratedForPageRef.current = null;
@@ -668,55 +696,87 @@ export function PageWindow({
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Loading…
+      <div className="flex h-full flex-col" aria-busy="true">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="ml-auto h-6 w-20 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
+        <div className="mx-auto w-full max-w-3xl px-8 py-8">
+          <Skeleton className="h-10 w-2/3" />
+          <div className="mt-8 space-y-3">
+            {[100, 92, 78, 96, 64, 88].map((width, i) => (
+              <Skeleton key={i} className="h-4" style={{ width: `${width}%` }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   const others = presence.filter((p) => p.userId !== user?.id);
   const visibility = data?.visibility ?? "private";
+  const visibilityLabel =
+    visibility === "workspace"
+      ? "Workspace"
+      : visibility === "conversation"
+        ? "Conversation"
+        : "Private";
 
   return (
     <UserNavigationContext.Provider
       value={{ workspaceId, myWorkspaceUserId }}
     >
+    <TooltipProvider delayDuration={200}>
     <div className="flex h-full flex-col">
-      {/* Thin top header */}
-      <div className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-3">
-        <div className="mr-2 flex items-center gap-1">
-          {others.slice(0, 5).map((p) => (
-            <div
-              key={p.userId}
-              title={p.name}
-              className="flex size-6 items-center justify-center rounded-full border-2 border-background bg-primary text-[10px] font-semibold text-primary-foreground"
-            >
-              {p.name.slice(0, 2).toUpperCase()}
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+        {/* The title only appears here once the in-body title has scrolled
+            away, so the header stays quiet while you are reading the top. */}
+        <span
+          className={`min-w-0 flex-1 truncate text-sm font-medium transition-opacity duration-(--motion-base) ${
+            titleCondensed ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        >
+          {title || "Untitled"}
+        </span>
+
+        {saveStatus !== "idle" && (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {saveStatus === "saving"
+              ? "Saving…"
+              : saveStatus === "error"
+                ? "Not saved"
+                : "Saved"}
+          </span>
+        )}
+
+        {others.length > 0 && (
+          <div className="flex shrink-0 items-center pl-1">
+            <div className="flex -space-x-1.5">
+              {others.slice(0, 5).map((p) => (
+                <Tooltip key={p.userId}>
+                  <TooltipTrigger asChild>
+                    <div className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground ring-2 ring-background">
+                      {p.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{p.name}</TooltipContent>
+                </Tooltip>
+              ))}
             </div>
-          ))}
-          {others.length > 5 && (
-            <div className="ml-1 text-xs text-muted-foreground">
-              +{others.length - 5}
-            </div>
-          )}
-        </div>
+            {others.length > 5 && (
+              <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">
+                +{others.length - 5}
+              </span>
+            )}
+          </div>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-8"
-              aria-label="Page visibility"
-              title={
-                visibility === "workspace"
-                  ? "Workspace"
-                  : visibility === "conversation"
-                    ? "Conversation"
-                    : "Private"
-              }
-            >
-              <VisibilityIcon visibility={visibility} className="size-4" />
+            <Button size="sm" variant="outline" aria-label="Page visibility">
+              <VisibilityIcon visibility={visibility} className="size-3.5" />
+              {visibilityLabel}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -749,20 +809,30 @@ export function PageWindow({
 
         </DropdownMenu>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-8"
-          aria-label="Page settings"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <MoreHorizontal className="size-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Page settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <MoreHorizontal className="size-4" strokeWidth={1.5} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Page settings</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Page body */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-8 py-6">
+      <div
+        className="flex-1 overflow-y-auto"
+        onScroll={(e) => {
+          const condensed = e.currentTarget.scrollTop > 40;
+          if (condensed !== titleCondensed) setTitleCondensed(condensed);
+        }}
+      >
+        <div className="mx-auto w-full max-w-3xl px-8 py-8">
           <textarea
             value={title}
             onChange={(e) => {
@@ -786,25 +856,29 @@ export function PageWindow({
             }}
             rows={1}
             placeholder="Untitled"
-            className="mb-6 w-full resize-none overflow-hidden bg-transparent text-4xl font-bold leading-tight outline-none placeholder:text-muted-foreground break-words"
+            className="mb-6 w-full resize-none overflow-hidden break-words bg-transparent text-3xl font-semibold leading-tight tracking-[-0.022em] outline-none placeholder:text-muted-foreground/50"
           />
           <EditorContent editor={editor} />
 
           {backlinks && backlinks.length > 0 && (
-            <div className="mt-10 border-t pt-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Link2 className="size-3.5" /> Backlinks
+            <div className="mt-12 rounded-xl border bg-surface p-3">
+              <div className="mb-1 flex items-center gap-1.5 px-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                <Link2 className="size-3.5" strokeWidth={1.5} /> Backlinks
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {backlinks.map((b) => (
                   <li key={b.id}>
                     <Link
                       to="/w/$workspaceId"
                       params={{ workspaceId }}
                       search={(prev: any) => ({ ...prev, p: b.id })}
-                      className="text-sm text-primary hover:underline"
+                      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors duration-(--motion-fast) hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
                     >
-                      {b.title}
+                      <FileText
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        strokeWidth={1.5}
+                      />
+                      <span className="truncate">{b.title}</span>
                     </Link>
                   </li>
                 ))}
@@ -815,7 +889,7 @@ export function PageWindow({
       </div>
 
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
-        <DialogContent>
+        <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Publish page</DialogTitle>
             <DialogDescription>
@@ -882,6 +956,7 @@ export function PageWindow({
         currentTitle={title || "Untitled"}
       />
     </div>
+    </TooltipProvider>
     </UserNavigationContext.Provider>
   );
 }
