@@ -173,7 +173,7 @@ SELECT cron.schedule(
 );
 ```
 
-Replace the URL and secret with your deployment values. The worker chunks idle pages and queues `page_embeddings` as `QUEUED`; it does not call OpenAI.
+Replace the URL and secret with your deployment values. The worker chunks idle pages and queues `page_chunk_embeddings` as `QUEUED`; it does not call OpenAI.
 
 ## Page Embedding Worker Cron
 
@@ -196,7 +196,7 @@ SELECT cron.schedule(
 );
 ```
 
-Use a dedicated secret — do not reuse `EMBEDDING_WORKER_SECRET`, so a leak or rotation stays scoped to one endpoint. The worker claims `QUEUED`/`RETRY_WAIT` rows via `claim_page_embedding_batch`, embeds the matching chunk text, and persists the vector only while the row is still `PROCESSING` with an unchanged checksum.
+Use a dedicated secret — do not reuse `EMBEDDING_WORKER_SECRET`, so a leak or rotation stays scoped to one endpoint. The worker claims `QUEUED`/`RETRY_WAIT` rows via `claim_page_chunk_embedding_batch`, embeds the matching chunk text, and persists the vector only while the row is still `PROCESSING` with an unchanged checksum.
 
 ## Page Semantic Worker Cron
 
@@ -219,7 +219,7 @@ SELECT cron.schedule(
 );
 ```
 
-Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. Each tick sweeps due pages (`list_pages_due_for_semantics`) then claims LLM jobs via `claim_page_semantic_job`.
+Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. Each tick sweeps due pages (`list_pages_due_for_topics`) then claims LLM jobs via `claim_page_topic_job`.
 
 
 ## Database Migrations

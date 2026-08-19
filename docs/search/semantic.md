@@ -108,9 +108,9 @@ flowchart TB
 
 **Migration:** [`20260819065842_e1ea0660-bb40-4638-bc7d-ef877f9a47d5.sql`](../../supabase/migrations/20260819065842_e1ea0660-bb40-4638-bc7d-ef877f9a47d5.sql)
 
-Runs as `SECURITY INVOKER`; existing `page_embeddings` / `page_chunks` RLS (via `can_read_page`) applies.
+Runs as `SECURITY INVOKER`; existing `page_chunk_embeddings` / `page_chunks` RLS (via `can_read_page`) applies.
 
-1. **Nearest candidates** — Join `page_embeddings → page_chunks → pages`; keep `embedding_status = 'EMBEDDED'` and matching `embedding_model`; HNSW order by `pe.embedding <=> p_embedding`; fetch `p_limit * 3`
+1. **Nearest candidates** — Join `page_chunk_embeddings → page_chunks → pages`; keep `embedding_status = 'EMBEDDED'` and matching `embedding_model`; HNSW order by `pe.embedding <=> p_embedding`; fetch `p_limit * 3`
 2. **Threshold filter** — Keep rows where `1 - distance >= p_similarity_threshold`
 3. **Score blend** — No quality term:
 
@@ -133,7 +133,7 @@ Runs as `SECURITY INVOKER`; existing `page_embeddings` / `page_chunks` RLS (via 
 | `matched_field` | Always `content` |
 | `score` | Weighted final score |
 
-Page topic name/description (`page_semantics`) is **not** part of this corpus.
+Page topic name/description (`page_topics`) is **not** part of this corpus.
 
 ## App-Side Post-Processing
 
@@ -157,7 +157,7 @@ Semantic hits require completed embeddings:
 | Quality score above embed threshold (0.5) | `message_semantics` |
 | Active vector | `message_embeddings` (`is_active = true`) |
 | Page chunks | `page_chunks` |
-| Embedded chunk vectors | `page_embeddings` (`embedding_status = 'EMBEDDED'`) |
+| Embedded chunk vectors | `page_chunk_embeddings` (`embedding_status = 'EMBEDDED'`) |
 
 Messages or pages still queued, failed, or skipped during indexing will not appear in semantic results. They may still appear via keyword search.
 
@@ -168,7 +168,7 @@ Indexing is operational via existing workers — there is no search-time backfil
 | Index | Table | Type |
 |-------|-------|------|
 | `idx_message_embeddings_vector` | `message_embeddings` | HNSW cosine (`vector_cosine_ops`) |
-| `idx_page_embeddings_vector` | `page_embeddings` | Partial HNSW cosine on `embedding` WHERE `embedding_status = 'EMBEDDED'` |
+| `idx_page_chunk_embeddings_vector` | `page_chunk_embeddings` | Partial HNSW cosine on `embedding` WHERE `embedding_status = 'EMBEDDED'` |
 
 RLS policy `"Participants view message embeddings"` restricts message vector reads to conversation participants. Page embedding reads follow page visibility via `can_read_page`.
 

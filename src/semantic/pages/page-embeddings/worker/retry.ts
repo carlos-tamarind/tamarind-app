@@ -21,7 +21,7 @@ export function hasExceededTransientBackoffs(attempts: number): boolean {
   return attempts >= PAGE_EMBEDDING_CONFIG.MAX_TRANSIENT_BACKOFFS;
 }
 
-/** Postgres interval for `claim_page_embedding_batch.p_stale_after`. */
+/** Postgres interval for `claim_page_chunk_embedding_batch.p_stale_after`. */
 export function formatStaleAfterInterval(): string {
   return `${PAGE_EMBEDDING_CONFIG.STALE_AFTER_MS} milliseconds`;
 }

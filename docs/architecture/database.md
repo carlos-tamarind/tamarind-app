@@ -43,7 +43,7 @@ erDiagram
     message_semantics ||--o{ message_embeddings : has
 
     pages ||--o{ page_chunks : has
-    page_chunks ||--o{ page_embeddings : has
+    page_chunks ||--o{ page_chunk_embeddings : has
 ```
 
 ## Enums
@@ -90,14 +90,14 @@ erDiagram
 | `pages` | Rich-text documents (TipTap JSON) | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
 | `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
-| `page_semantics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | → `pages` (PK = page_id, CASCADE) |
-| `page_semantic_jobs` | Analysis work queue per page (`page_snapshot_hash`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`) | → `pages` (CASCADE) |
+| `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | → `pages` (PK = page_id, CASCADE) |
+| `page_topic_jobs` | Analysis work queue per page (`page_snapshot_hash`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`) | → `pages` (CASCADE) |
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
 
 `page_chunks.checksum` is a hex SHA-256 supplied by the app and is **not** globally unique — the same text can appear on many pages. `position` is ordering only, never identity: reconciliation matches on checksum and keeps chunk ids when content is unchanged; unmatched rows are deleted (cascading embeddings).
 
-**Page semantics invariant.** A `page_semantics` row describes exactly its `page_snapshot`; a missing row means the page was never analyzed. `page_semantic_jobs` has no snapshot text — only the `page_snapshot_hash` version it must analyze. A partial unique index on `page_id WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` allows at most one in-flight job per page; terminal (`COMPLETED` / `FAILED`) rows accumulate as debug history and carry no uniqueness.
+**Page semantics invariant.** A `page_topics` row describes exactly its `page_snapshot`; a missing row means the page was never analyzed. `page_topic_jobs` has no snapshot text — only the `page_snapshot_hash` version it must analyze. A partial unique index on `page_id WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` allows at most one in-flight job per page; terminal (`COMPLETED` / `FAILED`) rows accumulate as debug history and carry no uniqueness.
 
 ### Semantic Layer (Schema-Ready)
 
@@ -116,13 +116,17 @@ erDiagram
 |-------|---------|-------------------|
 | `message_semantics` | Normalized text, quality score, embedding queue state | → `messages` (1:1, CASCADE); UNIQUE(message_id), UNIQUE(checksum) |
 | `message_embeddings` | Vector embeddings for semantic search | → `message_semantics` (CASCADE); `embedding_vector vector(1536)` |
-| `page_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
+| `page_chunk_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
+| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(page_id)` (CASCADE); UNIQUE(page_id), UNIQUE(page_id, embedding_model); `embedding vector(1536)` |
 
-**Page embedding queue.** `page_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
+**Page embedding queue.** `page_chunk_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
+
+**Page topic embedding queue.** `page_topic_embeddings` reuses `page_embedding_status` with the same columns. Its only enqueue path is the `trg_page_topics_enqueue_embedding` trigger on `page_topics` (AFTER INSERT OR UPDATE OF `topic_name`, `topic_description`, skipped when neither actually changed): it upserts a `QUEUED` row whose `checksum` is the SHA-256 of `topic_name || ': ' || topic_description`. A `PROCESSING` row is forced back to `QUEUED` with the new checksum, so the in-flight guarded persist no-ops. The previous vector is kept on requeue. It is not yet wired into `search_pages_semantic`.
 
 **Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
 
-**Access.** `page_chunks`, `page_embeddings`, `page_semantics`, and `page_semantic_jobs` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `EXISTS (… FROM public.pages …)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+
 
 ## Key Indexes
 
@@ -141,12 +145,15 @@ erDiagram
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
 | `idx_pages_last_modified_at` | pages | `(last_modified_at)` | Page chunking due-list |
 | `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
-| `idx_page_embeddings_queue` | page_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
-| `idx_page_embeddings_claimable` | page_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
-| `idx_page_embeddings_vector` | page_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Page semantic search |
-| `uniq_page_semantic_jobs_inflight` | page_semantic_jobs | Partial UNIQUE: `(page_id) WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` | One in-flight analysis job per page |
-| `idx_page_semantic_jobs_claimable` | page_semantic_jobs | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page semantic worker |
-| `idx_page_semantic_jobs_queue` | page_semantic_jobs | `(status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_chunk_embeddings_queue` | page_chunk_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_chunk_embeddings_claimable` | page_chunk_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page embedding worker |
+| `idx_page_chunk_embeddings_vector` | page_chunk_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | Page semantic search |
+| `uniq_page_topic_jobs_inflight` | page_topic_jobs | Partial UNIQUE: `(page_id) WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` | One in-flight analysis job per page |
+| `idx_page_topic_jobs_claimable` | page_topic_jobs | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page semantic worker |
+| `idx_page_topic_jobs_queue` | page_topic_jobs | `(status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_topic_embeddings_claimable` | page_topic_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page topic embedding worker |
+| `idx_page_topic_embeddings_queue` | page_topic_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
+| `idx_page_topic_embeddings_vector` | page_topic_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | *(reserved — not wired into search)* |
 
 ## Database Functions
 
@@ -160,13 +167,15 @@ erDiagram
 | `tiptap_to_plaintext(doc jsonb)` | Generated column helper for pages.plain_text |
 | `set_last_modified_at()` | Trigger: auto-update last_modified_at |
 | `claim_embedding_batch(batch_size, stale_after)` | Pipeline: atomic batch claim (service_role only) |
-| `claim_page_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
+| `claim_page_chunk_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
 | `list_pages_due_for_chunking(p_idle, p_limit)` | Pipeline: pages idle past debounce that need first chunk, re-chunk, or empty-page cleanup (service_role only) |
-| `list_pages_due_for_semantics(p_idle, p_limit)` | Pipeline: idle pages whose live `plain_text` SHA-256 differs from `page_semantics.page_snapshot_hash` (or never analyzed / emptied). Returns `page_id, title, plain_text, page_snapshot, page_snapshot_hash`; `p_limit` capped at 100. Token threshold stays in the app (service_role only) |
-| `claim_page_semantic_job(p_stale_after)` | Pipeline: claim one analysis job, `SKIP LOCKED`, recovers stale `PROCESSING` via `started_at`, bumps `attempts` (service_role only) |
-| `enqueue_page_semantic_job(p_page_id, p_hash)` | Pipeline: upsert the in-flight job — overwrites hash and resets `QUEUED`/`RETRY_WAIT` rows, no-ops while `PROCESSING`. Returns `enqueued` / `requeued` / `processing` (service_role only) |
-| `apply_page_semantic_result(p_job_id, p_topic_name, p_topic_description, p_page_snapshot, p_page_snapshot_hash, p_llm_model)` | Pipeline: atomic commit — re-checks the live page hash, upserts `page_semantics` and completes the job. Returns `committed` / `drifted` / `not_processing` / `not_found` (service_role only) |
-| `set_page_chunks_updated_at()` / `set_page_embeddings_updated_at()` / `set_page_semantics_updated_at()` / `set_page_semantic_jobs_updated_at()` | Triggers: auto-update `updated_at` |
+| `list_pages_due_for_topics(p_idle, p_limit)` | Pipeline: idle pages whose live `plain_text` SHA-256 differs from `page_topics.page_snapshot_hash` (or never analyzed / emptied). Returns `page_id, title, plain_text, page_snapshot, page_snapshot_hash`; `p_limit` capped at 100. Token threshold stays in the app (service_role only) |
+| `claim_page_topic_job(p_stale_after)` | Pipeline: claim one analysis job, `SKIP LOCKED`, recovers stale `PROCESSING` via `started_at`, bumps `attempts` (service_role only) |
+| `enqueue_page_topic_job(p_page_id, p_hash)` | Pipeline: upsert the in-flight job — overwrites hash and resets `QUEUED`/`RETRY_WAIT` rows, no-ops while `PROCESSING`. Returns `enqueued` / `requeued` / `processing` (service_role only) |
+| `apply_page_topic_result(p_job_id, p_topic_name, p_topic_description, p_page_snapshot, p_page_snapshot_hash, p_llm_model)` | Pipeline: atomic commit — re-checks the live page hash, upserts `page_topics` and completes the job. Returns `committed` / `drifted` / `not_processing` / `not_found` (service_role only) |
+| `claim_page_topic_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-topic-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
+| `enqueue_page_topic_embedding()` | Trigger on `page_topics`: upserts the `QUEUED` topic-embedding row with the new checksum (service_role only) |
+| `set_page_chunks_updated_at()` / `set_page_chunk_embeddings_updated_at()` / `set_page_topics_updated_at()` / `set_page_topic_jobs_updated_at()` / `set_page_topic_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
@@ -202,10 +211,11 @@ Write patterns:
 | 2026-07-24 | Add `message_embeddings`, retry columns, queue indexes |
 | 2026-07-29 | Drop `token_count`, add `claim_embedding_batch` RPC |
 | 2026-07-30 | Enable `pg_cron`, `pg_net` |
-| 2026-08-17 | Add `page_chunks`, `page_embeddings`, `page_embedding_status` enum, `claim_page_embedding_batch` RPC |
+| 2026-08-17 | Add `page_chunks`, `page_chunk_embeddings`, `page_embedding_status` enum, `claim_page_chunk_embedding_batch` RPC |
 | 2026-08-17 | Add `list_pages_due_for_chunking` RPC and `idx_pages_last_modified_at` |
-| 2026-08-18 | Add `page_semantics`, `page_semantic_jobs`, `page_semantic_job_status` enum, and the page-semantics RPCs |
+| 2026-08-18 | Add `page_topics`, `page_topic_jobs`, `page_semantic_job_status` enum, and the page-semantics RPCs |
 | 2026-08-19 | Add `search_pages_semantic` RPC |
+| 2026-08-19 | Rename `page_embeddings` → `page_chunk_embeddings`, `page_semantics` → `page_topics`, `page_semantic_jobs` → `page_topic_jobs` (with indexes, constraints, triggers, RPCs); add `page_topic_embeddings` + enqueue trigger, `claim_page_topic_embedding_batch` RPC, and backfill |
 
 ## Related Docs
 

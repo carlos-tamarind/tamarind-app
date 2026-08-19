@@ -1,6 +1,6 @@
 # Page Semantic Worker
 
-Turns idle pages into LLM-derived topic name + description on `page_semantics`, gated by a SHA-256 snapshot of `pages.plain_text`.
+Turns idle pages into LLM-derived topic name + description on `page_topics`, gated by a SHA-256 snapshot of `pages.plain_text`.
 
 **Code:** [`src/semantic/pages/page-semantics/`](../../src/semantic/pages/page-semantics/)
 
@@ -9,21 +9,21 @@ Turns idle pages into LLM-derived topic name + description on `page_semantics`, 
 ```mermaid
 flowchart LR
   Cron["pg_cron → HTTP POST"] --> Worker["runPageSemanticWorker"]
-  Worker --> Sweep["list_pages_due_for_semantics"]
-  Sweep --> Enqueue["enqueue_page_semantic_job"]
-  Worker --> Claim["claim_page_semantic_job"]
+  Worker --> Sweep["list_pages_due_for_topics"]
+  Sweep --> Enqueue["enqueue_page_topic_job"]
+  Worker --> Claim["claim_page_topic_job"]
   Claim --> Guard["live hash vs job hash"]
   Guard --> LLM["gpt-5.4-nano"]
-  LLM --> Apply["apply_page_semantic_result"]
+  LLM --> Apply["apply_page_topic_result"]
 ```
 
-1. `list_pages_due_for_semantics` returns pages idle ≥ 5 minutes whose live `plain_text` SHA-256 differs from `page_semantics.page_snapshot_hash` (or never analyzed / emptied).
+1. `list_pages_due_for_topics` returns pages idle ≥ 5 minutes whose live `plain_text` SHA-256 differs from `page_topics.page_snapshot_hash` (or never analyzed / emptied).
 2. The sweeper applies a 300-token count threshold (`gpt-tokenizer`). No snapshot → enqueue immediately. Empty pages with a semantics row → delete the row and complete inflight `QUEUED`/`RETRY_WAIT` jobs.
-3. `enqueue_page_semantic_job` upserts the in-flight job (`enqueued` / `requeued` / `processing` no-op).
-4. `claim_page_semantic_job` claims one `QUEUED` / due `RETRY_WAIT` row (`FOR UPDATE SKIP LOCKED`), recovering stale `PROCESSING` via `started_at` (10 minutes).
-5. Live `plain_text` is hashed with `computeMessageChecksum`. Hash drift, missing page, or empty text calls `apply_page_semantic_result` with the **job** hash so the RPC returns `drifted` without writing `page_semantics`.
+3. `enqueue_page_topic_job` upserts the in-flight job (`enqueued` / `requeued` / `processing` no-op).
+4. `claim_page_topic_job` claims one `QUEUED` / due `RETRY_WAIT` row (`FOR UPDATE SKIP LOCKED`), recovering stale `PROCESSING` via `started_at` (10 minutes).
+5. Live `plain_text` is hashed with `computeMessageChecksum`. Hash drift, missing page, or empty text calls `apply_page_topic_result` with the **job** hash so the RPC returns `drifted` without writing `page_topics`.
 6. Otherwise the LLM (`gpt-5.4-nano`, JSON `{ name, description }`) runs with page title + contents. Title is input only — it is not part of the snapshot.
-7. `apply_page_semantic_result` re-hashes live `plain_text`, upserts `page_semantics`, and marks the job `COMPLETED` in one transaction (`committed` / `drifted` / `not_processing` / `not_found`).
+7. `apply_page_topic_result` re-hashes live `plain_text`, upserts `page_topics`, and marks the job `COMPLETED` in one transaction (`committed` / `drifted` / `not_processing` / `not_found`).
 
 ## Configuration
 
@@ -42,7 +42,7 @@ flowchart LR
 | `STALE_AFTER_MS` | 10 min | Stale `PROCESSING` recovery |
 | `MAX_JOBS_PER_TICK` | 8 | LLM jobs per cron tick |
 
-## Status model (`page_semantic_jobs`)
+## Status model (`page_topic_jobs`)
 
 | Status | Meaning | Claimable |
 |--------|---------|-----------|
@@ -52,7 +52,7 @@ flowchart LR
 | `COMPLETED` | Applied, drifted, or empty-page cleanup | No |
 | `FAILED` | Permanent error | No |
 
-`page_semantics` has no status. A missing row means never analyzed. Exhausting retries never sets `FAILED` — the job lands on `RETRY_WAIT` with a 24h cooldown and `attempts` reset. `FAILED` is only for permanent errors (validation, 4xx besides timeouts).
+`page_topics` has no status. A missing row means never analyzed. Exhausting retries never sets `FAILED` — the job lands on `RETRY_WAIT` with a 24h cooldown and `attempts` reset. `FAILED` is only for permanent errors (validation, 4xx besides timeouts).
 
 Jobs are independent per page. Transient waits on one page do not block others. A 429/5xx circuit-breaks the rest of the tick.
 

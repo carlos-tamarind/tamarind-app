@@ -1,6 +1,6 @@
 # Semantic Module
 
-The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_embeddings` rows. Another cron worker produces an LLM topic name and description per page.
+The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_chunk_embeddings` rows. Another cron worker produces an LLM topic name and description per page.
 
 This is a **server-only** module. It uses the Supabase admin client (lazy-loaded) and must not be imported from client-side code.
 
@@ -111,12 +111,12 @@ There is no barrel `index.ts`. Import specific files directly.
 | Supabase RPC `apply_cti_plan_and_commit` | Apply topic plan + complete job |
 | Supabase RPC `finalize_embedded_message` | EMBEDDED + CTI job enqueue |
 | Supabase RPC `list_pages_due_for_chunking` | Pages idle past debounce that need chunking |
-| Supabase RPC `claim_page_embedding_batch` | Atomic page-embedding batch claim |
-| Supabase RPC `list_pages_due_for_semantics` | Pages idle past debounce that need LLM analysis |
-| Supabase RPC `claim_page_semantic_job` | Atomic page-semantic job claim |
-| Supabase RPC `enqueue_page_semantic_job` | Upsert in-flight analysis job |
-| Supabase RPC `apply_page_semantic_result` | Upsert page_semantics + complete job |
-| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_embeddings`, `page_semantics`, `page_semantic_jobs` | Persistence |
+| Supabase RPC `claim_page_chunk_embedding_batch` | Atomic page-embedding batch claim |
+| Supabase RPC `list_pages_due_for_topics` | Pages idle past debounce that need LLM analysis |
+| Supabase RPC `claim_page_topic_job` | Atomic page-semantic job claim |
+| Supabase RPC `enqueue_page_topic_job` | Upsert in-flight analysis job |
+| Supabase RPC `apply_page_topic_result` | Upsert page_topics + complete job |
+| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs` | Persistence |
 
 ## Data Flow
 
@@ -155,7 +155,7 @@ Page content save (last_modified_at)
   → list_pages_due_for_chunking RPC (idle ≥ 5 minutes)
   → structural TipTap chunk + SHA-256 checksum
   → reconcile page_chunks (keep ids on checksum match)
-  → page_embeddings.embedding_status = QUEUED (new/changed chunks only)
+  → page_chunk_embeddings.embedding_status = QUEUED (new/changed chunks only)
 ```
 
 No OpenAI call in this phase.
@@ -165,7 +165,7 @@ No OpenAI call in this phase.
 ```
 Cron POST /api/public/internal/run-page-embedding-worker
   → runPageEmbeddingWorker
-  → claim_page_embedding_batch RPC
+  → claim_page_chunk_embedding_batch RPC
   → load page_chunks text + checksum guard
   → embeddingProvider.embedBatch (row.embedding_model)
   → guarded persist → EMBEDDED
@@ -178,12 +178,12 @@ Cron POST /api/public/internal/run-page-embedding-worker
 Page content save (last_modified_at)
   → Cron POST /api/public/internal/run-page-semantic-worker
   → runPageSemanticWorker
-  → list_pages_due_for_semantics (idle ≥ 5 minutes)
-  → token-diff gate (≥ 300) or first analysis → enqueue_page_semantic_job
-  → claim_page_semantic_job
+  → list_pages_due_for_topics (idle ≥ 5 minutes)
+  → token-diff gate (≥ 300) or first analysis → enqueue_page_topic_job
+  → claim_page_topic_job
   → live SHA-256 vs job hash (drift → COMPLETED, no write)
   → llmProvider.complete (gpt-5.4-nano)
-  → apply_page_semantic_result (page_semantics upsert + COMPLETED)
+  → apply_page_topic_result (page_topics upsert + COMPLETED)
   → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
 ```
 

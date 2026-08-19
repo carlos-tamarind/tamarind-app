@@ -1,6 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 
-export type PageSemanticJob = Database["public"]["Tables"]["page_semantic_jobs"]["Row"];
+export type PageSemanticJob = Database["public"]["Tables"]["page_topic_jobs"]["Row"];
 
 export type PageSemanticJobStatus = Database["public"]["Enums"]["page_semantic_job_status"];
 

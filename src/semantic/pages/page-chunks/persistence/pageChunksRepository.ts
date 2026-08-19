@@ -66,7 +66,7 @@ export async function insertQueuedPageEmbeddings(
 ): Promise<void> {
   if (rows.length === 0) return;
   const supabase = await getAdmin();
-  const { error } = await supabase.from("page_embeddings").insert(
+  const { error } = await supabase.from("page_chunk_embeddings").insert(
     rows.map((row) => ({
       chunk_id: row.chunk_id,
       checksum: row.checksum,

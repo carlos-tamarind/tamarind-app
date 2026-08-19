@@ -13,7 +13,7 @@ function isEmptyClaimError(error: { code?: string; message?: string }): boolean 
 
 export async function claimPageSemanticJob(): Promise<PageSemanticJob | null> {
   const supabase = await getAdmin();
-  const { data, error } = await supabase.rpc("claim_page_semantic_job", {
+  const { data, error } = await supabase.rpc("claim_page_topic_job", {
     p_stale_after: formatStaleAfterInterval(),
   });
 

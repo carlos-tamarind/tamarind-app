@@ -1,6 +1,6 @@
 # Page Embedding Worker
 
-Turns `page_chunks` rows queued by the [page chunking sweeper](../cron/readme.md) into 1536-dimensional vectors on `page_embeddings`.
+Turns `page_chunks` rows queued by the [page chunking sweeper](../cron/readme.md) into 1536-dimensional vectors on `page_chunk_embeddings`.
 
 **Code:** [`src/semantic/pages/page-embeddings/`](../../src/semantic/pages/page-embeddings/)
 
@@ -9,14 +9,14 @@ Turns `page_chunks` rows queued by the [page chunking sweeper](../cron/readme.md
 ```mermaid
 flowchart LR
   Cron["pg_cron → HTTP POST"] --> Worker["runPageEmbeddingWorker"]
-  Worker --> Claim["claim_page_embedding_batch"]
+  Worker --> Claim["claim_page_chunk_embedding_batch"]
   Claim --> Load["load page_chunks text"]
   Load --> Guard["checksum guard"]
   Guard --> Embed["OpenAI text-embedding-3-small"]
   Embed --> Persist["guarded UPDATE → EMBEDDED"]
 ```
 
-1. `claim_page_embedding_batch(p_batch_size, p_stale_after)` flips `QUEUED` / `RETRY_WAIT` rows to `PROCESSING` with `FOR UPDATE SKIP LOCKED`, and recovers `PROCESSING` rows whose `updated_at` is older than `p_stale_after` (10 minutes).
+1. `claim_page_chunk_embedding_batch(p_batch_size, p_stale_after)` flips `QUEUED` / `RETRY_WAIT` rows to `PROCESSING` with `FOR UPDATE SKIP LOCKED`, and recovers `PROCESSING` rows whose `updated_at` is older than `p_stale_after` (10 minutes).
 2. Chunk text is loaded in one follow-up query keyed by `chunk_id`. The claim RPC intentionally does not join chunk text.
 3. The live chunk checksum is compared with the claimed row's checksum before spending an API call.
 4. `touchPageEmbeddings` bumps `updated_at` (heartbeat) immediately before the embed call.
