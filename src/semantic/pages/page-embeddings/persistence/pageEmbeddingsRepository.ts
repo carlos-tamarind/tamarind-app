@@ -4,7 +4,7 @@ import { formatEmbeddingVector } from "@/lib/vector/embeddingVectorUtil";
 import { PAGE_EMBEDDING_CONFIG } from "../worker/config";
 import { formatStaleAfterInterval } from "../worker/retry";
 
-export type PageEmbeddingRow = Database["public"]["Tables"]["page_embeddings"]["Row"];
+export type PageEmbeddingRow = Database["public"]["Tables"]["page_chunk_embeddings"]["Row"];
 
 async function getAdmin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -15,7 +15,7 @@ export async function claimPageEmbeddingBatch(
   batchSize = PAGE_EMBEDDING_CONFIG.PAGE_EMBEDDING_BATCH_SIZE,
 ): Promise<PageEmbeddingRow[]> {
   const supabase = await getAdmin();
-  const { data, error } = await supabase.rpc("claim_page_embedding_batch", {
+  const { data, error } = await supabase.rpc("claim_page_chunk_embedding_batch", {
     p_batch_size: batchSize,
     p_stale_after: formatStaleAfterInterval(),
   });
@@ -37,14 +37,14 @@ export async function loadChunksByIds(ids: string[]): Promise<Map<string, ChunkT
 }
 
 /**
- * Heartbeat: any UPDATE fires `trg_page_embeddings_updated_at`, keeping the row
+ * Heartbeat: any UPDATE fires `trg_page_chunk_embeddings_updated_at`, keeping the row
  * out of stale-PROCESSING recovery while a long embed call is in flight.
  */
 export async function touchPageEmbeddings(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const supabase = await getAdmin();
   const { error } = await supabase
-    .from("page_embeddings")
+    .from("page_chunk_embeddings")
     .update({ updated_at: new Date().toISOString() })
     .in("id", ids);
   if (error) throw error;
@@ -61,7 +61,7 @@ export async function persistPageEmbedding(options: {
 }): Promise<boolean> {
   const supabase = await getAdmin();
   const { data, error } = await supabase
-    .from("page_embeddings")
+    .from("page_chunk_embeddings")
     .update({
       embedding: formatEmbeddingVector(options.embedding),
       embedding_status: "EMBEDDED",
@@ -86,7 +86,7 @@ export async function requeuePageEmbedding(options: {
 }): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
-    .from("page_embeddings")
+    .from("page_chunk_embeddings")
     .update({
       embedding_status: "RETRY_WAIT",
       attempts: options.attempts,
@@ -100,7 +100,7 @@ export async function requeuePageEmbedding(options: {
 export async function markPageEmbeddingFailed(id: string, lastError: string): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
-    .from("page_embeddings")
+    .from("page_chunk_embeddings")
     .update({
       embedding_status: "FAILED",
       next_retry_at: null,
@@ -117,7 +117,7 @@ export async function markPageEmbeddingFailed(id: string, lastError: string): Pr
 export async function releasePageEmbedding(id: string, checksum?: string): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
-    .from("page_embeddings")
+    .from("page_chunk_embeddings")
     .update({
       embedding_status: "QUEUED",
       next_retry_at: null,

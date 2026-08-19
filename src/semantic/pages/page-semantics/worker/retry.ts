@@ -16,7 +16,7 @@ export function hasExceededTransientBackoffs(attempts: number): boolean {
   return attempts >= PAGE_SEMANTIC_WORKER_CONFIG.MAX_TRANSIENT_BACKOFFS;
 }
 
-/** Postgres interval for `claim_page_semantic_job.p_stale_after`. */
+/** Postgres interval for `claim_page_topic_job.p_stale_after`. */
 export function formatStaleAfterInterval(): string {
   return `${PAGE_SEMANTIC_WORKER_CONFIG.STALE_AFTER_MS} milliseconds`;
 }
