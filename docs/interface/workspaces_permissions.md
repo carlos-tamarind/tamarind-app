@@ -60,11 +60,11 @@ Feature capabilities are defined in [`src/lib/features.ts`](../../src/lib/featur
 
 ## Workspace Settings
 
-**Route:** `/w/$workspaceId/settings`
+**Route:** `/w/$workspaceId/settings` (keeps the current `?c=` / `?p=` search so the conversation or page behind the overlay stays open)
 
 **File:** [`src/routes/_authenticated.w.$workspaceId.settings.tsx`](../../src/routes/_authenticated.w.$workspaceId.settings.tsx)
 
-Admin-only overlay (also opened with **⌘,**). Provides:
+Admin-only overlay (also opened with **⌘,**). Opening and closing it must not replace the shell with the empty state. Provides:
 
 - Creating email invites (select role, copy link)
 - Viewing pending invites

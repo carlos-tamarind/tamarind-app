@@ -95,7 +95,7 @@ Legacy nested routes redirect to search params:
 
 - **Actions** — new conversation, new page, search everything
 - **Conversations / Pages** — last-modified first; 3 shown, **Show more** up to 30; typing the filter shows up to 30 immediately
-- **Navigation** — toggle nav (⌘\\), toggle workspaces (⌘⇧\\), settings (⌘,), profile, logout, switch workspace
+- **Navigation** — toggle nav (⌘\\), toggle workspaces (⌘⇧\\), settings (⌘,), profile (⌘.), logout, switch workspace
 - **Theme** — light / dark / system
 
 ## Keyboard Shortcuts
@@ -109,6 +109,8 @@ Canonical bindings: [`src/hooks/use-hotkeys.ts`](../../src/hooks/use-hotkeys.ts)
 | ⌘\\ | Toggle navigation panel |
 | ⌘⇧\\ | Toggle workspaces rail |
 | ⌘, | Workspace settings |
+| ⌘. | User profile |
+| ⌘⇧L | Clear search query and results (search overlay open) |
 | ⌘↵ | Send message (composer) |
 | Esc | Clear conversation message selection |
 
@@ -124,11 +126,11 @@ Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
 | `EmptyStateHome` | [`empty-state-home.tsx`](../../src/components/empty-state-home.tsx) | Home empty state |
 | `StatusBar` | [`status-bar.tsx`](../../src/components/status-bar.tsx) | Bottom ambient bar |
 | `CommandPalette` | [`command-palette.tsx`](../../src/components/command-palette.tsx) | ⌘K palette |
-| `SearchOverlay` | [`search-overlay.tsx`](../../src/components/search/search-overlay.tsx) | Workspace search |
+| `SearchOverlay` | [`search-overlay.tsx`](../../src/components/search/search-overlay.tsx) | Workspace search (query is virtual first result; ⌘⇧L clears) |
 | `CloseHintOverlay` | [`close-hint-overlay.tsx`](../../src/components/close-hint-overlay.tsx) | Split-view close preview |
 | `NewConversationDialog` | [`new-conversation-dialog.tsx`](../../src/components/new-conversation-dialog.tsx) | Create conversation |
 | `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Create page |
-| `ProfileDialog` | [`profile-dialog.tsx`](../../src/components/profile/profile-dialog.tsx) | User profile |
+| `ProfileDialog` | [`profile-dialog.tsx`](../../src/components/profile/profile-dialog.tsx) | User profile (⌘.) |
 
 ## Responsive Behavior
 

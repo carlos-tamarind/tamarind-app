@@ -76,7 +76,7 @@ Protected by [`src/routes/_authenticated.tsx`](../../src/routes/_authenticated.t
 | `/w/$workspaceId` | Main workspace shell (rails, conversations, pages, status bar, command palette) |
 | `/w/$workspaceId/c/$conversationId` | Legacy redirect to `?c=` search param |
 | `/w/$workspaceId/p/$pageId` | Legacy redirect to `?p=` search param |
-| `/w/$workspaceId/settings` | Workspace settings (invites) |
+| `/w/$workspaceId/settings` | Workspace settings overlay (invites); preserves `?c=` / `?p=` |
 
 The workspace shell uses search params `?c=` and `?p=` to open conversations and pages in a split-pane layout.
 

@@ -33,6 +33,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DIALOG_SIZES = {
   sm: "max-w-[420px]",
   md: "max-w-[560px]",
+  detail: "max-w-[630px]",
   lg: "max-w-[720px]",
 } as const;
 

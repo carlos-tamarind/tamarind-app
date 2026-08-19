@@ -179,7 +179,7 @@ export function DuplicatePageDialog({
     <Button
       type="button"
       variant={visibility === value ? "default" : "outline"}
-      className="flex-1 gap-2"
+      className="min-w-0 flex-1 gap-2"
       onClick={() => setVisibility(value)}
     >
       <Icon className="size-4" />
@@ -203,7 +203,7 @@ export function DuplicatePageDialog({
           else onOpenChange(true);
         }}
       >
-        <DialogContent size="sm">
+        <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>Duplicate page</DialogTitle>
             <DialogDescription>
@@ -224,7 +224,7 @@ export function DuplicatePageDialog({
 
             <div className="space-y-2">
               <div className="text-sm font-medium">Visibility</div>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <VisibilityButton value="private" label="Private" Icon={FileLock} />
                 <VisibilityButton
                   value="conversation"

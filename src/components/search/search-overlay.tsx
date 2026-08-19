@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { FileText, Loader2, MessageSquareMore, Search, User } from "lucide-react";
+import { CircleX, FileText, Loader2, MessageSquareMore, Search, User } from "lucide-react";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Kbd } from "@/components/ui/kbd";
 import { OverlayFooter } from "@/components/overlay-footer";
+import { HOTKEYS, useHotkey, useShortcutLabel } from "@/hooks/use-hotkeys";
 import { useSearchRequest } from "@/hooks/use-search-request";
 import type { SearchResult, SearchScope } from "@/search/types";
+
+/** Sentinel: query input is the virtual first item of the result list. */
+const QUERY_INDEX = -1;
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -80,14 +85,18 @@ function ResultRow({
   result,
   query,
   active,
+  index,
   onSelect,
   onHover,
+  onKeyDown,
 }: {
   result: SearchResult;
   query: string;
   active: boolean;
+  index: number;
   onSelect: (result: SearchResult) => void;
   onHover: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const Icon = resultIcon(result.assetType);
   const title =
@@ -96,8 +105,11 @@ function ResultRow({
   return (
     <button
       type="button"
+      tabIndex={-1}
+      data-result-index={index}
       onClick={() => onSelect(result)}
       onMouseMove={onHover}
+      onKeyDown={onKeyDown}
       data-active={active || undefined}
       className={`flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-2 text-left transition-colors duration-(--motion-fast) ${
         active ? "bg-accent-subtle text-accent-subtle-foreground" : ""
@@ -138,11 +150,12 @@ export function SearchOverlay({
   const [scope, setScope] = useState<SearchScope>("all");
   const [enableKeywordSearch, setEnableKeywordSearch] = useState(true);
   const [enableSemanticSearch, setEnableSemanticSearch] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(QUERY_INDEX);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const clearLabel = useShortcutLabel(HOTKEYS.clearSearch);
 
-  const { isLoading, searchNow, results, hasSearched, hasError } = useSearchRequest({
+  const { isLoading, searchNow, reset, results, hasSearched, hasError } = useSearchRequest({
     workspaceId,
     open,
     query,
@@ -173,13 +186,33 @@ export function SearchOverlay({
 
   const flatResults = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
-  useEffect(() => setActiveIndex(0), [results]);
+  useEffect(() => setActiveIndex(QUERY_INDEX), [results]);
 
-  useEffect(() => {
-    listRef.current
-      ?.querySelector("[data-active]")
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
+  const goToQuery = useCallback(() => {
+    setActiveIndex(QUERY_INDEX);
+    inputRef.current?.focus();
+  }, []);
+
+  const goToResult = useCallback((index: number) => {
+    setActiveIndex(index);
+    const el = listRef.current?.querySelector<HTMLElement>(
+      `[data-result-index="${index}"]`,
+    );
+    el?.focus();
+    el?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    setActiveIndex(QUERY_INDEX);
+    reset();
+    inputRef.current?.focus();
+  }, [reset]);
+
+  useHotkey(HOTKEYS.clearSearch, () => clearSearch(), {
+    enabled: open,
+    allowInInput: true,
+  });
 
   const chipClass = (active: boolean) =>
     `flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors duration-(--motion-fast) ${
@@ -207,28 +240,43 @@ export function SearchOverlay({
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (flatResults.length > 0) {
-        setActiveIndex((i) => (i + 1) % flatResults.length);
-      }
+      if (flatResults.length > 0) goToResult(0);
       return;
     }
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (flatResults.length > 0) {
-        setActiveIndex((i) => (i - 1 + flatResults.length) % flatResults.length);
-      }
+      if (flatResults.length > 0) goToResult(flatResults.length - 1);
       return;
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const target = flatResults[activeIndex];
-      // Enter opens the highlighted result, or forces a search when the
-      // debounce has not fired yet and there is nothing to open.
+      searchNow();
+    }
+  };
+
+  const handleResultKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (index >= flatResults.length - 1) goToQuery();
+      else goToResult(index + 1);
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (index <= 0) goToQuery();
+      else goToResult(index - 1);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const target = flatResults[index];
       if (target) handleSelect(target);
-      else searchNow();
     }
   };
 
@@ -247,7 +295,8 @@ export function SearchOverlay({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onFocus={() => setActiveIndex(QUERY_INDEX)}
+            onKeyDown={handleInputKeyDown}
             placeholder="Search anything…"
             className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
           />
@@ -256,6 +305,17 @@ export function SearchOverlay({
               className="size-4 shrink-0 animate-spin text-muted-foreground"
               strokeWidth={1.5}
             />
+          ) : null}
+          {query.length > 0 ? (
+            <button
+              type="button"
+              title="Clear query"
+              aria-label="Clear query"
+              onClick={clearSearch}
+              className="rounded-sm p-0.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:text-foreground"
+            >
+              <CircleX className="size-4" strokeWidth={1.5} />
+            </button>
           ) : null}
         </div>
 
@@ -319,8 +379,10 @@ export function SearchOverlay({
                       result={result}
                       query={query}
                       active={index === activeIndex}
+                      index={index}
                       onSelect={handleSelect}
                       onHover={() => setActiveIndex(index)}
+                      onKeyDown={(e) => handleResultKeyDown(e, index)}
                     />
                   );
                 })}
@@ -329,7 +391,14 @@ export function SearchOverlay({
           </div>
         ) : null}
 
-        <OverlayFooter>
+        <OverlayFooter
+          afterSelect={
+            <span className="flex items-center gap-1.5">
+              <Kbd className="h-4">{clearLabel}</Kbd>
+              clear
+            </span>
+          }
+        >
           {hasResults ? (
             <span className="tabular-nums">
               {results.length} result{results.length === 1 ? "" : "s"}

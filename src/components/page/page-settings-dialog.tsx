@@ -75,7 +75,7 @@ export function PageSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
+      <DialogContent size="detail">
         <DialogHeader>
           <DialogTitle>Page settings</DialogTitle>
         </DialogHeader>
