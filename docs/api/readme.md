@@ -166,7 +166,11 @@ Manual trigger for the page embedding worker during local development.
   "claimed": 20,
   "embedded": 19,
   "skipped": 1,
-  "failed": 0
+  "failed": 0,
+  "topicClaimed": 4,
+  "topicEmbedded": 4,
+  "topicSkipped": 0,
+  "topicFailed": 0
 }
 ```
 

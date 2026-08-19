@@ -37,7 +37,7 @@ flowchart TB
     PGCronPageEmbed["pg_cron (every minute)"]
     PGNetPageEmbed["pg_net HTTP POST"]
     WorkerPageEmbed["runPageEmbeddingWorker"]
-    PageEmbed["OpenAI → page_chunk_embeddings"]
+    PageEmbed["OpenAI → chunk + topic embeddings"]
   end
 
   subgraph cronPageSemantic [Scheduled: page semantics]
@@ -217,18 +217,19 @@ A pg_cron job calls the page embedding worker every minute via pg_net HTTP POST 
 
 [`runPageEmbeddingWorker`](../../src/semantic/pages/page-embeddings/worker/runPageEmbeddingWorker.ts):
 
-1. Claims up to 20 rows via `claim_page_chunk_embedding_batch` (`QUEUED` + `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
-2. Loads the matching `page_chunks` text and compares the live checksum against the claimed row
-3. Bumps `updated_at` as a heartbeat before the OpenAI call, so overlapping ticks cannot double-embed
-4. Embeds the batch with each row’s `embedding_model` (chunking default is `text-embedding-3-small`)
-5. Persists guarded: `UPDATE ... WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?` (vector + `EMBEDDED`, `attempts` reset; does not rewrite `embedding_model`)
-6. Transient 429/5xx requeue then circuit-break the tick (`TICK_CIRCUIT_BREAK`)
+1. Claims up to 20 topic rows via `claim_page_topic_embedding_batch`, loads `page_topics`, embeds `canonicalTopicText` (`name: description`), guarded persist to `page_topic_embeddings`
+2. Claims up to 20 chunk rows via `claim_page_chunk_embedding_batch` (`QUEUED` + `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
+3. Loads the matching `page_chunks` text and compares the live checksum against the claimed row
+4. Bumps `updated_at` as a heartbeat before the OpenAI call, so overlapping ticks cannot double-embed
+5. Embeds the batch with each row’s `embedding_model` (chunking default is `text-embedding-3-small`)
+6. Persists guarded: `UPDATE ... WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?` (vector + `EMBEDDED`, `attempts` reset; does not rewrite `embedding_model`)
+7. Transient 429/5xx on either stream requeue then circuit-break the tick (`TICK_CIRCUIT_BREAK`) so remaining chunk batches are not spent on a rate-limited provider
 
 ### Invariants
 
-- **Heartbeat is an app contract**, not a column. Any UPDATE fires `trg_page_chunk_embeddings_updated_at`; the worker must touch rows before long calls.
+- **Heartbeat is an app contract**, not a column. Any UPDATE fires `trg_page_chunk_embeddings_updated_at` or `trg_page_topic_embeddings_updated_at`; the worker must touch rows before long calls.
 - **Retries follow the CTI pattern.** Transient errors → `RETRY_WAIT` with exponential backoff; after `MAX_TRANSIENT_BACKOFFS` (5) the row gets a 24h `next_retry_at` with `attempts` reset. `FAILED` is only for permanent errors and is never claimed.
-- **Drift is a skip, not a failure.** Missing chunk → no-op (CASCADE already removed the row); checksum mismatch → requeued as `QUEUED` with the live checksum and logged.
+- **Drift is a skip, not a failure.** Missing chunk or topic row → no-op (CASCADE already removed the row); checksum mismatch → requeued as `QUEUED` with the live checksum and logged.
 
 ## Page Semantic Worker (Cron)
 
@@ -246,7 +247,7 @@ A pg_cron job calls the page semantic worker every minute via pg_net HTTP POST w
 2. Enqueues jobs when there is no snapshot, or the token-count delta vs `page_snapshot` is ≥ 300; cleans empty pages that still have a semantics row
 3. Claims up to 8 jobs via `claim_page_topic_job` (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
 4. Compares live `plain_text` SHA-256 to the job hash; drift → `apply_page_topic_result` `drifted` (no LLM)
-5. Calls OpenAI `gpt-5.4-nano` for `{ name, description }`, then `apply_page_topic_result` (`committed` upserts `page_topics`)
+5. Calls OpenAI `gpt-5.4-nano` for `{ name, description }`, then `apply_page_topic_result` (`committed` upserts `page_topics`; the enqueue trigger queues `page_topic_embeddings` when topic fields change)
 6. Transient 429/5xx → `RETRY_WAIT` with backoff (5× then 24h cooldown); permanent → `FAILED`; infra errors circuit-break the tick
 
 See [Page Semantics](../semantic/page_semantic.md).
@@ -276,7 +277,7 @@ Available only in development mode (404 in production). See [API Routes](../api/
 
 - [Semantic Pipeline](../semantic/pipeline.md) — Full processing flow
 - [Embedding](../semantic/msg_embedding.md) — Worker details
-- [Page Embedding](../semantic/page_embedding.md) — Page chunk vector worker
+- [Page Embedding](../semantic/page_embedding.md) — Page chunk and topic vector worker
 - [Page Semantics](../semantic/page_semantic.md) — Page-level LLM topic worker
 - [API Routes](../api/readme.md) — HTTP endpoints
 - [Deployment](../deployment.md) — Environment setup

@@ -1,15 +1,14 @@
+import { canonicalTopicText } from "@/semantic/embedding/canonicalTopicText";
 import { embeddingProvider } from "@/semantic/embedding/embeddingProvider";
 import { embed, isEmbedSuccess } from "@/semantic/embedding/types";
 
 import { CtiPermanentError, CtiTransientError } from "../errors";
 import { CTI_ENGINE_CONFIG } from "./config";
 
+export { canonicalTopicText };
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function canonicalTopicText(name: string, description: string): string {
-  return `${name}: ${description}`;
 }
 
 export async function embedCanonicalTopic(
