@@ -117,12 +117,16 @@ erDiagram
 | `message_semantics` | Normalized text, quality score, embedding queue state | → `messages` (1:1, CASCADE); UNIQUE(message_id), UNIQUE(checksum) |
 | `message_embeddings` | Vector embeddings for semantic search | → `message_semantics` (CASCADE); `embedding_vector vector(1536)` |
 | `page_chunk_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
+| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(page_id)` (CASCADE); UNIQUE(page_id), UNIQUE(page_id, embedding_model); `embedding vector(1536)` |
 
 **Page embedding queue.** `page_chunk_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
 
+**Page topic embedding queue.** `page_topic_embeddings` reuses `page_embedding_status` with the same columns. Its only enqueue path is the `trg_page_topics_enqueue_embedding` trigger on `page_topics` (AFTER INSERT OR UPDATE OF `topic_name`, `topic_description`, skipped when neither actually changed): it upserts a `QUEUED` row whose `checksum` is the SHA-256 of `topic_name || ': ' || topic_description`. A `PROCESSING` row is forced back to `QUEUED` with the new checksum, so the in-flight guarded persist no-ops. The previous vector is kept on requeue. It is not yet wired into `search_pages_semantic`.
+
 **Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
 
-**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, and `page_topic_jobs` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `EXISTS (… FROM public.pages …)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+
 
 ## Key Indexes
 
