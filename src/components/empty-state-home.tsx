@@ -115,20 +115,22 @@ export function EmptyStateHome({
             <Skeleton className="mx-auto mt-4 h-8 w-72" />
           </div>
         ) : hasRecent ? (
-          <div className="mt-8 rounded-xl border bg-surface p-3">
-            <h3 className="px-2.5 pb-1.5 pt-1 text-base font-semibold tracking-[-0.01em] text-foreground">
+          <>
+            <h3 className="mt-8 px-1 text-sm font-medium text-muted-foreground">
               Pick up where you left:
             </h3>
-            <ul className="space-y-0.5">
-              {recent!.map((item) => (
-                <RecentItemRow
-                  key={`${item.kind}-${item.id}`}
-                  item={item}
-                  workspaceId={workspaceId}
-                />
-              ))}
-            </ul>
-          </div>
+            <div className="mt-2 rounded-xl border bg-surface p-3">
+              <ul className="space-y-0.5">
+                {recent!.map((item) => (
+                  <RecentItemRow
+                    key={`${item.kind}-${item.id}`}
+                    item={item}
+                    workspaceId={workspaceId}
+                  />
+                ))}
+              </ul>
+            </div>
+          </>
         ) : (
           <>
             <h3 className="mt-3 text-center text-sm text-muted-foreground">

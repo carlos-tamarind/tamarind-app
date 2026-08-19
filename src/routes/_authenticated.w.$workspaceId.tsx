@@ -37,9 +37,11 @@ import { PageWindow } from "@/components/page/page-window";
 import { NavigationPanel } from "@/components/navigation-panel";
 import { SearchOverlay } from "@/components/search/search-overlay";
 import { CommandPalette } from "@/components/command-palette";
+import { CloseHintOverlay } from "@/components/close-hint-overlay";
 import { StatusBar, type StatusContextItem } from "@/components/status-bar";
 import { EmptyStateHome } from "@/components/empty-state-home";
 import { SaveStatusProvider } from "@/lib/save-status-context";
+import { clearComposerDrafts } from "@/lib/composer-drafts";
 import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
 
 const workspaceSearchSchema = z.object({
@@ -53,6 +55,12 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 });
 
 const COLLAPSE_THRESHOLD = 20;
+const CLOSE_HINT_START = 32;
+
+function closeHintIntensity(size: number | undefined) {
+  if (size === undefined || size >= CLOSE_HINT_START) return 0;
+  return Math.min(1, (CLOSE_HINT_START - size) / (CLOSE_HINT_START - COLLAPSE_THRESHOLD));
+}
 
 function WorkspaceShell() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId" });
@@ -66,6 +74,10 @@ function WorkspaceShell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [folded, setFolded] = useState(false);
+  const [closeHint, setCloseHint] = useState<{
+    target: "conv" | "page";
+    intensity: number;
+  } | null>(null);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
   const toggleRail = useCallback(() => setRailOpen((v) => !v), []);
 
@@ -130,6 +142,7 @@ function WorkspaceShell() {
   });
   useHotkey(HOTKEYS.search, () => setSearchOpen(true), { allowInInput: true });
   useHotkey(HOTKEYS.toggleNav, toggleNavPanel);
+  useHotkey(HOTKEYS.toggleWorkspaces, toggleRail);
   useHotkey(HOTKEYS.workspaceSettings, () => {
     void navigate({ to: "/w/$workspaceId/settings", params: { workspaceId } });
   });
@@ -165,12 +178,25 @@ function WorkspaceShell() {
     return items;
   }, [conversationId, pageId, sortedConversations, sortedPages]);
 
+  const handleSplitLayoutChange = useCallback((layout: Record<string, number>) => {
+    const convIntensity = closeHintIntensity(layout.conv);
+    const pageIntensity = closeHintIntensity(layout.page);
+    if (convIntensity > 0 && convIntensity >= pageIntensity) {
+      setCloseHint({ target: "conv", intensity: convIntensity });
+    } else if (pageIntensity > 0) {
+      setCloseHint({ target: "page", intensity: pageIntensity });
+    } else {
+      setCloseHint(null);
+    }
+  }, []);
+
   const handleMainLayout = useCallback(
     (layout: Record<string, number>) => {
       if (!bothOpen) return;
       const convSize = layout.conv;
       const pageSize = layout.page;
       if (convSize !== undefined && convSize < COLLAPSE_THRESHOLD) {
+        setCloseHint(null);
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
@@ -178,18 +204,22 @@ function WorkspaceShell() {
           replace: true,
         });
       } else if (pageSize !== undefined && pageSize < COLLAPSE_THRESHOLD) {
+        setCloseHint(null);
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
           search: (prev: any) => ({ ...prev, p: undefined }),
           replace: true,
         });
+      } else {
+        setCloseHint(null);
       }
     },
     [bothOpen, navigate, workspaceId],
   );
 
   const handleLogout = async () => {
+    clearComposerDrafts();
     await supabase.auth.signOut();
     navigate({ to: "/login" });
   };
@@ -312,23 +342,40 @@ function WorkspaceShell() {
                   ) : bothOpen ? (
                     <ResizablePanelGroup
                       orientation="horizontal"
+                      onLayoutChange={handleSplitLayoutChange}
                       onLayoutChanged={handleMainLayout}
                       key={`split-${conversationId}-${pageId}`}
                     >
                       <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
-                        <ConversationWindow
-                          key={conversationId}
-                          workspaceId={workspaceId}
-                          conversationId={conversationId!}
-                        />
+                        <div className="relative h-full">
+                          <ConversationWindow
+                            key={conversationId}
+                            workspaceId={workspaceId}
+                            conversationId={conversationId!}
+                          />
+                          {closeHint?.target === "conv" ? (
+                            <CloseHintOverlay
+                              intensity={closeHint.intensity}
+                              label="Close conversation"
+                            />
+                          ) : null}
+                        </div>
                       </ResizablePanel>
                       <ResizableHandle />
                       <ResizablePanel id="page" defaultSize="50%" minSize="10%">
-                        <PageWindow
-                          key={pageId}
-                          workspaceId={workspaceId}
-                          pageId={pageId!}
-                        />
+                        <div className="relative h-full">
+                          <PageWindow
+                            key={pageId}
+                            workspaceId={workspaceId}
+                            pageId={pageId!}
+                          />
+                          {closeHint?.target === "page" ? (
+                            <CloseHintOverlay
+                              intensity={closeHint.intensity}
+                              label="Close page"
+                            />
+                          ) : null}
+                        </div>
                       </ResizablePanel>
                     </ResizablePanelGroup>
                   ) : hasConversation ? (
@@ -391,6 +438,10 @@ function WorkspaceShell() {
             onOpenProfile={handleOpenProfile}
             onOpenSearch={handleOpenSearch}
             onToggleNav={toggleNavPanel}
+            onToggleWorkspaces={toggleRail}
+            onLogout={() => {
+              void handleLogout();
+            }}
           />
 
           <Outlet />

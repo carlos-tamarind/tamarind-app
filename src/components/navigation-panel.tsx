@@ -55,12 +55,14 @@ export type NavConversation = {
   id: string;
   title: string;
   type: string;
+  lastModifiedAt?: string | null;
 };
 
 export type NavPage = {
   id: string;
   title: string | null;
   visibility: string;
+  lastModifiedAt?: string | null;
 };
 
 type Props = {
@@ -238,6 +240,7 @@ export function NavigationPanel({
   const profileName = profile?.displayName ?? profile?.email ?? "Me";
   const searchLabel = useShortcutLabel(HOTKEYS.search);
   const navLabel = useShortcutLabel(HOTKEYS.toggleNav);
+  const workspacesLabel = useShortcutLabel(HOTKEYS.toggleWorkspaces);
 
   // Restored after mount so the server render stays deterministic.
   useEffect(() => {
@@ -445,8 +448,11 @@ export function NavigationPanel({
                   <Menu className="size-4" strokeWidth={1.5} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="right" className="gap-2">
                 {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+                <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                  {workspacesLabel}
+                </Kbd>
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -508,8 +514,11 @@ export function NavigationPanel({
               <Menu className="size-4" strokeWidth={1.5} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
+          <TooltipContent side="bottom" className="gap-2">
             {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+            <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+              {workspacesLabel}
+            </Kbd>
           </TooltipContent>
         </Tooltip>
         <Tooltip>

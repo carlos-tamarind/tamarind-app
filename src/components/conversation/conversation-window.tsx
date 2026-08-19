@@ -68,6 +68,11 @@ import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conv
 import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
+import {
+  getComposerDraft,
+  removeComposerDraft,
+  setComposerDraft,
+} from "@/lib/composer-drafts";
 
 type Message = {
   id: string;
@@ -402,6 +407,7 @@ export function ConversationWindow({
   const [isEmpty, setIsEmpty] = useState(true);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const composerPanelRef = useRef<PanelImperativeHandle>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -446,12 +452,10 @@ export function ConversationWindow({
   });
 
   useEffect(() => {
-    setLiveMessages([]);
-    setSelectedIds(new Set());
     return () => {
-      setSelectedIds(new Set());
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [conversationId]);
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -591,7 +595,15 @@ export function ConversationWindow({
 
     },
     onCreate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
-    onUpdate: ({ editor }) => setIsEmpty(!hasSendableContent(editor)),
+    onUpdate: ({ editor }) => {
+      const empty = !hasSendableContent(editor);
+      setIsEmpty(empty);
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        if (empty) removeComposerDraft(conversationId);
+        else setComposerDraft(conversationId, editor.getHTML());
+      }, 200);
+    },
   });
 
   const handleSend = async () => {
@@ -603,6 +615,7 @@ export function ConversationWindow({
       await sendMsg({ data: { conversationId, rawText: html } });
       editor.commands.clearContent();
       setIsEmpty(true);
+      removeComposerDraft(conversationId);
       clearSelection();
     } catch (e) {
       console.error(e);
@@ -613,11 +626,8 @@ export function ConversationWindow({
 
   const expandComposer = () => {
     const panel = composerPanelRef.current;
-    if (panel?.isCollapsed()) {
-      panel.expand();
-    } else {
-      panel?.resize("20%");
-    }
+    if (panel?.isCollapsed()) panel.expand();
+    panel?.resize("20%");
     setComposerExpanded(true);
     requestAnimationFrame(() => editor?.commands.focus());
   };
@@ -629,12 +639,19 @@ export function ConversationWindow({
   };
 
   useEffect(() => {
+    if (!editor) return;
+    const draft = getComposerDraft(conversationId);
+    if (!draft) return;
+    editor.commands.setContent(draft);
+    setIsEmpty(!hasSendableContent(editor));
     const id = requestAnimationFrame(() => {
-      composerPanelRef.current?.collapse();
-      setComposerExpanded(false);
+      const panel = composerPanelRef.current;
+      if (panel?.isCollapsed()) panel.expand();
+      panel?.resize("20%");
+      setComposerExpanded(true);
     });
     return () => cancelAnimationFrame(id);
-  }, [conversationId]);
+  }, [editor, conversationId]);
 
   // Chronological order regardless of the order ids were selected in. Shared
   // by every bulk action so the hover bar and the selection bar can never
@@ -1191,7 +1208,7 @@ export function ConversationWindow({
             panelRef={composerPanelRef}
             collapsible
             collapsedSize="2.75rem"
-            defaultSize="20%"
+            defaultSize="2.75rem"
             minSize="16%"
             maxSize="45%"
           >

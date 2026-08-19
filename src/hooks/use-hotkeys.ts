@@ -60,6 +60,8 @@ function matches(event: KeyboardEvent, combo: ParsedCombo, isMac: boolean): bool
   if (otherMod) return false;
   if (combo.shift !== event.shiftKey) return false;
   if (combo.alt !== event.altKey) return false;
+  // Shift+backslash reports "|" as event.key. Match the physical key instead.
+  if (combo.key === "\\") return event.code === "Backslash";
   return event.key.toLowerCase() === combo.key;
 }
 
@@ -184,6 +186,7 @@ export const HOTKEYS = {
   commandPalette: "mod+k",
   search: "mod+f",
   toggleNav: "mod+\\",
+  toggleWorkspaces: "mod+shift+\\",
   workspaceSettings: "mod+,",
   send: "mod+enter",
   bold: "mod+b",

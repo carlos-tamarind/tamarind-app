@@ -214,8 +214,8 @@
 
 @layer base {
   html {
-    /* 19.2px — rem-based utilities scale 20% without rewriting every class. */
-    font-size: 120%;
+    /* 18.4px — rem-based utilities scale 15% without rewriting every class. */
+    font-size: 115%;
   }
 
   * {
