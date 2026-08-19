@@ -643,6 +643,59 @@ export type Database = {
           },
         ]
       }
+      page_chunk_embeddings: {
+        Row: {
+          attempts: number
+          checksum: string
+          chunk_id: string
+          created_at: string
+          embedded_at: string | null
+          embedding: string | null
+          embedding_model: string
+          embedding_status: Database["public"]["Enums"]["page_embedding_status"]
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          checksum: string
+          chunk_id: string
+          created_at?: string
+          embedded_at?: string | null
+          embedding?: string | null
+          embedding_model: string
+          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          checksum?: string
+          chunk_id?: string
+          created_at?: string
+          embedded_at?: string | null
+          embedding?: string | null
+          embedding_model?: string
+          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_chunk_embeddings_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "page_chunks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_chunks: {
         Row: {
           checksum: string
@@ -720,11 +773,10 @@ export type Database = {
           },
         ]
       }
-      page_embeddings: {
+      page_topic_embeddings: {
         Row: {
           attempts: number
           checksum: string
-          chunk_id: string
           created_at: string
           embedded_at: string | null
           embedding: string | null
@@ -733,26 +785,12 @@ export type Database = {
           id: string
           last_error: string | null
           next_retry_at: string | null
+          page_id: string
           updated_at: string
         }
         Insert: {
           attempts?: number
           checksum: string
-          chunk_id: string
-          created_at?: string
-          embedded_at?: string | null
-          embedding?: string | null
-          embedding_model: string
-          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
-          id?: string
-          last_error?: string | null
-          next_retry_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          attempts?: number
-          checksum?: string
-          chunk_id?: string
           created_at?: string
           embedded_at?: string | null
           embedding?: string | null
@@ -761,19 +799,34 @@ export type Database = {
           id?: string
           last_error?: string | null
           next_retry_at?: string | null
+          page_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          checksum?: string
+          created_at?: string
+          embedded_at?: string | null
+          embedding?: string | null
+          embedding_model?: string
+          embedding_status?: Database["public"]["Enums"]["page_embedding_status"]
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          page_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "page_embeddings_chunk_id_fkey"
-            columns: ["chunk_id"]
-            isOneToOne: false
-            referencedRelation: "page_chunks"
-            referencedColumns: ["id"]
+            foreignKeyName: "page_topic_embeddings_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "page_topics"
+            referencedColumns: ["page_id"]
           },
         ]
       }
-      page_semantic_jobs: {
+      page_topic_jobs: {
         Row: {
           attempts: number
           completed_at: string | null
@@ -815,7 +868,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "page_semantic_jobs_page_id_fkey"
+            foreignKeyName: "page_topic_jobs_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
             referencedRelation: "pages"
@@ -823,7 +876,7 @@ export type Database = {
           },
         ]
       }
-      page_semantics: {
+      page_topics: {
         Row: {
           created_at: string
           llm_model: string
@@ -856,7 +909,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "page_semantics_page_id_fkey"
+            foreignKeyName: "page_topics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: true
             referencedRelation: "pages"
@@ -1203,7 +1256,7 @@ export type Database = {
         Args: { p_job_id: string; p_plan?: Json }
         Returns: string
       }
-      apply_page_semantic_result: {
+      apply_page_topic_result: {
         Args: {
           p_job_id: string
           p_llm_model: string
@@ -1262,7 +1315,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      claim_page_embedding_batch: {
+      claim_page_chunk_embedding_batch: {
         Args: { p_batch_size?: number; p_stale_after?: string }
         Returns: {
           attempts: number
@@ -1280,12 +1333,35 @@ export type Database = {
         }[]
         SetofOptions: {
           from: "*"
-          to: "page_embeddings"
+          to: "page_chunk_embeddings"
           isOneToOne: false
           isSetofReturn: true
         }
       }
-      claim_page_semantic_job: {
+      claim_page_topic_embedding_batch: {
+        Args: { p_batch_size?: number; p_stale_after?: string }
+        Returns: {
+          attempts: number
+          checksum: string
+          created_at: string
+          embedded_at: string | null
+          embedding: string | null
+          embedding_model: string
+          embedding_status: Database["public"]["Enums"]["page_embedding_status"]
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          page_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "page_topic_embeddings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_page_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
           attempts: number
@@ -1302,7 +1378,7 @@ export type Database = {
         }
         SetofOptions: {
           from: "*"
-          to: "page_semantic_jobs"
+          to: "page_topic_jobs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1324,7 +1400,7 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
-      enqueue_page_semantic_job: {
+      enqueue_page_topic_job: {
         Args: { p_hash: string; p_page_id: string }
         Returns: string
       }
@@ -1373,7 +1449,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      list_pages_due_for_semantics: {
+      list_pages_due_for_topics: {
         Args: { p_idle?: string; p_limit?: number }
         Returns: {
           page_id: string
