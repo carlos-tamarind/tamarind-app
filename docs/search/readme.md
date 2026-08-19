@@ -10,7 +10,7 @@ Search is implemented as TanStack Start server functions and PostgreSQL RPCs —
 |----------|-------|
 | [Pipeline](pipeline.md) | End-to-end query flow from UI to merged results |
 | [Keyword Search](keyword.md) | Trigram-based keyword strategy and RPCs |
-| [Semantic Search](semantic.md) | Vector similarity strategy over message embeddings |
+| [Semantic Search](semantic.md) | Vector similarity strategy over message and page-chunk embeddings |
 | [User Search](user_search.md) | How users open search, filter, and act on results |
 
 ## Purpose
@@ -19,7 +19,7 @@ Teams capture knowledge in conversations and pages. Search lets members:
 
 1. **Find content quickly** across pages, conversations, messages, and people
 2. **Filter by scope** — all assets, conversations & messages, pages, or users & conversations
-3. **Benefit from hybrid retrieval** — exact/substring matches via keyword search, meaning-based matches via semantic search over embedded messages
+3. **Benefit from hybrid retrieval** — exact/substring matches via keyword search, meaning-based matches via semantic search over embedded messages and page chunks
 
 ## Architecture
 
@@ -44,7 +44,7 @@ flowchart TB
 
   subgraph DB["PostgreSQL"]
     Trgm["pg_trgm RPCs"]
-    Vec["search_messages_semantic"]
+    Vec["search_messages_semantic\nsearch_pages_semantic"]
   end
 
   Nav --> Overlay --> Hook --> Exec --> Build --> Orch
@@ -68,10 +68,10 @@ flowchart TB
 | Strategy | Mechanism | Corpus |
 |----------|-----------|--------|
 | `keyword` | ILIKE containment + `pg_trgm` `similarity()` | Pages, conversations, messages, people → conversations |
-| `semantic` | Query embedding + HNSW cosine similarity | Messages with active embeddings |
+| `semantic` | Query embedding + HNSW cosine similarity | Messages with active embeddings; pages with `EMBEDDED` chunk vectors |
 | *(hybrid)* | Parallel run + max-score dedupe merge | Union of both strategies |
 
-> **Not implemented today:** BM25, Elasticsearch/OpenSearch, external vector databases, reciprocal rank fusion (RRF), cross-encoder reranking, page/conversation semantic search, message-level deep links, plan-gated search enforcement.
+> **Not implemented today:** BM25, Elasticsearch/OpenSearch, external vector databases, reciprocal rank fusion (RRF), cross-encoder reranking, conversation-title semantic search, page topic/description search, message-level deep links, plan-gated search enforcement.
 
 ## Feature Gating
 
