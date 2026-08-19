@@ -13,7 +13,7 @@ const SectionLabel = React.forwardRef<
   <span
     ref={ref}
     className={cn(
-      "text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70",
+      "text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
       className,
     )}
     {...props}

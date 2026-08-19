@@ -57,6 +57,27 @@ function RecentItemRow({
   );
 }
 
+function CreateActions({
+  onNewConversation,
+  onNewPage,
+}: {
+  onNewConversation: () => void;
+  onNewPage: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <Button variant="secondary" onClick={onNewConversation}>
+        <MessageSquarePlus className="size-4" />
+        New conversation
+      </Button>
+      <Button variant="secondary" onClick={onNewPage}>
+        <FilePlusCorner className="size-4" />
+        New page
+      </Button>
+    </div>
+  );
+}
+
 export function EmptyStateHome({
   workspaceId,
   onNewConversation,
@@ -69,7 +90,7 @@ export function EmptyStateHome({
   onOpenSearch: () => void;
 }) {
   const fetchRecent = useServerFn(listRecentActivity);
-  const searchLabel = useShortcutLabel(HOTKEYS.commandPalette);
+  const searchLabel = useShortcutLabel(HOTKEYS.search);
 
   const { data: recent, isPending } = useQuery({
     queryKey: ["recent-activity", workspaceId],
@@ -87,15 +108,15 @@ export function EmptyStateHome({
         </h2>
 
         {isPending ? (
-          <div className="mt-8 space-y-2" aria-hidden="true">
-            <Skeleton className="mx-auto h-4 w-64" />
+          <div className="mt-8 space-y-3" aria-hidden="true">
+            <Skeleton className="h-5 w-48" />
             <Skeleton className="h-9 w-full rounded-lg" />
-            <Skeleton className="mx-auto h-3 w-6" />
-            <Skeleton className="mx-auto h-8 w-72" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+            <Skeleton className="mx-auto mt-4 h-8 w-72" />
           </div>
         ) : hasRecent ? (
           <div className="mt-8 rounded-xl border bg-surface p-3">
-            <h3 className="px-2.5 pb-1.5 pt-1 text-sm font-medium text-foreground">
+            <h3 className="px-2.5 pb-1.5 pt-1 text-base font-semibold tracking-[-0.01em] text-foreground">
               Pick up where you left:
             </h3>
             <ul className="space-y-0.5">
@@ -125,19 +146,17 @@ export function EmptyStateHome({
             </button>
 
             <p className="my-3 text-center text-xs text-muted-foreground">or</p>
-
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button variant="secondary" onClick={onNewConversation}>
-                <MessageSquarePlus className="size-4" />
-                New conversation
-              </Button>
-              <Button variant="secondary" onClick={onNewPage}>
-                <FilePlusCorner className="size-4" />
-                New page
-              </Button>
-            </div>
           </>
         )}
+
+        {!isPending ? (
+          <div className={hasRecent ? "mt-6" : undefined}>
+            <CreateActions
+              onNewConversation={onNewConversation}
+              onNewPage={onNewPage}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

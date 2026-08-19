@@ -46,6 +46,7 @@ import {
   ResizablePanelGroup,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import type { PanelImperativeHandle } from "react-resizable-panels";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getConversation,
@@ -399,6 +400,8 @@ export function ConversationWindow({
   const [newPagePresetTitle, setNewPagePresetTitle] = useState<string>("");
   const [newPageMessageIds, setNewPageMessageIds] = useState<string[]>([]);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [composerExpanded, setComposerExpanded] = useState(false);
+  const composerPanelRef = useRef<PanelImperativeHandle>(null);
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -582,12 +585,6 @@ export function ConversationWindow({
           handleSend();
           return true;
         }
-        if (event.key === "Enter" && !event.shiftKey) {
-          if (mentionOpenRef.current > 0) return false;
-          event.preventDefault();
-          handleSend();
-          return true;
-        }
         return false;
       },
 
@@ -613,6 +610,31 @@ export function ConversationWindow({
       setSending(false);
     }
   };
+
+  const expandComposer = () => {
+    const panel = composerPanelRef.current;
+    if (panel?.isCollapsed()) {
+      panel.expand();
+    } else {
+      panel?.resize("20%");
+    }
+    setComposerExpanded(true);
+    requestAnimationFrame(() => editor?.commands.focus());
+  };
+
+  const collapseComposerIfEmpty = () => {
+    if (editor && hasSendableContent(editor)) return;
+    composerPanelRef.current?.collapse();
+    setComposerExpanded(false);
+  };
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      composerPanelRef.current?.collapse();
+      setComposerExpanded(false);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [conversationId]);
 
   // Chronological order regardless of the order ids were selected in. Shared
   // by every bulk action so the hover bar and the selection bar can never
@@ -654,6 +676,9 @@ export function ConversationWindow({
     // Append trailing empty paragraph so caret lands somewhere writable.
     const html = nodes.join("") + "<p></p>";
     editor.chain().focus("end").insertContent(html).run();
+    composerPanelRef.current?.expand();
+    composerPanelRef.current?.resize("20%");
+    setComposerExpanded(true);
     clearSelection();
   };
 
@@ -833,7 +858,7 @@ export function ConversationWindow({
                   <TooltipContent side="bottom">Participants</TooltipContent>
                 </Tooltip>
                 <PopoverContent align="end" className="w-64">
-                  <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                  <div className="mb-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
                     Participants ({conv.participants.length})
                   </div>
                   <ul className="mb-2 max-h-48 space-y-1 overflow-y-auto text-sm">
@@ -894,7 +919,7 @@ export function ConversationWindow({
           orientation="vertical"
           className="flex min-h-[520px] flex-1 flex-col"
         >
-          <ResizablePanel id="messages" defaultSize="80%" minSize="65%">
+          <ResizablePanel id="messages" defaultSize="80%" minSize="50%">
             <div className="relative h-full">
             <div
               ref={scrollerRef}
@@ -933,7 +958,7 @@ export function ConversationWindow({
                       <div key={m.id}>
                         {showDaySeparator && (
                           <div className="sticky top-0 z-10 flex justify-center py-3">
-                            <span className="rounded-full border bg-surface/90 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
+                            <span className="rounded-full border bg-surface/90 px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground backdrop-blur-sm">
                               {formatDaySeparator(m.createdAt)}
                             </span>
                           </div>
@@ -1160,23 +1185,41 @@ export function ConversationWindow({
               )}
             </div>
           </ResizablePanel>
-          <ResizableHandle />
+          {composerExpanded ? <ResizableHandle /> : null}
           <ResizablePanel
             id="composer"
+            panelRef={composerPanelRef}
+            collapsible
+            collapsedSize="2.75rem"
             defaultSize="20%"
-            minSize="22%"
+            minSize="16%"
             maxSize="45%"
           >
-            <div className="flex h-full flex-col border-t bg-background p-2">
-              <div className="group/composer flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface transition-colors duration-(--motion-fast) focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25">
-                <div className="min-h-0 flex-1 overflow-y-auto [&>div]:h-full [&>div]:w-full">
+            <div className="flex h-full min-w-0 flex-col border-t bg-background p-2">
+              <div
+                className="group/composer flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface transition-colors duration-(--motion-fast) focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25"
+                onBlur={(event) => {
+                  const next = event.relatedTarget as Node | null;
+                  if (next && event.currentTarget.contains(next)) return;
+                  collapseComposerIfEmpty();
+                }}
+              >
+                {!composerExpanded ? (
+                  <button
+                    type="button"
+                    className="flex h-full w-full items-center px-3 text-left text-sm text-muted-foreground"
+                    onClick={expandComposer}
+                  >
+                    Start writing a message…
+                  </button>
+                ) : (
+                  <>
+                <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&>div]:h-full [&>div]:w-full [&>div]:min-w-0">
                   <EditorContent editor={editor} />
                 </div>
 
                 <div className="flex shrink-0 items-center gap-0.5 px-1.5 pb-1.5">
-                  {/* Formatting recedes until the composer has focus, so the
-                      resting state is just an input. */}
-                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-(--motion-base) focus-within:opacity-100 group-hover/composer:opacity-100 group-focus-within/composer:opacity-100">
+                  <div className="flex items-center gap-0.5">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -1237,20 +1280,15 @@ export function ConversationWindow({
                   </div>
 
                   <div className="ml-auto flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-7"
-                          onClick={handleNewPage}
-                          aria-label="New conversation page"
-                        >
-                          <FilePlus className="size-4" strokeWidth={1.5} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">New conversation page</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleNewPage}
+                      aria-label="New conversation page"
+                    >
+                      <FilePlus className="size-4" strokeWidth={1.5} />
+                      New page
+                    </Button>
                     <Button
                       size="sm"
                       onClick={handleSend}
@@ -1269,6 +1307,8 @@ export function ConversationWindow({
                     </Button>
                   </div>
                 </div>
+                  </>
+                )}
               </div>
             </div>
           </ResizablePanel>

@@ -116,7 +116,7 @@ function ResultRow({
         </span>
       ) : null}
       {IS_DEV && result.strategy ? (
-        <span className="pl-6 text-[11px] font-light text-muted-foreground/70">
+        <span className="pl-6 text-[0.6875rem] font-light text-muted-foreground/70">
           {STRATEGY_LABELS[result.strategy]} · {result.score.toFixed(3)}
         </span>
       ) : null}
@@ -307,7 +307,7 @@ export function SearchOverlay({
           <div ref={listRef} className="max-h-[min(24rem,55vh)] overflow-y-auto p-1.5">
             {groups.map((group) => (
               <div key={group.key}>
-                <div className="sticky top-0 z-10 bg-surface-raised px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                <div className="sticky top-0 z-10 bg-surface-raised px-2.5 pb-1 pt-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
                   {GROUP_LABELS[group.key]}
                 </div>
                 {group.items.map((result) => {

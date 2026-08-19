@@ -1,4 +1,18 @@
-import { Check, Loader2, Monitor, Moon, Sun, TriangleAlert } from "lucide-react";
+import {
+  Building2,
+  Check,
+  FileLock,
+  FileText,
+  Loader2,
+  MessageSquareLock,
+  Monitor,
+  Moon,
+  Sun,
+  TriangleAlert,
+  User as UserIcon,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -100,6 +114,22 @@ function VersionSegment() {
   );
 }
 
+export type StatusContextItem = {
+  kind: "conversation" | "page";
+  title: string;
+  subtype?: string | null;
+};
+
+function contextIcon(item: StatusContextItem): LucideIcon {
+  if (item.kind === "conversation") {
+    return item.subtype === "group" || item.subtype === "channel" ? Users : UserIcon;
+  }
+  if (item.subtype === "private") return FileLock;
+  if (item.subtype === "conversation") return MessageSquareLock;
+  if (item.subtype === "workspace") return Building2;
+  return FileText;
+}
+
 /**
  * Slim bottom bar carrying ambient state. Sits in normal document flow so it
  * can never overlap the composer or the editor the way a fixed badge did.
@@ -110,21 +140,37 @@ export function StatusBar({
   onOpenPalette,
 }: {
   workspaceName?: string | null;
-  context?: string | null;
+  context?: StatusContextItem[];
   onOpenPalette: () => void;
 }) {
   const paletteLabel = useShortcutLabel(HOTKEYS.commandPalette);
 
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-3 border-t bg-surface px-3 text-[11px] leading-none">
+    <footer className="flex h-[calc(1.5rem+2px)] shrink-0 items-center gap-3 border-t bg-surface px-3 text-[0.6875rem] leading-none">
       {workspaceName ? (
         <span className="shrink-0 truncate font-medium text-muted-foreground">
           {workspaceName}
         </span>
       ) : null}
-      {context ? (
-        <span className="min-w-0 truncate text-muted-foreground/70">{context}</span>
-      ) : null}
+      {context?.map((item, index) => {
+        const Icon = contextIcon(item);
+        return (
+          <span
+            key={`${item.kind}-${index}`}
+            className="flex min-w-0 items-center gap-3 text-muted-foreground/70"
+          >
+            {index > 0 ? (
+              <span className="text-muted-foreground/40" aria-hidden="true">
+                ·
+              </span>
+            ) : null}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <Icon className="size-3 shrink-0" strokeWidth={1.5} />
+              <span className="truncate">{item.title}</span>
+            </span>
+          </span>
+        );
+      })}
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <SaveIndicator />

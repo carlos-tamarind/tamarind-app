@@ -104,11 +104,13 @@ function readCollapsedSections(): Set<string> {
 function RailButton({
   icon: Icon,
   label,
+  shortcut,
   active,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   label: string;
+  shortcut?: string;
   active?: boolean;
   onClick: () => void;
 }) {
@@ -126,10 +128,17 @@ function RailButton({
           {active ? (
             <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
           ) : null}
-          <Icon className="size-[18px]" strokeWidth={1.5} />
+          <Icon className="size-[1.125rem]" strokeWidth={1.5} />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
+      <TooltipContent side="right" className={shortcut ? "gap-2" : undefined}>
+        {label}
+        {shortcut ? (
+          <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+            {shortcut}
+          </Kbd>
+        ) : null}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -163,7 +172,7 @@ function Section({
   return (
     <Collapsible open={open} onOpenChange={(next) => onToggle(id, next)}>
       <div className="group/section flex items-center gap-1 pr-1.5">
-        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70 transition-colors duration-(--motion-fast) hover:text-foreground">
+        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors duration-(--motion-fast) hover:text-foreground">
           <ChevronRight
             className={`size-3 shrink-0 opacity-0 transition-[transform,opacity] duration-(--motion-fast) group-hover/section:opacity-100 ${
               open ? "rotate-90" : ""
@@ -309,7 +318,7 @@ export function NavigationPanel({
               className="flex h-10 w-full items-center justify-center text-muted-foreground transition-colors duration-(--motion-fast) hover:text-foreground"
               aria-label="Create new"
             >
-              <SquarePen className="size-[18px]" strokeWidth={1.5} />
+              <SquarePen className="size-[1.125rem]" strokeWidth={1.5} />
             </button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
@@ -330,7 +339,7 @@ export function NavigationPanel({
 
   const rail = (
     <TooltipProvider delayDuration={500}>
-      <div className="flex w-12 shrink-0 flex-col items-center border-r">
+      <div className="flex w-[var(--nav-rail)] shrink-0 flex-col items-center border-r">
         <RailButton
           icon={MessageSquareMore}
           label="Conversations"
@@ -342,6 +351,12 @@ export function NavigationPanel({
           label="Pages"
           active={!folded && section === "pages"}
           onClick={() => handleRailSelect("pages")}
+        />
+        <RailButton
+          icon={Search}
+          label="Search"
+          shortcut={searchLabel}
+          onClick={onOpenSearch}
         />
         <RailButton
           icon={LibraryBig}
@@ -417,13 +432,12 @@ export function NavigationPanel({
   if (folded) {
     return (
       <aside className="flex h-full w-full flex-col items-center border-r bg-surface">
-        <div className="flex h-12 w-full shrink-0 items-center justify-center border-b">
-          <div className="inline-flex items-center gap-0.5">
+        <div className="flex h-12 w-full shrink-0 items-center justify-evenly border-b">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={onToggleRail}
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                  className="rounded-md text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
                   aria-label={
                     railOpen ? "Close Workspaces panel" : "Open Workspaces panel"
                   }
@@ -439,7 +453,7 @@ export function NavigationPanel({
               <TooltipTrigger asChild>
                 <button
                   onClick={() => panelRef.current?.expand()}
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                  className="rounded-md text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
                   aria-label="Open Navigation panel"
                 >
                   <PanelLeftOpen className="size-4" strokeWidth={1.5} />
@@ -452,31 +466,10 @@ export function NavigationPanel({
                 </Kbd>
               </TooltipContent>
             </Tooltip>
-          </div>
         </div>
 
         <div className="flex w-full flex-1 flex-col items-center overflow-y-auto py-2">
-          <TooltipProvider delayDuration={500}>
-            <div className="flex w-12 flex-col items-center">
-              <RailButton
-                icon={MessageSquareMore}
-                label="Conversations"
-                onClick={() => handleRailSelect("conversations")}
-              />
-              <RailButton
-                icon={FileText}
-                label="Pages"
-                onClick={() => handleRailSelect("pages")}
-              />
-              <RailButton icon={Search} label="Search" onClick={onOpenSearch} />
-              <RailButton
-                icon={LibraryBig}
-                label="Knowledge base"
-                onClick={() => handleRailSelect("knowledge")}
-              />
-              {createMenu}
-            </div>
-          </TooltipProvider>
+          {rail}
         </div>
 
         <div className="flex h-12 w-full shrink-0 items-center justify-center border-t">
@@ -504,7 +497,7 @@ export function NavigationPanel({
 
   return (
     <aside className="flex h-full w-full flex-col border-r bg-surface">
-      <div className="flex h-12 shrink-0 items-center gap-0.5 border-b px-1.5">
+      <div className="flex h-12 shrink-0 items-center gap-1.5 border-b px-1.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -533,23 +526,6 @@ export function NavigationPanel({
             Close Navigation panel
             <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
               {navLabel}
-            </Kbd>
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onOpenSearch}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
-              aria-label="Search"
-            >
-              <Search className="size-4" strokeWidth={1.5} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="gap-2">
-            Search
-            <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
-              {searchLabel}
             </Kbd>
           </TooltipContent>
         </Tooltip>

@@ -35,6 +35,7 @@
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-workspace: var(--surface-workspace);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -80,6 +81,8 @@
   color-scheme: light;
 
   --radius: 0.5rem;
+  /* Folded nav width; 3.75rem = 60px at 16px, 72px after the 120% root scale. */
+  --nav-rail: 3.75rem;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.21 0.012 200);
@@ -87,6 +90,8 @@
   /* Nav rail, sidebar, status bar — one step off the canvas. */
   --surface: oklch(0.984 0.002 200);
   --surface-foreground: oklch(0.21 0.012 200);
+  /* Workspace strip — a step darker so it reads as a distinct rail. */
+  --surface-workspace: oklch(0.955 0.004 200);
   /* Popovers and dialogs — lifted above the canvas. */
   --surface-raised: oklch(1 0 0);
 
@@ -154,6 +159,7 @@
 
   --surface: oklch(0.192 0.008 200);
   --surface-foreground: oklch(0.96 0.003 200);
+  --surface-workspace: oklch(0.145 0.008 200);
   --surface-raised: oklch(0.232 0.009 200);
 
   --card: oklch(0.205 0.008 200);
@@ -207,6 +213,11 @@
 }
 
 @layer base {
+  html {
+    /* 19.2px — rem-based utilities scale 20% without rewriting every class. */
+    font-size: 120%;
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -263,6 +274,10 @@
 /* TipTap editor */
 .ProseMirror {
   outline: none;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

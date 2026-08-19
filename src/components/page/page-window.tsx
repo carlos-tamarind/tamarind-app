@@ -862,7 +862,7 @@ export function PageWindow({
 
           {backlinks && backlinks.length > 0 && (
             <div className="mt-12 rounded-xl border bg-surface p-3">
-              <div className="mb-1 flex items-center gap-1.5 px-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+              <div className="mb-1 flex items-center gap-1.5 px-2 text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
                 <Link2 className="size-3.5" strokeWidth={1.5} /> Backlinks
               </div>
               <ul className="space-y-0.5">

@@ -37,7 +37,7 @@ import { PageWindow } from "@/components/page/page-window";
 import { NavigationPanel } from "@/components/navigation-panel";
 import { SearchOverlay } from "@/components/search/search-overlay";
 import { CommandPalette } from "@/components/command-palette";
-import { StatusBar } from "@/components/status-bar";
+import { StatusBar, type StatusContextItem } from "@/components/status-bar";
 import { EmptyStateHome } from "@/components/empty-state-home";
 import { SaveStatusProvider } from "@/lib/save-status-context";
 import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
@@ -140,17 +140,29 @@ function WorkspaceShell() {
   const hasPage = !!pageId;
   const bothOpen = hasConversation && hasPage;
 
-  const statusContext = useMemo(() => {
-    const parts: string[] = [];
+  const statusContext = useMemo((): StatusContextItem[] => {
+    const items: StatusContextItem[] = [];
     if (conversationId) {
       const conv = sortedConversations.find((c) => c.id === conversationId);
-      if (conv) parts.push(conv.title);
+      if (conv) {
+        items.push({
+          kind: "conversation",
+          title: conv.title,
+          subtype: conv.type,
+        });
+      }
     }
     if (pageId) {
       const page = sortedPages.find((p) => p.id === pageId);
-      if (page) parts.push(page.title || "Untitled");
+      if (page) {
+        items.push({
+          kind: "page",
+          title: page.title || "Untitled",
+          subtype: page.visibility,
+        });
+      }
     }
-    return parts.join("  ·  ");
+    return items;
   }, [conversationId, pageId, sortedConversations, sortedPages]);
 
   const handleMainLayout = useCallback(
@@ -188,11 +200,11 @@ function WorkspaceShell() {
         <div className="flex h-screen w-screen flex-col bg-background text-foreground">
           <div className="flex min-h-0 flex-1">
             <div
-              className={`shrink-0 overflow-hidden border-r bg-surface transition-[width] duration-(--motion-base) ease-(--ease-out) ${
-                railOpen ? "w-12" : "w-0"
+              className={`shrink-0 overflow-hidden border-r bg-surface-workspace transition-[width] duration-(--motion-base) ease-(--ease-out) ${
+                railOpen ? "w-[var(--nav-rail)]" : "w-0"
               }`}
             >
-              <div className="flex h-full w-12 flex-col">
+              <div className="flex h-full w-[var(--nav-rail)] flex-col">
                 <div className="h-12 shrink-0 border-b" />
                 <div className="flex flex-1 flex-col items-center gap-1 overflow-y-auto py-2">
                   {(workspaces ?? []).map((w) => {
@@ -215,7 +227,7 @@ function WorkspaceShell() {
                               <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
                             ) : null}
                             <span
-                              className={`flex size-7 items-center justify-center rounded-md text-[11px] font-semibold transition-colors duration-(--motion-fast) ${
+                              className={`flex size-7 items-center justify-center rounded-md text-[0.6875rem] font-semibold transition-colors duration-(--motion-fast) ${
                                 active
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -256,7 +268,7 @@ function WorkspaceShell() {
                 minSize="18%"
                 maxSize="33%"
                 collapsible
-                collapsedSize="60px"
+                collapsedSize="3.75rem"
                 onResize={(size) => {
                   const pct = size.asPercentage;
                   if (pct <= 17) {
