@@ -7,5 +7,5 @@ export const PAGE_SEMANTIC_ENGINE_CONFIG = {
   PAGE_SEMANTIC_SWEEP_BATCH_SIZE: 20,
 } as const;
 
-/** Postgres interval for `list_pages_due_for_semantics.p_idle`. */
+/** Postgres interval for `list_pages_due_for_topics.p_idle`. */
 export const PAGE_SEMANTIC_IDLE_INTERVAL = `${PAGE_SEMANTIC_ENGINE_CONFIG.PAGE_SEMANTIC_DEBOUNCE_MS / 1000} seconds`;
