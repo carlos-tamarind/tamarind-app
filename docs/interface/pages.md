@@ -15,12 +15,14 @@ Pages are rich-text documents where teams distill and organize knowledge. They s
 | `parent_page_id` | Optional parent for hierarchical pages |
 | `conversation_id` | Optional link to a conversation |
 
+`page_type: template` exists in the schema. The New Page dialog does **not** expose a template picker in the MVP.
+
 ## UI Components
 
 | Component | File | Purpose |
 |-----------|------|---------|
 | `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Main page editor |
-| `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Create blank, conversation-scoped, or from-messages page |
+| `NewPageDialog` | [`new-page-dialog.tsx`](../../src/components/page/new-page-dialog.tsx) | Title + visibility; blank, conversation-scoped, or from-messages |
 | `PageSettingsDialog` | [`page-settings-dialog.tsx`](../../src/components/page/page-settings-dialog.tsx) | Page metadata and settings |
 | `SharePageDialog` | [`share-page-dialog.tsx`](../../src/components/page/share-page-dialog.tsx) | Share to members or conversations |
 | `DuplicatePageDialog` | [`duplicate-page-dialog.tsx`](../../src/components/page/duplicate-page-dialog.tsx) | Copy page to another context |
@@ -32,13 +34,15 @@ The main editor ([`page-window.tsx`](../../src/components/page/page-window.tsx))
 - **TipTap rich text** — headings, lists, task lists, code blocks, quotes
 - **Slash commands** — `/` palette for inserting blocks ([`slash-command.tsx`](../../src/components/editor/slash-command.tsx))
 - **@mentions** — pages, conversations, and workspace members
-- **Autosave** — debounced save via `updatePage` server function
+- **Autosave** — debounced save via `updatePage`; status reported to the status bar (`SaveStatusProvider`)
 - **Beacon save** — flush on tab close via `POST /api/pages/save`
-- **Visibility controls** — change who can see the page
-- **Backlinks** — pages that link to this page
+- **Title in the header** — condenses on scroll
+- **Visibility chip** — labeled control for who can see the page
+- **Backlinks** — icon rows in a bordered card
 - **Share and duplicate** — copy page to another conversation or workspace member
-- **Presence** — shows who else is viewing the page (Supabase Presence)
+- **Presence** — overlapping avatars with tooltips (Supabase Presence)
 - **Unsaved changes blocker** — warns before navigating away
+- **Local drafts** — `tamarind:page-draft:{pageId}` in localStorage, with a one-time read of legacy `mento:page-draft:{pageId}` keys
 
 ## Autosave
 
@@ -49,6 +53,8 @@ Two save mechanisms prevent data loss:
 
 The beacon endpoint accepts the access token in the request body (since beacon requests cannot set headers). See [API Routes](../api/readme.md).
 
+Save progress (`idle` / `saving` / `saved` / `error`) is shown in the [status bar](user_interface.md).
+
 ## Server Functions
 
 All in [`src/lib/pages.functions.ts`](../../src/lib/pages.functions.ts):
@@ -56,7 +62,7 @@ All in [`src/lib/pages.functions.ts`](../../src/lib/pages.functions.ts):
 | Function | Method | Purpose |
 |----------|--------|---------|
 | `createBlankPage` | POST | Create empty page in workspace |
-| `listMyPages` | GET | User's accessible pages in workspace |
+| `listMyPages` | GET | User's accessible pages (`lastModifiedAt` included) |
 | `getPage` | GET | Page content and metadata |
 | `updatePage` | POST | Save title and content |
 | `setPageVisibility` | POST | Change visibility level |

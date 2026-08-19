@@ -38,6 +38,10 @@ Server function: `bootstrapFirstWorkspace` in [`src/lib/workspaces.functions.ts`
 
 Uses `supabaseAdmin` to bypass RLS for initial setup.
 
+## Auth screens
+
+Login, bootstrap, forgot/reset password, and accept-invite share [`AuthLayout`](../../src/components/auth-layout.tsx): form on the left, Tamarind wordmark, accent panel with the product tagline on large viewports. They follow the same light/dark theme as the rest of the app.
+
 ## Login
 
 **Route:** `/login`
@@ -102,6 +106,10 @@ Server functions in [`src/lib/invites.functions.ts`](../../src/lib/invites.funct
 [`src/lib/auth-context.tsx`](../../src/lib/auth-context.tsx) provides `AuthProvider` and `useAuth()` hook for session state across the app.
 
 On auth state change, [`AuthSync`](../../src/routes/__root.tsx) in the root route invalidates router and React Query caches to ensure fresh data.
+
+The root HTML shell also injects the theme init script and wraps the tree in `ThemeProvider`. 404 and error boundaries use the `Button` primitive.
+
+Signing out from the nav or the command palette calls `clearComposerDrafts()` before `supabase.auth.signOut()`.
 
 ## Related Docs
 

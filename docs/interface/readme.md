@@ -1,6 +1,6 @@
 # Interface Layer Overview
 
-The interface layer is the user-facing React application. It handles routing, UI rendering, data fetching, and realtime subscriptions.
+The interface layer is the user-facing React application. It handles routing, theming, UI rendering, data fetching, keyboard shortcuts, and realtime subscriptions.
 
 ## UI Stack
 
@@ -9,11 +9,16 @@ The interface layer is the user-facing React application. It handles routing, UI
 | Framework | React 19 |
 | Routing | TanStack Router (file-based) |
 | Data fetching | TanStack React Query + server functions |
-| Styling | Tailwind CSS 4 |
-| Components | shadcn/ui (Radix primitives) |
+| Styling | Tailwind CSS 4 (`src/styles.css` design tokens, oklch) |
+| Theming | Light / dark / system via `ThemeProvider` |
+| Components | shadcn/ui (Radix primitives, New York style) |
+| Command UI | `cmdk` (command palette) |
 | Rich text | TipTap |
 | Icons | Lucide React |
 | Toasts | Sonner |
+| Layout | `react-resizable-panels` |
+
+Root font size is **115%** so rem-based Tailwind utilities scale together.
 
 ## Component Organization
 
@@ -21,24 +26,41 @@ The interface layer is the user-facing React application. It handles routing, UI
 src/
 ├── routes/                    # Pages and API route handlers
 ├── components/
-│   ├── ui/                    # shadcn/ui primitives (~40 components)
+│   ├── ui/                    # shadcn/ui primitives + kbd, empty-state, section-label
+│   ├── brand/                 # Wordmark
 │   ├── conversation/          # Chat feature (window, settings, participants)
 │   ├── page/                  # Page feature (editor, share, duplicate, settings)
 │   ├── editor/                # Shared TipTap extensions (mentions, slash commands)
 │   ├── search/                # Search overlay modal
 │   ├── profile/               # Profile dialog
-│   ├── new-conversation-dialog.tsx
-│   └── version-badge.tsx
+│   ├── command-palette.tsx
+│   ├── status-bar.tsx
+│   ├── navigation-panel.tsx
+│   ├── empty-state-home.tsx
+│   ├── auth-layout.tsx
+│   ├── close-hint-overlay.tsx
+│   └── new-conversation-dialog.tsx
 ├── hooks/
 │   ├── use-mobile.tsx
+│   ├── use-hotkeys.ts         # Browser-safe shortcut registry
 │   └── use-search-request.ts  # Debounced search hook
 └── lib/
     ├── auth-context.tsx
+    ├── theme-context.tsx
+    ├── save-status-context.tsx
+    ├── composer-drafts.ts     # sessionStorage message drafts
+    ├── activity.functions.ts  # Recent activity for empty state
     ├── *.functions.ts         # Server functions (backend RPC)
     ├── search.functions.ts    # executeSearch server function
     ├── features.ts            # Plan-based feature gating
     └── utils.ts
 ```
+
+## Theming
+
+[`src/lib/theme-context.tsx`](../../src/lib/theme-context.tsx) persists `light` | `dark` | `system` in `localStorage` (`tamarind:theme`). Default is **light**. A blocking script in [`src/routes/__root.tsx`](../../src/routes/__root.tsx) applies the class before first paint to avoid a flash of the wrong theme.
+
+The status bar theme toggle and the command palette Theme group both call `setTheme`.
 
 ## Data Layer Pattern
 
@@ -73,10 +95,10 @@ All other data flows through server functions.
 
 | Document | Topic |
 |----------|-------|
-| [User Interface](user_interface.md) | Workspace shell layout |
+| [User Interface](user_interface.md) | Workspace shell, status bar, command palette, hotkeys |
 | [Workspaces & Permissions](workspaces_permissions.md) | Roles, plans, feature gating |
 | [User Onboarding](user_onboarding.md) | Bootstrap, login, invites |
-| [Conversations](conversations.md) | Chat UI and server functions |
+| [Conversations](conversations.md) | Chat UI, composer, drafts |
 | [Pages](pages.md) | TipTap editor, sharing, autosave |
 
 ## Related Docs

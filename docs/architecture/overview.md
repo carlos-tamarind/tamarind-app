@@ -50,7 +50,7 @@ flowchart TB
 | [`src/server.ts`](../../src/server.ts) | Cloudflare Worker default export; wraps TanStack Start with SSR error handling |
 | [`src/start.ts`](../../src/start.ts) | TanStack Start instance: global error middleware, `attachSupabaseAuth` on all server functions |
 | [`src/router.tsx`](../../src/router.tsx) | Router factory with React Query context |
-| [`src/routes/__root.tsx`](../../src/routes/__root.tsx) | HTML shell, `AuthProvider`, global toasts, auth state sync |
+| [`src/routes/__root.tsx`](../../src/routes/__root.tsx) | HTML shell, theme init script, `ThemeProvider`, `AuthProvider`, global toasts, auth state sync |
 | [`src/routeTree.gen.ts`](../../src/routeTree.gen.ts) | Auto-generated route tree (do not edit) |
 
 ## Routing
@@ -73,7 +73,7 @@ Protected by [`src/routes/_authenticated.tsx`](../../src/routes/_authenticated.t
 
 | Path | Purpose |
 |------|---------|
-| `/w/$workspaceId` | Main workspace shell (sidebar, conversations, pages) |
+| `/w/$workspaceId` | Main workspace shell (rails, conversations, pages, status bar, command palette) |
 | `/w/$workspaceId/c/$conversationId` | Legacy redirect to `?c=` search param |
 | `/w/$workspaceId/p/$pageId` | Legacy redirect to `?p=` search param |
 | `/w/$workspaceId/settings` | Workspace settings (invites) |
@@ -105,6 +105,7 @@ Business logic lives in [`src/lib/*.functions.ts`](../../src/lib/) using TanStac
 | `conversations.functions.ts` | Conversations, messages, participants, page-from-messages |
 | `pages.functions.ts` | Page CRUD, sharing, visibility, backlinks, duplication |
 | `search.functions.ts` | Hybrid workspace search (`executeSearch`) |
+| `activity.functions.ts` | `listRecentActivity` for the empty-state recents list |
 | `invites.functions.ts` | Invite lifecycle |
 | `profile.functions.ts` | Display name, workspace profile |
 

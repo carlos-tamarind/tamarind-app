@@ -50,10 +50,10 @@ User-facing UI, routing, and feature areas.
 | Document | Description |
 |----------|-------------|
 | [Overview](interface/readme.md) | UI stack, component organization, data layer |
-| [User Interface](interface/user_interface.md) | Workspace shell layout and navigation |
+| [User Interface](interface/user_interface.md) | Workspace shell, status bar, command palette, hotkeys |
 | [Workspaces & Permissions](interface/workspaces_permissions.md) | Roles, plans, feature gating |
 | [User Onboarding](interface/user_onboarding.md) | Bootstrap, login, invites |
-| [Conversations](interface/conversations.md) | Chat UI and server functions |
+| [Conversations](interface/conversations.md) | Chat UI, composer, session drafts |
 | [Pages](interface/pages.md) | TipTap editor, sharing, autosave |
 
 ### API, Background Jobs & Deployment
@@ -70,7 +70,7 @@ User-facing UI, routing, and feature areas.
 src/
 ├── routes/           # File-based TanStack Router pages and API handlers
 ├── components/       # UI feature components (conversation, page, editor, search, ui)
-├── lib/              # Server functions (*.functions.ts), auth, features
+├── lib/              # Server functions, auth, theme, features
 ├── search/           # Search orchestration, strategies, request building
 ├── semantic/         # Message normalization, scoring, embedding pipeline
 ├── integrations/     # Supabase and Lovable OAuth clients
@@ -92,5 +92,6 @@ supabase/
 | Auth | Supabase Auth + Lovable OAuth |
 | Realtime | Supabase Realtime |
 | Editor | TipTap |
-| UI | Tailwind CSS 4, shadcn/ui (Radix) |
+| UI | Tailwind CSS 4, shadcn/ui (Radix), cmdk |
+| Theming | Light / dark / system (`ThemeProvider`) |
 | Embeddings | OpenAI `text-embedding-3-small` |

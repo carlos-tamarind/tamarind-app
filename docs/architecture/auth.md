@@ -32,6 +32,8 @@ sequenceDiagram
 | Google, Apple, Microsoft, Lovable OAuth | [`src/integrations/lovable/index.ts`](../../src/integrations/lovable/index.ts) → `supabase.auth.setSession` |
 | Password reset | [`src/routes/forgot-password.tsx`](../../src/routes/forgot-password.tsx), [`src/routes/reset-password.tsx`](../../src/routes/reset-password.tsx) |
 
+Auth screens share [`AuthLayout`](../../src/components/auth-layout.tsx). See [User Onboarding](../interface/user_onboarding.md).
+
 ## Session Management
 
 | Component | File | Role |
