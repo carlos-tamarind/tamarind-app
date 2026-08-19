@@ -1,6 +1,6 @@
 # Semantic Pipeline Overview
 
-The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_chunk_embeddings` as `QUEUED`, which the page embedding worker turns into vectors. The same worker also embeds canonical page-topic strings onto `page_topic_embeddings`. A page-semantic worker produces an LLM topic name and description per page on `page_topics`.
+The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. After a message is embedded, a CTI worker matches or promotes conversation topics (`conversation_topics`). A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_chunk_embeddings` as `QUEUED`, which the page embedding worker turns into vectors. The same worker also embeds canonical page-topic strings onto `page_topic_embeddings`. A page-semantic worker produces an LLM topic name and description per page on `page_topics`.
 
 Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
@@ -8,7 +8,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
 | Document | Topic |
 |----------|-------|
-| [Pipeline](pipeline.md) | End-to-end flow and status lifecycle |
+| [Pipeline](pipeline.md) | End-to-end flow, CTI `historical_weight`, and status lifecycle |
 | [Normalization](msg_normalization.md) | Text cleanup and skip gates |
 | [Scoring](msg_scoring.md) | MVP v1 heuristic quality model |
 | [Embedding](msg_embedding.md) | Batch worker and OpenAI provider |
@@ -90,6 +90,9 @@ Phase B is triggered externally:
 | `page_topics` | Last successful page topic name/description + content snapshot |
 | `page_topic_jobs` | Page analysis queue (`QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `FAILED`) |
 | `page_topic_embeddings` | Queue + vectors per page topic; trigger enqueues `QUEUED`, the page embedding worker writes `EMBEDDED` |
+| `conversation_topics` | Per-conversation topic candidates and established topics (`historical_weight`, `is_candidate`) |
+| `conversation_topic_evidences` | Message-to-topic links with cosine similarity |
+| `conversation_topic_jobs` | CTI queue (`QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `QUARANTINED`) |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 

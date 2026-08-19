@@ -225,6 +225,7 @@ export class CtiPlanBuilder {
     topic.name = decision.new_topic.name;
     topic.description = decision.new_topic.description;
     topic.embedding = embedding;
+    topic.historicalWeight += decision.confidence;
     topic.isCandidate = false;
     this.mutated.add(topicId);
   }

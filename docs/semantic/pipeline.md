@@ -87,6 +87,17 @@ Steps:
 
 `QUARANTINED` jobs do not block later messages. `RETRY_WAIT` keeps the cursor on the failed job until backoff or the 24h halt expires.
 
+`conversation_topics.historical_weight` is a monotonic accumulator in the database (no decay on write). Recency decay is scoring-only (`topicScore`, 72h half-life) when choosing `conversations.current_topic_id`.
+
+How weight is accumulated:
+
+- **Candidate evidence (tier 1):** each attached message adds its cosine similarity.
+- **Unnamed candidate (tier 3/4):** starts at `0`; later evidence adds similarity as above.
+- **Named candidate (tier 2 `new`):** starts at the classification LLM confidence (clamped `[0, 1]`).
+- **First-time promotion** (candidate becomes its own established topic): add the promotion LLM confidence.
+- **Merge into an existing established topic:** the target receives the candidate's accumulated weight plus the promotion LLM confidence.
+- **Established reinforce:** tier 1 adds message similarity; tier 2 adds classification LLM confidence.
+
 ## Page Chunking Worker
 
 **Entry:** [`runPageChunkingWorker`](../../src/semantic/pages/page-chunks/worker/runPageChunkingWorker.ts)

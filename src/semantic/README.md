@@ -206,6 +206,8 @@ Cron POST /api/public/internal/run-cti-worker
   → COMPLETED | RETRY_WAIT | QUARANTINED
 ```
 
+`historical_weight` is a monotonic DB accumulator: candidate evidence adds cosine similarity; first-time promotion and merge add the LLM confidence; established reinforces add similarity (T1) or confidence (T2). Recency decay is scoring-only.
+
 ## Embedding Status Lifecycle
 
 ```
