@@ -104,16 +104,17 @@ Per-page failures are logged and do not abort the rest of the tick.
 
 **Entry:** [`runPageEmbeddingWorker`](../../src/semantic/pages/page-embeddings/worker/runPageEmbeddingWorker.ts)
 
-Triggered by a separate external cron (`PAGE_EMBEDDING_WORKER_SECRET`). Processes up to 5 batches per tick, 20 rows per batch.
+Triggered by a separate external cron (`PAGE_EMBEDDING_WORKER_SECRET`). Each tick processes **one topic batch first** (up to 20 `page_topic_embeddings` rows), then up to 5 chunk batches of 20 `page_chunk_embeddings` rows.
 
 Steps:
-1. `claimPageEmbeddingBatch()` — RPC `claim_page_chunk_embedding_batch` locks `QUEUED` / due `RETRY_WAIT` (and stale `PROCESSING`) as `PROCESSING`
-2. Load `page_chunks` text; skip missing chunks; requeue checksum drift as `QUEUED`
-3. Heartbeat `updated_at`, then `embeddingProvider.embedBatch()` using each row’s `embedding_model`
-4. On success: guarded persist → `EMBEDDED` (vector + `embedded_at`, `attempts` reset; `embedding_model` unchanged)
-5. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx circuit-breaks the rest of the tick
+1. `claimPageTopicEmbeddingBatch()` — RPC `claim_page_topic_embedding_batch`; load `page_topics` name/description; embed `canonicalTopicText` (`name: description`); guarded persist → `EMBEDDED`
+2. `claimPageEmbeddingBatch()` — RPC `claim_page_chunk_embedding_batch` locks `QUEUED` / due `RETRY_WAIT` (and stale `PROCESSING`) as `PROCESSING`
+3. Load `page_chunks` text; skip missing chunks; requeue checksum drift as `QUEUED`
+4. Heartbeat `updated_at`, then `embeddingProvider.embedBatch()` using each row’s `embedding_model`
+5. On success: guarded persist → `EMBEDDED` (vector + `embedded_at`, `attempts` reset; `embedding_model` unchanged)
+6. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx on either stream circuit-breaks the rest of the tick
 
-See [Page Embedding](page_embedding.md).
+Topic vectors are **not** written to `page_chunk_embeddings`. See [Page Embedding](page_embedding.md).
 
 ## Page Semantic Worker
 
@@ -127,7 +128,7 @@ Steps:
 3. `claim_page_topic_job` — one `QUEUED` / due `RETRY_WAIT`, stale `PROCESSING` recovery via `started_at`
 4. Live SHA-256 vs job hash; mismatch → `apply_page_topic_result` `drifted` (no LLM)
 5. `llmProvider.complete` (`gpt-5.4-nano`) with title + `plain_text`
-6. On success: `apply_page_topic_result` upserts `page_topics` + `COMPLETED`
+6. On success: `apply_page_topic_result` upserts `page_topics` + `COMPLETED` (trigger enqueues `page_topic_embeddings` when the topic fields change)
 7. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx circuit-breaks the tick
 
 See [Page Semantics](page_semantic.md).

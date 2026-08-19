@@ -1,6 +1,6 @@
 # Semantic Module
 
-The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_chunk_embeddings` rows. Another cron worker produces an LLM topic name and description per page.
+The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_chunk_embeddings` rows and canonical `page_topic_embeddings`. Another cron worker produces an LLM topic name and description per page.
 
 This is a **server-only** module. It uses the Supabase admin client (lazy-loaded) and must not be imported from client-side code.
 
@@ -12,6 +12,7 @@ src/semantic/
 ├── embedding/                               # Generic text embedding client
 │   ├── types.ts
 │   ├── embeddingProvider.ts
+│   ├── canonicalTopicText.ts              # shared `{name}: {description}` string
 │   └── providers/openai/
 ├── llm/                                     # Generic LLM client
 │   ├── types.ts
@@ -38,7 +39,7 @@ src/semantic/
     │   ├── persistence/                     # checksum reconcile
     │   └── worker/                          # runPageChunkingWorker
     ├── page-embeddings/
-    │   ├── persistence/                     # claim, heartbeat, persist
+    │   ├── persistence/                     # chunk + topic claim, heartbeat, persist
     │   └── worker/                          # runPageEmbeddingWorker
     └── page-semantics/
         ├── engine/                          # config + LLM prompt/schema
@@ -63,6 +64,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `messages/message-embedding/runEmbeddingWorker.ts` | `runEmbeddingWorker` | Embedding worker entry |
 | `conversation-topics/worker/runCtiWorker.ts` | `runCtiWorker` | CTI worker entry |
 | `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic embedding provider instance |
+| `embedding/canonicalTopicText.ts` | `canonicalTopicText` | Shared `{name}: {description}` embed string |
 | `llm/llmProvider.ts` | `llmProvider` | Generic LLM provider instance |
 | `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI embeddings helper |
 | `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
@@ -111,12 +113,13 @@ There is no barrel `index.ts`. Import specific files directly.
 | Supabase RPC `apply_cti_plan_and_commit` | Apply topic plan + complete job |
 | Supabase RPC `finalize_embedded_message` | EMBEDDED + CTI job enqueue |
 | Supabase RPC `list_pages_due_for_chunking` | Pages idle past debounce that need chunking |
-| Supabase RPC `claim_page_chunk_embedding_batch` | Atomic page-embedding batch claim |
+| Supabase RPC `claim_page_chunk_embedding_batch` | Atomic page-chunk-embedding batch claim |
+| Supabase RPC `claim_page_topic_embedding_batch` | Atomic page-topic-embedding batch claim |
 | Supabase RPC `list_pages_due_for_topics` | Pages idle past debounce that need LLM analysis |
 | Supabase RPC `claim_page_topic_job` | Atomic page-semantic job claim |
 | Supabase RPC `enqueue_page_topic_job` | Upsert in-flight analysis job |
 | Supabase RPC `apply_page_topic_result` | Upsert page_topics + complete job |
-| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs` | Persistence |
+| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, `page_topic_embeddings` | Persistence |
 
 ## Data Flow
 
@@ -165,6 +168,10 @@ No OpenAI call in this phase.
 ```
 Cron POST /api/public/internal/run-page-embedding-worker
   → runPageEmbeddingWorker
+  → claim_page_topic_embedding_batch RPC (one batch)
+  → load page_topics + canonicalTopicText checksum guard
+  → embeddingProvider.embedBatch
+  → guarded persist → EMBEDDED
   → claim_page_chunk_embedding_batch RPC
   → load page_chunks text + checksum guard
   → embeddingProvider.embedBatch (row.embedding_model)
@@ -184,6 +191,7 @@ Page content save (last_modified_at)
   → live SHA-256 vs job hash (drift → COMPLETED, no write)
   → llmProvider.complete (gpt-5.4-nano)
   → apply_page_topic_result (page_topics upsert + COMPLETED)
+  → trigger enqueue page_topic_embeddings QUEUED when topic fields change
   → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
 ```
 

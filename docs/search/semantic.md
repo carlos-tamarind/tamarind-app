@@ -133,7 +133,7 @@ Runs as `SECURITY INVOKER`; existing `page_chunk_embeddings` / `page_chunks` RLS
 | `matched_field` | Always `content` |
 | `score` | Weighted final score |
 
-Page topic name/description (`page_topics`) is **not** part of this corpus.
+Page topic name/description (`page_topics`) is **not** part of this corpus. Canonical vectors on `page_topic_embeddings` may exist after the page embedding worker runs; they are **not** queried here.
 
 ## App-Side Post-Processing
 
@@ -169,6 +169,7 @@ Indexing is operational via existing workers — there is no search-time backfil
 |-------|-------|------|
 | `idx_message_embeddings_vector` | `message_embeddings` | HNSW cosine (`vector_cosine_ops`) |
 | `idx_page_chunk_embeddings_vector` | `page_chunk_embeddings` | Partial HNSW cosine on `embedding` WHERE `embedding_status = 'EMBEDDED'` |
+| `idx_page_topic_embeddings_vector` | `page_topic_embeddings` | Partial HNSW cosine WHERE `EMBEDDED` — **not used by search** |
 
 RLS policy `"Participants view message embeddings"` restricts message vector reads to conversation participants. Page embedding reads follow page visibility via `can_read_page`.
 
@@ -178,5 +179,5 @@ RLS policy `"Participants view message embeddings"` restricts message vector rea
 - [Keyword Search](keyword.md) — Complementary substring/trigram strategy
 - [Semantic Pipeline](../semantic/readme.md) — Index production
 - [Embedding](../semantic/msg_embedding.md) — Message batch worker and OpenAI provider
-- [Page Embedding](../semantic/page_embedding.md) — Page-chunk embedding worker
+- [Page Embedding](../semantic/page_embedding.md) — Page-chunk and topic embedding worker
 - [Database Schema](../architecture/database.md) — Embedding tables, HNSW indexes, search RPCs

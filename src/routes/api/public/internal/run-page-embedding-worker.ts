@@ -43,7 +43,9 @@ export const Route = createFileRoute("/api/public/internal/run-page-embedding-wo
           DebugLogger.log({
             scope: LOG_SCOPE,
             event: "TICK_COMPLETE",
-            message: `${result.embedded} embedded · ${result.skipped} skipped · ${result.failed} failed`,
+            message:
+              `${result.embedded} embedded · ${result.skipped} skipped · ${result.failed} failed` +
+              ` · topics ${result.topicEmbedded} embedded · ${result.topicSkipped} skipped · ${result.topicFailed} failed`,
           });
           return Response.json(result);
         } catch (error) {

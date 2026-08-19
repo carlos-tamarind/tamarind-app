@@ -1,7 +1,7 @@
 import { PAGE_CHUNK_CONFIG } from "@/semantic/pages/page-chunks/engine/config";
 
 export const PAGE_EMBEDDING_CONFIG = {
-  /** Rows claimed per `claim_page_chunk_embedding_batch` call. */
+  /** Rows claimed per chunk or topic embedding claim RPC. */
   PAGE_EMBEDDING_BATCH_SIZE: 20,
   PAGE_EMBEDDING_MODEL: PAGE_CHUNK_CONFIG.PAGE_EMBEDDING_MODEL,
   /** Exponential backoff base for transient failures. */
