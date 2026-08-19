@@ -83,6 +83,8 @@
   --radius: 0.5rem;
   /* Folded nav width; 3.75rem = 60px at 16px, 72px after the 120% root scale. */
   --nav-rail: 3.75rem;
+  /* Profile/logout bar in nav; minimized conversation composer matches this. */
+  --footer-row: 3rem;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.21 0.012 200);

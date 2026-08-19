@@ -38,7 +38,7 @@ The composer is a collapsible vertical panel in the conversation column.
 
 | State | Behavior |
 |-------|----------|
-| Minimized (default on first open) | Compact height (`2.75rem`). Only the placeholder **Start writing a message…**. No buttons, no hover formatting, not resizable |
+| Minimized (default on first open) | Same height as the nav profile/logout row (`--footer-row`, 3rem). Only the placeholder **Start writing a message…**. No buttons, no hover formatting, not resizable |
 | Expanded | ~20% of the column (resizable 16–45%). Formatting toolbar, secondary **New page**, **Send** with ⌘↵ hint |
 
 - Click or focus expands. Blur with empty content collapses. Blur with text stays expanded.

@@ -1207,8 +1207,8 @@ export function ConversationWindow({
             id="composer"
             panelRef={composerPanelRef}
             collapsible
-            collapsedSize="2.75rem"
-            defaultSize="2.75rem"
+            collapsedSize="var(--footer-row)"
+            defaultSize="var(--footer-row)"
             minSize="16%"
             maxSize="45%"
           >

@@ -478,7 +478,7 @@ export function NavigationPanel({
           {rail}
         </div>
 
-        <div className="flex h-12 w-full shrink-0 items-center justify-center border-t">
+        <div className="flex h-[var(--footer-row)] w-full shrink-0 items-center justify-center border-t">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -688,7 +688,7 @@ export function NavigationPanel({
         </div>
       </div>
 
-      <div className="flex h-12 shrink-0 items-center gap-2 border-t px-2">
+      <div className="flex h-[var(--footer-row)] shrink-0 items-center gap-2 border-t px-2">
         <button
           onClick={onOpenProfile}
           className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors duration-(--motion-fast) hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
