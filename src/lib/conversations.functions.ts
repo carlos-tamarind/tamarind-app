@@ -466,6 +466,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       .object({
         conversationId: z.string().uuid(),
         rawText: z.string().min(1).max(10000),
+        id: z.string().uuid().optional(),
       })
       .parse(input),
   )
@@ -477,6 +478,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     const { data: msg, error } = await supabaseAdmin
       .from("messages")
       .insert({
+        ...(data.id ? { id: data.id } : {}),
         conversation_id: data.conversationId,
         workspace_id: workspaceId,
         author_workspace_user_id: meWuId,

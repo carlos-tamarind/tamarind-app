@@ -10,7 +10,6 @@ import {
   FilePlus,
   FileText,
   Italic,
-  Loader2,
   MessageSquareDashed,
   MoreHorizontal,
   Quote,
@@ -438,7 +437,6 @@ export function ConversationWindow({
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [sending, setSending] = useState(false);
   const [newPageOpen, setNewPageOpen] = useState(false);
   const [newPageFromMessages, setNewPageFromMessages] = useState(false);
   const [newPagePresetTitle, setNewPagePresetTitle] = useState<string>("");
@@ -447,6 +445,8 @@ export function ConversationWindow({
   const [composerExpanded, setComposerExpanded] = useState(false);
   const composerPanelRef = useRef<PanelImperativeHandle>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sendLockRef = useRef(false);
+  const handleSendRef = useRef<() => void>(() => {});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -636,7 +636,7 @@ export function ConversationWindow({
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
-          handleSend();
+          handleSendRef.current();
           return true;
         }
         return false;
@@ -656,23 +656,39 @@ export function ConversationWindow({
     },
   });
 
-  const handleSend = async () => {
-    if (!editor || sending) return;
-    if (!hasSendableContent(editor)) return;
+  const handleSend = () => {
+    if (!editor || sendLockRef.current) return;
+    if (!hasSendableContent(editor) || !myWorkspaceUserId) return;
+    sendLockRef.current = true;
     const html = editor.getHTML();
-    setSending(true);
-    try {
-      await sendMsg({ data: { conversationId, rawText: html } });
-      editor.commands.clearContent();
-      setIsEmpty(true);
-      removeComposerDraft(conversationId);
-      clearSelection();
-    } catch (e) {
+    const id = crypto.randomUUID();
+    setLiveMessages((prev) => [
+      ...prev,
+      {
+        id,
+        rawText: html,
+        authorWorkspaceUserId: myWorkspaceUserId,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    editor.commands.clearContent();
+    setIsEmpty(true);
+    removeComposerDraft(conversationId);
+    clearSelection();
+    sendLockRef.current = false;
+
+    void sendMsg({ data: { conversationId, rawText: html, id } }).catch((e) => {
       console.error(e);
-    } finally {
-      setSending(false);
-    }
+      setLiveMessages((prev) => prev.filter((m) => m.id !== id));
+      if (!hasSendableContent(editor)) {
+        editor.commands.setContent(html);
+        setIsEmpty(!hasSendableContent(editor));
+        setComposerDraft(conversationId, html);
+      }
+      toast.error("Could not send message.");
+    });
   };
+  handleSendRef.current = handleSend;
 
   const expandComposer = () => {
     const panel = composerPanelRef.current;
@@ -1362,14 +1378,10 @@ export function ConversationWindow({
                     <Button
                       size="sm"
                       onClick={handleSend}
-                      disabled={isEmpty || sending}
+                      disabled={isEmpty}
                       aria-label="Send message"
                     >
-                      {sending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Send className="size-3.5" strokeWidth={2} />
-                      )}
+                      <Send className="size-3.5" strokeWidth={2} />
                       Send
                       <Kbd className="h-4 border-primary-foreground/25 bg-primary-foreground/15 text-primary-foreground/80">
                         {sendLabel}
