@@ -24,7 +24,7 @@ Conversations are the primary communication channel in Tamarind. They support di
 
 The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx)) provides:
 
-- **Message list** — grouped runs, left-aligned, avatars on the first message of a run, subtle tint on own messages, sticky day separators
+- **Message list** — consecutive messages from the same author on the same day are grouped into elevated "meseta" containers (raised surface with subtle shadow); own-message mesetas use a darker accent tint. Avatars and names appear on the first message of each run. Quoted message blocks (`.msg-quote`) remain visually nested inside message bodies, distinct from the meseta plate. Sticky day separators show **Today** for the current day, otherwise the full date (`Wed, 08 Aug 2026`)
 - **Selection** — click messages to select; a floating bar exposes quote, copy, create page, and related actions. **Esc** clears the selection
 - **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar)
 - **TipTap composer** — see below
