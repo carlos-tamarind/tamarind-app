@@ -146,7 +146,7 @@ export function StatusBar({
   const paletteLabel = useShortcutLabel(HOTKEYS.commandPalette);
 
   return (
-    <footer className="flex h-[calc(1.5rem+2px)] shrink-0 items-center gap-3 border-t bg-surface px-3 text-[0.6875rem] leading-none">
+    <footer className="flex h-[calc(1.5rem+4px)] shrink-0 items-center gap-3 border-t bg-surface px-3 text-[0.6875rem] leading-none">
       {workspaceName ? (
         <span className="shrink-0 truncate font-medium text-muted-foreground">
           {workspaceName}

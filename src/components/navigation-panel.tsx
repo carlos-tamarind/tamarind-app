@@ -503,46 +503,48 @@ export function NavigationPanel({
 
   return (
     <aside className="flex h-full w-full flex-col border-r bg-surface">
-      <div className="flex h-12 shrink-0 items-center gap-1.5 border-b px-1.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onToggleRail}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
-              aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-            >
-              <Menu className="size-4" strokeWidth={1.5} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="gap-2">
-            {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
-            <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
-              {workspacesLabel}
-            </Kbd>
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => panelRef.current?.collapse()}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
-              aria-label="Close Navigation panel"
-            >
-              <PanelLeftClose className="size-4" strokeWidth={1.5} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="gap-2">
-            Close Navigation panel
-            <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
-              {navLabel}
-            </Kbd>
-          </TooltipContent>
-        </Tooltip>
+      <div className="flex h-12 shrink-0 items-center border-b">
+        <div className="flex h-12 w-[var(--nav-rail)] shrink-0 items-center justify-evenly border-r">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggleRail}
+                className="rounded-md text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                aria-label={railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+              >
+                <Menu className="size-4" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="gap-2">
+              {railOpen ? "Close Workspaces panel" : "Open Workspaces panel"}
+              <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                {workspacesLabel}
+              </Kbd>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => panelRef.current?.collapse()}
+                className="rounded-md text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                aria-label="Close Navigation panel"
+              >
+                <PanelLeftClose className="size-4" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="gap-2">
+              Close Navigation panel
+              <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                {navLabel}
+              </Kbd>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <Link
           to="/w/$workspaceId/settings"
           params={{ workspaceId }}
           search={(prev) => prev}
-          className="ml-auto min-w-0 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+          className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
           aria-label="Workspace settings"
         >
           {workspaceName ?? ""}
