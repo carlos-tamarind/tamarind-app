@@ -1318,6 +1318,7 @@ export type Database = {
         Args: { p_hash: string; p_page_id: string }
         Returns: string
       }
+      entity_type_id_for: { Args: { _key: string }; Returns: string }
       escape_ilike_pattern: { Args: { p: string }; Returns: string }
       finalize_embedded_message: {
         Args: { p_message_semantics_id: string }
