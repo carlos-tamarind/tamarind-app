@@ -38,7 +38,7 @@ Deleting a source row now removes its entity row, cascading `entity_relations`.
 - Regenerate `src/integrations/supabase/types.ts`.
 - Update `docs/architecture/database.md`: remove `entity_annotations` and `annotation_type`, describe the shared-id `entities` registry, add the `conversation` type, drop removed indexes.
 - Update the README knowledge-graph bullet (remove `entity_annotations`).
-- Bump `src/lib/version.ts` to 0.3.05.
+- Bump `src/lib/version.ts` to 0.3.1.
 
 ## Out of scope
 
