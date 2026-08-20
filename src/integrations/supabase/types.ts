@@ -267,37 +267,28 @@ export type Database = {
         Row: {
           created_at: string
           created_by_workspace_user_id: string | null
-          embedding: string | null
           entity_type_id: string
           id: string
           last_modified_at: string
           metadata: Json
-          source_id: string
-          title: string | null
           workspace_id: string
         }
         Insert: {
           created_at?: string
           created_by_workspace_user_id?: string | null
-          embedding?: string | null
           entity_type_id: string
-          id?: string
+          id: string
           last_modified_at?: string
           metadata?: Json
-          source_id: string
-          title?: string | null
           workspace_id: string
         }
         Update: {
           created_at?: string
           created_by_workspace_user_id?: string | null
-          embedding?: string | null
           entity_type_id?: string
           id?: string
           last_modified_at?: string
           metadata?: Json
-          source_id?: string
-          title?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -317,83 +308,6 @@ export type Database = {
           },
           {
             foreignKeyName: "entities_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      entity_annotations: {
-        Row: {
-          annotation_type: Database["public"]["Enums"]["annotation_type"]
-          confidence: number
-          created_at: string
-          created_by_workspace_user_id: string | null
-          end_offset: number | null
-          id: string
-          last_modified_at: string
-          metadata: Json
-          raw_text: string
-          source_entity_id: string
-          start_offset: number | null
-          target_entity_id: string | null
-          workspace_id: string
-        }
-        Insert: {
-          annotation_type: Database["public"]["Enums"]["annotation_type"]
-          confidence?: number
-          created_at?: string
-          created_by_workspace_user_id?: string | null
-          end_offset?: number | null
-          id?: string
-          last_modified_at?: string
-          metadata?: Json
-          raw_text: string
-          source_entity_id: string
-          start_offset?: number | null
-          target_entity_id?: string | null
-          workspace_id: string
-        }
-        Update: {
-          annotation_type?: Database["public"]["Enums"]["annotation_type"]
-          confidence?: number
-          created_at?: string
-          created_by_workspace_user_id?: string | null
-          end_offset?: number | null
-          id?: string
-          last_modified_at?: string
-          metadata?: Json
-          raw_text?: string
-          source_entity_id?: string
-          start_offset?: number | null
-          target_entity_id?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "entity_annotations_created_by_workspace_user_id_fkey"
-            columns: ["created_by_workspace_user_id"]
-            isOneToOne: false
-            referencedRelation: "workspace_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entity_annotations_source_entity_id_fkey"
-            columns: ["source_entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entity_annotations_target_entity_id_fkey"
-            columns: ["target_entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entity_annotations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1564,12 +1478,6 @@ export type Database = {
       tiptap_to_plaintext: { Args: { doc: Json }; Returns: string }
     }
     Enums: {
-      annotation_type:
-        | "mention_user"
-        | "mention_entity"
-        | "ticket_ref"
-        | "inline_page_match"
-        | "semantic_hint"
       conversation_role: "admin" | "member" | "viewer"
       conversation_type: "direct" | "group" | "channel"
       cti_job_status:
@@ -1738,13 +1646,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      annotation_type: [
-        "mention_user",
-        "mention_entity",
-        "ticket_ref",
-        "inline_page_match",
-        "semantic_hint",
-      ],
       conversation_role: ["admin", "member", "viewer"],
       conversation_type: ["direct", "group", "channel"],
       cti_job_status: [
