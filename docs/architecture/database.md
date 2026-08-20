@@ -145,7 +145,7 @@ erDiagram
 | `idx_conversations_title_trgm` | conversations | GIN trigram on `title` | Keyword search |
 | `idx_messages_normalized_trgm` | message_semantics | GIN trigram on `normalized_text` | Keyword search |
 | `idx_workspace_users_display_name_trgm` | workspace_users | GIN trigram on `display_name` | Keyword search (people) |
-| `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
+| `idx_entities_workspace_type` | entities | `(workspace_id, entity_type_id)` | Registry lookups by workspace/type |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
 | `idx_pages_last_modified_at` | pages | `(last_modified_at)` | Page chunking due-list |
