@@ -34,8 +34,10 @@ erDiagram
     pages ||--o| pages : parent
 
     entity_types ||--o{ entities : types
-    entities ||--o{ entity_annotations : source
-    entities ||--o{ entity_annotations : target
+    pages ||--|| entities : "shared id"
+    messages ||--|| entities : "shared id"
+    conversations ||--|| entities : "shared id"
+    workspace_users ||--|| entities : "shared id"
     entities ||--o{ entity_relations : source
     entities ||--o{ entity_relations : target
 
