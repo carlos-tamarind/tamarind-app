@@ -59,7 +59,7 @@ erDiagram
 | `page_visibility` | `private`, `conversation`, `workspace`, `external` |
 | `page_type` | `standard`, `template`, `generated`, `imported` |
 | `page_origin` | `user`, `conversation`, `import`, `ai` |
-| `annotation_type` | `mention_user`, `mention_entity`, `ticket_ref`, `inline_page_match`, `semantic_hint` |
+
 | `relation_type` | `quoted_from`, `derived_from_message`, `cited_in`, `child_of`, `attached_to`, `linked_by_user` |
 | `embedding_status` | `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` |
 | `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
@@ -101,16 +101,19 @@ erDiagram
 
 **Page semantics invariant.** A `page_topics` row describes exactly its `page_snapshot`; a missing row means the page was never analyzed. `page_topic_jobs` has no snapshot text — only the `page_snapshot_hash` version it must analyze. A partial unique index on `page_id WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` allows at most one in-flight job per page; terminal (`COMPLETED` / `FAILED`) rows accumulate as debug history and carry no uniqueness.
 
-### Semantic Layer (Schema-Ready)
+### Entity Registry (Schema-Ready)
 
 | Table | Purpose | Key relationships |
 |-------|---------|-------------------|
-| `entity_types` | Catalog: `page`, `message`, `user` | — |
-| `entities` | Unified knowledge objects with optional `embedding vector(1536)` | → `workspaces`, → `entity_types`; UNIQUE(workspace_id, entity_type_id, source_id) |
-| `entity_annotations` | Links between entities (mentions, refs) | → `entities` (source/target), → `workspaces` |
+| `entity_types` | Catalog: `page`, `message`, `conversation`, `user` | — |
+| `entities` | Identity registry for workspace assets (`metadata jsonb`) | → `workspaces`, → `entity_types`; PK `id` **equals the source asset PK** |
 | `entity_relations` | Directed relations between entities | → `entities` (source/target); UNIQUE per relation type |
 
-> **Note:** These tables exist with pgvector and full-text indexes, but **no application code reads or writes them yet**. They are schema-ready for a future knowledge graph layer.
+**Shared-id invariant.** `entities.id` is not auto-generated: it is the same UUID as the source row (`pages.id`, `messages.id`, `conversations.id`, `workspace_users.id`), and the type comes from `entity_type_id`. There is no `source_id`, `title`, or `embedding` column.
+
+**Lifecycle.** `trg_sync_entity_from_page` / `_message` / `_conversation` / `_workspace_user` (AFTER INSERT OR DELETE on each source table) create and remove the matching registry row via the `entity_type_id_for(key)` helper. Deleting a source row removes its entity, cascading `entity_relations`. There are no UPDATE triggers — id and workspace are immutable in practice.
+
+> **Note:** No application code reads or writes these tables yet; they are groundwork for the knowledge graph layer. `pages.entity_id` / `messages.entity_id` remain nullable legacy columns.
 
 ### Embedding Pipeline
 
