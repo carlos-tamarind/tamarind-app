@@ -82,6 +82,39 @@ type Message = {
   createdAt: string;
 };
 
+type MessageRun = {
+  dateKey: string;
+  authorWorkspaceUserId: string | null;
+  isMe: boolean;
+  messages: Message[];
+};
+
+function groupMessagesIntoRuns(
+  messages: Message[],
+  getIsMe: (authorWorkspaceUserId: string | null) => boolean,
+): MessageRun[] {
+  const runs: MessageRun[] = [];
+  for (const m of messages) {
+    const dateKey = localDateKey(m.createdAt);
+    const last = runs[runs.length - 1];
+    if (
+      last &&
+      last.dateKey === dateKey &&
+      last.authorWorkspaceUserId === m.authorWorkspaceUserId
+    ) {
+      last.messages.push(m);
+    } else {
+      runs.push({
+        dateKey,
+        authorWorkspaceUserId: m.authorWorkspaceUserId,
+        isMe: getIsMe(m.authorWorkspaceUserId),
+        messages: [m],
+      });
+    }
+  }
+  return runs;
+}
+
 
 const SHORT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHORT_MONTHS = [
@@ -110,6 +143,12 @@ function localDateKey(iso: string) {
 
 function formatDaySeparator(iso: string) {
   const d = new Date(iso);
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (isToday) return "Today";
   const weekday = SHORT_WEEKDAYS[d.getDay()];
   const day = pad2(d.getDate());
   const month = SHORT_MONTHS[d.getMonth()];
@@ -505,6 +544,17 @@ export function ConversationWindow({
     }
     return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }, [initialMessages, liveMessages]);
+
+  const messageRuns = useMemo(() => {
+    if (!conv) return [];
+    const isMeByAuthor = new Map(
+      conv.participants.map((p) => [p.workspaceUserId, p.isMe]),
+    );
+    return groupMessagesIntoRuns(
+      messages,
+      (authorId) => isMeByAuthor.get(authorId ?? "") ?? false,
+    );
+  }, [messages, conv]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -951,150 +1001,151 @@ export function ConversationWindow({
                 />
               ) : (
                 <div role="log" className="px-4 pb-14 pt-2">
-                  {messages.map((m, i) => {
-                    const author = conv.participants.find(
-                      (p) => p.workspaceUserId === m.authorWorkspaceUserId,
-                    );
-                    const isMe = author?.isMe ?? false;
-                    const prev = messages[i - 1];
-                    const currentDate = localDateKey(m.createdAt);
-                    const previousDate = prev ? localDateKey(prev.createdAt) : null;
-                    const showDaySeparator = !prev || currentDate !== previousDate;
-                    // Consecutive messages from one author collapse into a run:
-                    // only the first carries an avatar and a name.
-                    const startsRun =
-                      showDaySeparator ||
-                      !prev ||
-                      prev.authorWorkspaceUserId !== m.authorWorkspaceUserId;
-                    const label =
-                      author?.label ?? m.authorLabel ?? "Archived user";
-                    const isSelected = selectedIds.has(m.id);
+                  {messageRuns.map((run, runIndex) => {
+                    const prevRun = messageRuns[runIndex - 1];
+                    const showDaySeparator =
+                      !prevRun || run.dateKey !== prevRun.dateKey;
                     const anySelected = selectedIds.size > 0;
 
                     return (
-                      <div key={m.id}>
+                      <div key={`${run.dateKey}-${run.authorWorkspaceUserId}-${run.messages[0].id}`}>
                         {showDaySeparator && (
                           <div className="sticky top-0 z-10 flex justify-center py-3">
                             <span className="rounded-full border bg-surface/90 px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground backdrop-blur-sm">
-                              {formatDaySeparator(m.createdAt)}
+                              {formatDaySeparator(run.messages[0].createdAt)}
                             </span>
                           </div>
                         )}
                         <div
-                          data-message-id={m.id}
-                          onClick={(e) => {
-                            const t = e.target as HTMLElement;
-                            if (
-                              t.closest("span.mention-page") ||
-                              t.closest("span.mention-member") ||
-                              t.closest("a[href]") ||
-                              t.closest(".msg-quote-header[data-author-id]") ||
-                              t.closest("div.msg-quote") ||
-                              t.closest("[data-quick-actions]")
-                            )
-                              return;
-                            toggleSelected(m.id);
-                          }}
-                          className={`group/msg relative flex cursor-pointer gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
-                            startsRun ? "mt-2 pb-0.5 pt-1 first:mt-0" : "py-0.5"
-                          } ${
-                            isSelected
-                              ? "bg-accent-subtle"
-                              : isMe
-                                ? "bg-accent-subtle/35 hover:bg-accent-subtle/60"
-                                : "hover:bg-accent"
+                          className={`mb-2 rounded-lg border shadow-sm ${
+                            run.isMe
+                              ? "border-border bg-accent-subtle/55"
+                              : "border-border/60 bg-surface-raised/80"
                           }`}
                         >
-                          <div className="w-6 shrink-0">
-                            {startsRun ? (
-                              <Avatar className="size-6">
-                                {author?.avatarUrl ? (
-                                  <AvatarImage src={author.avatarUrl} />
-                                ) : null}
-                                <AvatarFallback className="text-[10px] font-medium">
-                                  {label.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                            ) : (
-                              <span className="mt-px block text-right text-[10px] leading-5 tabular-nums text-muted-foreground opacity-0 transition-opacity duration-(--motion-fast) group-hover/msg:opacity-100">
-                                {formatMessageTimestamp(m.createdAt).slice(-8, -3)}
-                              </span>
-                            )}
-                          </div>
+                          {run.messages.map((m, i) => {
+                            const author = conv.participants.find(
+                              (p) => p.workspaceUserId === m.authorWorkspaceUserId,
+                            );
+                            const startsRun = i === 0;
+                            const label =
+                              author?.label ?? m.authorLabel ?? "Archived user";
+                            const isSelected = selectedIds.has(m.id);
 
-                          <div className="min-w-0 flex-1">
-                            {startsRun && (
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-sm font-medium">
-                                  <UserLink
-                                    workspaceId={workspaceId}
-                                    workspaceUserId={m.authorWorkspaceUserId}
-                                    myWorkspaceUserId={myWorkspaceUserId}
-                                    label={label}
+                            return (
+                              <div
+                                key={m.id}
+                                data-message-id={m.id}
+                                onClick={(e) => {
+                                  const t = e.target as HTMLElement;
+                                  if (
+                                    t.closest("span.mention-page") ||
+                                    t.closest("span.mention-member") ||
+                                    t.closest("a[href]") ||
+                                    t.closest(".msg-quote-header[data-author-id]") ||
+                                    t.closest("div.msg-quote") ||
+                                    t.closest("[data-quick-actions]")
+                                  )
+                                    return;
+                                  toggleSelected(m.id);
+                                }}
+                                className={`group/msg relative flex cursor-pointer gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
+                                  startsRun ? "pb-0.5 pt-1.5" : "py-0.5"
+                                } ${isSelected ? "bg-accent-subtle" : ""}`}
+                              >
+                                <div className="w-6 shrink-0">
+                                  {startsRun ? (
+                                    <Avatar className="size-6">
+                                      {author?.avatarUrl ? (
+                                        <AvatarImage src={author.avatarUrl} />
+                                      ) : null}
+                                      <AvatarFallback className="text-[10px] font-medium">
+                                        {label.slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  ) : (
+                                    <span className="mt-px block text-right text-[10px] leading-5 tabular-nums text-muted-foreground opacity-0 transition-opacity duration-(--motion-fast) group-hover/msg:opacity-100">
+                                      {formatMessageTimestamp(m.createdAt).slice(-8, -3)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  {startsRun && (
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="text-sm font-medium">
+                                        <UserLink
+                                          workspaceId={workspaceId}
+                                          workspaceUserId={m.authorWorkspaceUserId}
+                                          myWorkspaceUserId={myWorkspaceUserId}
+                                          label={label}
+                                        />
+                                      </span>
+                                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                                        {formatMessageTimestamp(m.createdAt)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div
+                                    className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
+                                    dangerouslySetInnerHTML={{
+                                      __html: sanitizeMessageHtml(
+                                        m.rawText,
+                                        myWorkspaceUserId,
+                                      ),
+                                    }}
                                   />
-                                </span>
-                                <span className="text-[10px] tabular-nums text-muted-foreground">
-                                  {formatMessageTimestamp(m.createdAt)}
-                                </span>
+                                </div>
+
+                                {isSelected && (
+                                  <Check
+                                    className="mt-1 size-3.5 shrink-0 text-primary"
+                                    strokeWidth={2.5}
+                                  />
+                                )}
+
+                                {!anySelected && (
+                                  <div
+                                    data-quick-actions=""
+                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="absolute right-3 top-0 flex -translate-y-1/2 items-center gap-0.5 rounded-md border bg-surface-raised p-0.5 opacity-0 shadow-sm transition-opacity duration-(--motion-fast) focus-within:opacity-100 group-hover/msg:opacity-100"
+                                  >
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="size-6"
+                                          aria-label="Quote & reply"
+                                          onClick={() => handleQuoteSelection([m.id])}
+                                        >
+                                          <Quote className="size-3.5" strokeWidth={1.5} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">Quote & reply</TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="size-6"
+                                          aria-label="Create page"
+                                          onClick={() =>
+                                            handleCreatePageFromSelection([m.id])
+                                          }
+                                        >
+                                          <FilePlus className="size-3.5" strokeWidth={1.5} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">Create page</TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            <div
-                              className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeMessageHtml(
-                                  m.rawText,
-                                  myWorkspaceUserId,
-                                ),
-                              }}
-                            />
-                          </div>
-
-                          {isSelected && (
-                            <Check
-                              className="mt-1 size-3.5 shrink-0 text-primary"
-                              strokeWidth={2.5}
-                            />
-                          )}
-
-                          {!anySelected && (
-                            <div
-                              data-quick-actions=""
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              className="absolute right-3 top-0 flex -translate-y-1/2 items-center gap-0.5 rounded-md border bg-surface-raised p-0.5 opacity-0 shadow-sm transition-opacity duration-(--motion-fast) focus-within:opacity-100 group-hover/msg:opacity-100"
-                            >
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="size-6"
-                                    aria-label="Quote & reply"
-                                    onClick={() => handleQuoteSelection([m.id])}
-                                  >
-                                    <Quote className="size-3.5" strokeWidth={1.5} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Quote & reply</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="size-6"
-                                    aria-label="Create page"
-                                    onClick={() =>
-                                      handleCreatePageFromSelection([m.id])
-                                    }
-                                  >
-                                    <FilePlus className="size-3.5" strokeWidth={1.5} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Create page</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          )}
+                            );
+                          })}
                         </div>
                       </div>
                     );
