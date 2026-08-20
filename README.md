@@ -33,7 +33,7 @@ Teams generate knowledge constantly — in Slack threads, standups, design revie
 Tamarind is building toward a contextual knowledge graph for teams. The current codebase includes schema and infrastructure for capabilities not yet fully wired:
 
 - **Deeper semantic search** — hybrid overlay is live; plan-gated strategy enforcement and message-level deep links are not (`search.semantic` feature key, `message_embeddings` with HNSW index)
-- **Knowledge graph** — unified entity model linking pages, messages, and users with annotations and relations (`entities`, `entity_annotations`, `entity_relations` tables)
+- **Knowledge graph** — shared-id entity registry for pages, messages, conversations, and users, plus directed relations (`entities`, `entity_relations` tables)
 - **AI-assisted pages** — generate documentation from conversation context (`page_origin: ai`, `ai.suggestions` feature flag)
 - **Decision tracking** — scoring rules already detect decision language in messages; future UI will surface and link decisions
 - **Cross-workspace knowledge** — institutional memory that spans team boundaries with controlled sharing

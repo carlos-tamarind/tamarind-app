@@ -34,8 +34,10 @@ erDiagram
     pages ||--o| pages : parent
 
     entity_types ||--o{ entities : types
-    entities ||--o{ entity_annotations : source
-    entities ||--o{ entity_annotations : target
+    pages ||--|| entities : "shared id"
+    messages ||--|| entities : "shared id"
+    conversations ||--|| entities : "shared id"
+    workspace_users ||--|| entities : "shared id"
     entities ||--o{ entity_relations : source
     entities ||--o{ entity_relations : target
 
@@ -57,7 +59,7 @@ erDiagram
 | `page_visibility` | `private`, `conversation`, `workspace`, `external` |
 | `page_type` | `standard`, `template`, `generated`, `imported` |
 | `page_origin` | `user`, `conversation`, `import`, `ai` |
-| `annotation_type` | `mention_user`, `mention_entity`, `ticket_ref`, `inline_page_match`, `semantic_hint` |
+
 | `relation_type` | `quoted_from`, `derived_from_message`, `cited_in`, `child_of`, `attached_to`, `linked_by_user` |
 | `embedding_status` | `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` |
 | `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
@@ -99,16 +101,19 @@ erDiagram
 
 **Page semantics invariant.** A `page_topics` row describes exactly its `page_snapshot`; a missing row means the page was never analyzed. `page_topic_jobs` has no snapshot text — only the `page_snapshot_hash` version it must analyze. A partial unique index on `page_id WHERE status IN ('QUEUED','PROCESSING','RETRY_WAIT')` allows at most one in-flight job per page; terminal (`COMPLETED` / `FAILED`) rows accumulate as debug history and carry no uniqueness.
 
-### Semantic Layer (Schema-Ready)
+### Entity Registry (Schema-Ready)
 
 | Table | Purpose | Key relationships |
 |-------|---------|-------------------|
-| `entity_types` | Catalog: `page`, `message`, `user` | — |
-| `entities` | Unified knowledge objects with optional `embedding vector(1536)` | → `workspaces`, → `entity_types`; UNIQUE(workspace_id, entity_type_id, source_id) |
-| `entity_annotations` | Links between entities (mentions, refs) | → `entities` (source/target), → `workspaces` |
+| `entity_types` | Catalog: `page`, `message`, `conversation`, `user` | — |
+| `entities` | Identity registry for workspace assets (`metadata jsonb`) | → `workspaces`, → `entity_types`; PK `id` **equals the source asset PK** |
 | `entity_relations` | Directed relations between entities | → `entities` (source/target); UNIQUE per relation type |
 
-> **Note:** These tables exist with pgvector and full-text indexes, but **no application code reads or writes them yet**. They are schema-ready for a future knowledge graph layer.
+**Shared-id invariant.** `entities.id` is not auto-generated: it is the same UUID as the source row (`pages.id`, `messages.id`, `conversations.id`, `workspace_users.id`), and the type comes from `entity_type_id`. There is no `source_id`, `title`, or `embedding` column.
+
+**Lifecycle.** `trg_sync_entity_from_page` / `_message` / `_conversation` / `_workspace_user` (AFTER INSERT OR DELETE on each source table) create and remove the matching registry row via the `entity_type_id_for(key)` helper. Deleting a source row removes its entity, cascading `entity_relations`. There are no UPDATE triggers — id and workspace are immutable in practice.
+
+> **Note:** No application code reads or writes these tables yet; they are groundwork for the knowledge graph layer. `pages.entity_id` / `messages.entity_id` remain nullable legacy columns.
 
 ### Embedding Pipeline
 
@@ -140,7 +145,7 @@ erDiagram
 | `idx_conversations_title_trgm` | conversations | GIN trigram on `title` | Keyword search |
 | `idx_messages_normalized_trgm` | message_semantics | GIN trigram on `normalized_text` | Keyword search |
 | `idx_workspace_users_display_name_trgm` | workspace_users | GIN trigram on `display_name` | Keyword search (people) |
-| `idx_entities_embedding` | entities | IVFFlat cosine on `embedding` | *(schema-ready — unused)* |
+| `idx_entities_workspace_type` | entities | `(workspace_id, entity_type_id)` | Registry lookups by workspace/type |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
 | `idx_pages_last_modified_at` | pages | `(last_modified_at)` | Page chunking due-list |
@@ -216,6 +221,7 @@ Write patterns:
 | 2026-08-18 | Add `page_topics`, `page_topic_jobs`, `page_semantic_job_status` enum, and the page-semantics RPCs |
 | 2026-08-19 | Add `search_pages_semantic` RPC |
 | 2026-08-19 | Rename `page_embeddings` → `page_chunk_embeddings`, `page_semantics` → `page_topics`, `page_semantic_jobs` → `page_topic_jobs` (with indexes, constraints, triggers, RPCs); add `page_topic_embeddings` + enqueue trigger, `claim_page_topic_embedding_batch` RPC, and backfill |
+| 2026-08-20 | Entities registry revamp: drop `entity_annotations` + `annotation_type`, drop `entities.source_id` / `title` / `embedding`, shared-id invariant, `conversation` entity type, `idx_entities_workspace_type`, backfill, and lifecycle sync triggers |
 
 ## Related Docs
 
