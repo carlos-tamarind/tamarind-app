@@ -444,6 +444,7 @@ export function ConversationWindow({
   const [isEmpty, setIsEmpty] = useState(true);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const composerPanelRef = useRef<PanelImperativeHandle>(null);
+  const composerWrapperRef = useRef<HTMLDivElement>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendLockRef = useRef(false);
   const handleSendRef = useRef<() => void>(() => {});
@@ -465,9 +466,13 @@ export function ConversationWindow({
   };
   const clearSelection = () => setSelectedIds(new Set());
 
-  // Only claims Escape while something is selected, so dialogs and overlays
-  // opened on top of the thread keep their own dismissal.
-  useHotkey("escape", () => clearSelection(), { enabled: selectedIds.size > 0 });
+  const isMessageSelectionTarget = (target: HTMLElement) =>
+    !target.closest("span.mention-page") &&
+    !target.closest("span.mention-member") &&
+    !target.closest("a[href]") &&
+    !target.closest(".msg-quote-header[data-author-id]") &&
+    !target.closest("div.msg-quote") &&
+    !target.closest("[data-quick-actions]");
 
   const { data: conv } = useQuery({
     queryKey: ["conversation", conversationId],
@@ -639,6 +644,11 @@ export function ConversationWindow({
           handleSendRef.current();
           return true;
         }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          _view.dom.blur();
+          return true;
+        }
         return false;
       },
 
@@ -655,6 +665,28 @@ export function ConversationWindow({
       }, 200);
     },
   });
+
+  // Composer focus takes priority over selection clear so Esc exits the editor first.
+  useHotkey(
+    "escape",
+    () => {
+      const active = document.activeElement;
+      if (
+        composerExpanded &&
+        active &&
+        composerWrapperRef.current?.contains(active)
+      ) {
+        if (editor?.isFocused) {
+          editor.commands.blur();
+        } else if (active instanceof HTMLElement) {
+          active.blur();
+        }
+        return;
+      }
+      if (selectedIds.size > 0) clearSelection();
+    },
+    { enabled: composerExpanded || selectedIds.size > 0 },
+  );
 
   const handleSend = () => {
     if (!editor || sendLockRef.current) return;
@@ -1052,22 +1084,15 @@ export function ConversationWindow({
                               <div
                                 key={m.id}
                                 data-message-id={m.id}
-                                onClick={(e) => {
+                                onMouseDown={(e) => {
+                                  if (e.button !== 0) return;
                                   const t = e.target as HTMLElement;
-                                  if (
-                                    t.closest("span.mention-page") ||
-                                    t.closest("span.mention-member") ||
-                                    t.closest("a[href]") ||
-                                    t.closest(".msg-quote-header[data-author-id]") ||
-                                    t.closest("div.msg-quote") ||
-                                    t.closest("[data-quick-actions]")
-                                  )
-                                    return;
+                                  if (!isMessageSelectionTarget(t)) return;
                                   toggleSelected(m.id);
                                 }}
                                 className={`group/msg relative flex cursor-pointer gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
                                   startsRun ? "pb-0.5 pt-1.5" : "py-0.5"
-                                } ${isSelected ? "bg-accent-subtle" : ""}`}
+                                } ${isSelected ? "bg-primary/50" : ""}`}
                               >
                                 <div className="w-6 shrink-0">
                                   {startsRun ? (
@@ -1278,11 +1303,12 @@ export function ConversationWindow({
             // Keep in sync with --footer-row in styles.css.
             collapsedSize="3rem"
             defaultSize="3rem"
-            minSize="16%"
-            maxSize="45%"
+            minSize={composerExpanded ? "16%" : "3rem"}
+            maxSize={composerExpanded ? "45%" : "3rem"}
           >
             <div className="flex h-full min-w-0 flex-col border-t bg-background p-2">
               <div
+                ref={composerWrapperRef}
                 className="group/composer flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface transition-colors duration-(--motion-fast) focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25"
                 onBlur={(event) => {
                   const next = event.relatedTarget as Node | null;
