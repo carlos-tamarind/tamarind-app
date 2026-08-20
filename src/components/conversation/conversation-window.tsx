@@ -1294,7 +1294,7 @@ export function ConversationWindow({
               )}
             </div>
           </ResizablePanel>
-          {composerExpanded ? <ResizableHandle /> : null}
+          <ResizableHandle disabled={!composerExpanded} />
           <ResizablePanel
             id="composer"
             panelRef={composerPanelRef}
@@ -1303,8 +1303,8 @@ export function ConversationWindow({
             // Keep in sync with --footer-row in styles.css.
             collapsedSize="3rem"
             defaultSize="3rem"
-            minSize={composerExpanded ? "16%" : "3rem"}
-            maxSize={composerExpanded ? "45%" : "3rem"}
+            minSize="16%"
+            maxSize="45%"
           >
             <div className="flex h-full min-w-0 flex-col border-t bg-background p-2">
               <div
