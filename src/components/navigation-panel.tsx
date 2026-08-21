@@ -403,7 +403,7 @@ export function NavigationPanel({
     const active = activeConversationId === c.id;
     const unpinHint = "Un-pin this conversation";
     return (
-      <li key={c.id} className="group/pin relative">
+      <li key={c.id} className="relative">
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
@@ -427,7 +427,7 @@ export function NavigationPanel({
                   e.stopPropagation();
                   opts.onUnpin?.();
                 }}
-                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover/pin:opacity-100"
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-[color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
               >
                 <BookmarkX className="size-3.5" strokeWidth={1.5} />
               </button>
@@ -451,7 +451,7 @@ export function NavigationPanel({
             : null;
     const unpinHint = "Un-pin this page";
     return (
-      <li key={p.id} className="group/pin relative">
+      <li key={p.id} className="relative">
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
@@ -480,7 +480,7 @@ export function NavigationPanel({
                   e.stopPropagation();
                   opts.onUnpin?.();
                 }}
-                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover/pin:opacity-100"
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-[color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
               >
                 <BookmarkX className="size-3.5" strokeWidth={1.5} />
               </button>
