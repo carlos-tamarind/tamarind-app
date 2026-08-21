@@ -1460,6 +1460,7 @@ export type Database = {
         }
         Returns: {
           asset_id: string
+          chunk_id: string
           match_text: string
           matched_field: Database["public"]["Enums"]["search_matched_field"]
           score: number
