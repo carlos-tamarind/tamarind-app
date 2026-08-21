@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -67,6 +67,7 @@ import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conv
 import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
+import { withPage } from "@/lib/workspace-search";
 import {
   getComposerDraft,
   removeComposerDraft,
@@ -425,6 +426,8 @@ export function ConversationWindow({
   conversationId: string;
 }) {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
+  const targetMessageId = search.m;
   const queryClient = useQueryClient();
 
   const fetchConv = useServerFn(getConversation);
@@ -451,6 +454,7 @@ export function ConversationWindow({
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const flashedMessageRef = useRef<string | null>(null);
   const sendLabel = useShortcutLabel(HOTKEYS.send);
   const boldLabel = useShortcutLabel(HOTKEYS.bold);
   const italicLabel = useShortcutLabel(HOTKEYS.italic);
@@ -562,10 +566,11 @@ export function ConversationWindow({
   }, [messages, conv]);
 
   useEffect(() => {
+    if (targetMessageId) return;
     const el = scrollerRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, targetMessageId]);
 
   const mentionOpenRef = useRef(0);
 
@@ -849,6 +854,32 @@ export function ConversationWindow({
     window.setTimeout(() => el.classList.remove("msg-flash"), 1400);
   };
 
+  useEffect(() => {
+    if (!targetMessageId) return;
+    if (initialMessages === undefined) return;
+    if (flashedMessageRef.current === targetMessageId) return;
+
+    const exists = messages.some((m) => m.id === targetMessageId);
+    if (!exists) {
+      flashedMessageRef.current = targetMessageId;
+      toast.error("Message not found");
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const el = scrollerRef.current?.querySelector(
+        `[data-message-id="${CSS.escape(targetMessageId)}"]`,
+      );
+      flashedMessageRef.current = targetMessageId;
+      if (!el) {
+        toast.error("Message not found");
+        return;
+      }
+      flashMessage(targetMessageId);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [targetMessageId, messages, initialMessages]);
+
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const targetEl = e.target as HTMLElement;
 
@@ -880,7 +911,7 @@ export function ConversationWindow({
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
-          search: (prev: any) => ({ ...prev, p: id }),
+          search: (prev) => withPage(prev, id),
         });
       }
       return;
@@ -1447,7 +1478,7 @@ export function ConversationWindow({
             navigate({
               to: "/w/$workspaceId",
               params: { workspaceId },
-              search: (prev: any) => ({ ...prev, p: pageId }),
+              search: (prev) => withPage(prev, pageId),
             });
           }}
         />

@@ -141,7 +141,7 @@ Page topic name/description (`page_topics`) is **not** part of this corpus. Cano
 After the RPC(s) return:
 
 1. Map message rows to `SearchResult` with `assetType: "message"`
-2. Map page rows to `SearchResult` with `assetType: "page"` and `pageId`
+2. Map page rows to `SearchResult` with `assetType: "page"`, `pageId`, and `chunkId` (winning `page_chunks.id` from `search_pages_semantic`; omitted for keyword page hits)
 3. Generate snippet via [`extractSnippet`](../../src/search/utils/snippet.ts)
 4. Dedupe by `` `${assetType}:${assetId}` `` (keep higher score)
 5. Sort by score descending, slice to limit

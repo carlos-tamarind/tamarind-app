@@ -27,6 +27,7 @@ import {
   listMyConversations,
 } from "@/lib/conversations.functions";
 import { duplicatePage } from "@/lib/pages.functions";
+import { withPage } from "@/lib/workspace-search";
 
 type Visibility = "private" | "workspace" | "conversation";
 
@@ -158,7 +159,7 @@ export function DuplicatePageDialog({
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, p: res.pageId }),
+        search: (prev) => withPage(prev, res.pageId),
       });
     } catch (e: any) {
       toast.error(e?.message ?? "Could not duplicate page");

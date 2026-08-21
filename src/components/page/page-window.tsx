@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
+import { Link, useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import {
   getPage,
+  getPageChunk,
   updatePage,
   setPageVisibility,
   getPageBacklinks,
@@ -26,6 +27,7 @@ import {
   listMyConversations,
 } from "@/lib/conversations.functions";
 import { SlashCommand } from "@/components/editor/slash-command";
+import { ChunkFlash, flashChunkRange } from "@/components/editor/chunk-flash";
 import { PageMention, ConversationMention, MemberMention } from "@/components/editor/custom-mentions";
 import { MentionList, type MentionItem } from "@/components/editor/mention-list";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +62,8 @@ import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conv
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
+import { findChunkRangeInDoc } from "@/lib/find-editor-text-range";
+import { withPage } from "@/lib/workspace-search";
 
 function buildMentionSuggestion(
   char: string,
@@ -135,7 +139,10 @@ export function PageWindow({
   pageId: string;
 }) {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
+  const chunkId = search.k;
   const fetchPage = useServerFn(getPage);
+  const fetchChunk = useServerFn(getPageChunk);
   const savePage = useServerFn(updatePage);
   const setVis = useServerFn(setPageVisibility);
   const fetchMembers = useServerFn(listWorkspaceMembers);
@@ -148,6 +155,12 @@ export function PageWindow({
   const { data, isLoading } = useQuery({
     queryKey: ["page", pageId],
     queryFn: () => fetchPage({ data: { pageId } }),
+  });
+
+  const { data: chunk, isFetched: chunkFetched } = useQuery({
+    queryKey: ["page-chunk", chunkId],
+    queryFn: () => fetchChunk({ data: { chunkId: chunkId! } }),
+    enabled: !!chunkId,
   });
 
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
@@ -193,6 +206,8 @@ export function PageWindow({
   const draftKey = useMemo(() => `tamarind:page-draft:${pageId}`, [pageId]);
   const legacyDraftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
   const hydratedForPageRef = useRef<string | null>(null);
+  const flashedChunkRef = useRef<string | null>(null);
+  const [editorReadyAt, setEditorReadyAt] = useState(0);
   const { status: saveStatus, setStatus: setSaveStatus } = useSaveStatus();
 
   // The editor unmounts on page switch and on split-view close; leaving a
@@ -298,6 +313,7 @@ export function PageWindow({
       TaskList,
       TaskItem.configure({ nested: true }),
       SlashCommand,
+      ChunkFlash,
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: memberSuggestion,
@@ -558,11 +574,30 @@ export function PageWindow({
       scheduleFlushRef.current?.();
     }
     isHydratingRef.current = false;
+    setEditorReadyAt((n) => n + 1);
   }, [data, draftKey, legacyDraftKey, editor, pageId]);
 
   useEffect(() => {
     hydratedForPageRef.current = null;
   }, [pageId]);
+
+  useEffect(() => {
+    if (!chunkId || !editor || editorReadyAt === 0) return;
+    if (flashedChunkRef.current === chunkId) return;
+    if (!chunkFetched) return;
+
+    flashedChunkRef.current = chunkId;
+    if (!chunk || chunk.pageId !== pageId) {
+      toast.error("Passage not found");
+      return;
+    }
+    const range = findChunkRangeInDoc(editor.state.doc, chunk.content);
+    if (!range) {
+      toast.error("Passage not found");
+      return;
+    }
+    flashChunkRange(editor, range.from, range.to);
+  }, [chunkId, chunk, chunkFetched, editor, editorReadyAt, pageId]);
 
   useEffect(() => {
     if (!user) return;
@@ -871,7 +906,7 @@ export function PageWindow({
                     <Link
                       to="/w/$workspaceId"
                       params={{ workspaceId }}
-                      search={(prev: any) => ({ ...prev, p: b.id })}
+                      search={(prev) => withPage(prev, b.id)}
                       className="flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors duration-(--motion-fast) hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
                     >
                       <FileText

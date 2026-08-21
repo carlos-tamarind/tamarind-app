@@ -82,11 +82,11 @@ Clicking a result (or **Enter** on a highlighted result — not while the query 
 
 | Asset type | Navigation |
 |------------|------------|
-| Page | `/w/$workspaceId?p=<pageId>` |
+| Page | `/w/$workspaceId?p=<pageId>` — semantic hits also set `k=<chunkId>` when the RPC returns the winning chunk |
 | Conversation | `/w/$workspaceId?c=<conversationId>` |
-| Message | `/w/$workspaceId?c=<conversationId>` (opens parent conversation) |
+| Message | `/w/$workspaceId?c=<conversationId>&m=<messageId>` (opens parent conversation, then scrolls/flashes the message) |
 
-Message hits do **not** scroll to or highlight the specific message. People search hits open the matched conversation.
+People search hits open the matched conversation. Switching conversation or page via nav/palette clears `m` / `k` so a stale focus param cannot leak.
 
 ## Status States
 

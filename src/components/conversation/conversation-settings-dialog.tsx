@@ -18,6 +18,7 @@ import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { AddParticipantsDialog } from "./add-participants-dialog";
 import { EditableTitle } from "./editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
+import { withPage } from "@/lib/workspace-search";
 
 type Participant = {
   workspaceUserId: string;
@@ -79,7 +80,7 @@ export function ConversationSettingsDialog({
     navigate({
       to: "/w/$workspaceId",
       params: { workspaceId },
-      search: (prev: any) => ({ ...prev, p: pageId }),
+      search: (prev) => withPage(prev, pageId),
     });
   };
 
@@ -88,7 +89,7 @@ export function ConversationSettingsDialog({
     navigate({
       to: "/w/$workspaceId",
       params: { workspaceId },
-      search: (prev: any) => ({ ...prev, p: pageId }),
+      search: (prev) => withPage(prev, pageId),
     });
   };
 

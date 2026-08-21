@@ -19,6 +19,7 @@ import {
   listWorkspaceMembers,
   findOrCreateConversation,
 } from "@/lib/conversations.functions";
+import { withConversation } from "@/lib/workspace-search";
 
 export function NewConversationDialog({
   workspaceId,
@@ -72,8 +73,9 @@ export function NewConversationDialog({
       queryClient.invalidateQueries({ queryKey: ["conversations-list", workspaceId] });
       close();
       navigate({
-        to: "/w/$workspaceId/c/$conversationId",
-        params: { workspaceId, conversationId },
+        to: "/w/$workspaceId",
+        params: { workspaceId },
+        search: (prev) => withConversation(prev, conversationId),
       });
     } catch (e) {
       console.error(e);

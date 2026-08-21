@@ -24,6 +24,7 @@ type MessageSemanticRpcRow = {
 
 type PageSemanticRpcRow = {
   asset_id: string;
+  chunk_id: string | null;
   title: string | null;
   match_text: string;
   matched_field: SearchMatchedField;
@@ -46,6 +47,7 @@ function mapPageRow(row: PageSemanticRpcRow, query: string): SearchResult {
     assetType: "page",
     assetId: row.asset_id,
     pageId: row.asset_id,
+    chunkId: row.chunk_id ?? undefined,
     score: row.score,
     title: row.title ?? undefined,
     snippet: extractSnippet(row.match_text, query),

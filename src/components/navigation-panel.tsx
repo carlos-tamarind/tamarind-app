@@ -48,6 +48,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HOTKEYS, useShortcutLabel } from "@/hooks/use-hotkeys";
+import { withConversation, withPage } from "@/lib/workspace-search";
 
 type NavSection = "conversations" | "pages" | "knowledge";
 
@@ -386,7 +387,7 @@ export function NavigationPanel({
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
-          search={(prev: any) => ({ ...prev, c: c.id })}
+          search={(prev) => withConversation(prev, c.id)}
           className={rowClass(active)}
         >
           {active ? (
@@ -414,7 +415,7 @@ export function NavigationPanel({
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
-          search={(prev: any) => ({ ...prev, p: p.id })}
+          search={(prev) => withPage(prev, p.id)}
           className={rowClass(active)}
         >
           {active ? (

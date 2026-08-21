@@ -516,4 +516,24 @@ export const duplicatePage = createServerFn({ method: "POST" })
     return { pageId: newPageId, conversationIds: targetConvIds };
   });
 
+export const getPageChunk = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ chunkId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("page_chunks")
+      .select("id, page_id, content")
+      .eq("id", data.chunkId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+    return {
+      id: row.id as string,
+      pageId: row.page_id as string,
+      content: row.content as string,
+    };
+  });
 

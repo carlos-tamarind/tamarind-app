@@ -33,6 +33,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { OverlayFooter } from "@/components/overlay-footer";
 import { useTheme } from "@/lib/theme-context";
 import { HOTKEYS, useShortcutLabel } from "@/hooks/use-hotkeys";
+import { withConversation, withPage } from "@/lib/workspace-search";
 import type { NavConversation, NavPage } from "@/components/navigation-panel";
 
 type Workspace = { workspaceId: string; name: string };
@@ -125,7 +126,7 @@ export function CommandPalette({
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: any) => ({ ...prev, c: id }),
+        search: (prev) => withConversation(prev, id),
       }),
     );
 
@@ -134,7 +135,7 @@ export function CommandPalette({
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: any) => ({ ...prev, p: id }),
+        search: (prev) => withPage(prev, id),
       }),
     );
 

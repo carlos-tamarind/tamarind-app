@@ -8,6 +8,7 @@ import { OverlayFooter } from "@/components/overlay-footer";
 import { HOTKEYS, useHotkey, useShortcutLabel } from "@/hooks/use-hotkeys";
 import { useSearchRequest } from "@/hooks/use-search-request";
 import type { SearchResult, SearchScope } from "@/search/types";
+import { withConversation, withPage } from "@/lib/workspace-search";
 
 /** Sentinel: query input is the virtual first item of the result list. */
 const QUERY_INDEX = -1;
@@ -228,7 +229,7 @@ export function SearchOverlay({
       void navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, p: pageId }),
+        search: (prev) => withPage(prev, pageId, result.chunkId),
       });
       return;
     }
@@ -236,7 +237,10 @@ export function SearchOverlay({
     void navigate({
       to: "/w/$workspaceId",
       params: { workspaceId },
-      search: (prev: Record<string, unknown>) => ({ ...prev, c: conversationId }),
+      search: (prev) =>
+        result.assetType === "message"
+          ? withConversation(prev, conversationId, result.assetId)
+          : withConversation(prev, conversationId),
     });
   };
 

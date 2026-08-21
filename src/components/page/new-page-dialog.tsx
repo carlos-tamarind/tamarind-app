@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createBlankPage } from "@/lib/pages.functions";
+import { withPage } from "@/lib/workspace-search";
 import {
   createConversationPage,
   createPageFromMessages,
@@ -144,7 +145,7 @@ export function NewPageDialog({
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
-          search: (prev: any) => ({ ...prev, p: pageId }),
+          search: (prev) => withPage(prev, pageId),
         });
       }
     } catch (e) {

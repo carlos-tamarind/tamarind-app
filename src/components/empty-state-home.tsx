@@ -19,6 +19,7 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listRecentActivity, type RecentActivityItem } from "@/lib/activity.functions";
 import { HOTKEYS, useShortcutLabel } from "@/hooks/use-hotkeys";
+import { withConversation, withPage } from "@/lib/workspace-search";
 
 function itemIcon(item: RecentActivityItem) {
   if (item.kind === "conversation") {
@@ -43,10 +44,10 @@ function RecentItemRow({
       <Link
         to="/w/$workspaceId"
         params={{ workspaceId }}
-        search={(prev: any) =>
+        search={(prev) =>
           item.kind === "conversation"
-            ? { ...prev, c: item.id }
-            : { ...prev, p: item.id }
+            ? withConversation(prev, item.id)
+            : withPage(prev, item.id)
         }
         className="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors duration-(--motion-fast) hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
       >
