@@ -105,13 +105,15 @@ erDiagram
 
 | Table | Purpose | Key relationships |
 |-------|---------|-------------------|
-| `entity_types` | Catalog: `page`, `message`, `conversation`, `user` | — |
+| `entity_types` | Catalog: `page`, `message`, `conversation`, `user`, `page_chunk` | — |
 | `entities` | Identity registry for workspace assets (`metadata jsonb`) | → `workspaces`, → `entity_types`; PK `id` **equals the source asset PK** |
 | `entity_relations` | Directed relations between entities | → `entities` (source/target); UNIQUE per relation type |
 
 **Shared-id invariant.** `entities.id` is not auto-generated: it is the same UUID as the source row (`pages.id`, `messages.id`, `conversations.id`, `workspace_users.id`), and the type comes from `entity_type_id`. There is no `source_id`, `title`, or `embedding` column.
 
-**Lifecycle.** `trg_sync_entity_from_page` / `_message` / `_conversation` / `_workspace_user` (AFTER INSERT OR DELETE on each source table) create and remove the matching registry row via the `entity_type_id_for(key)` helper. Deleting a source row removes its entity, cascading `entity_relations`. There are no UPDATE triggers — id and workspace are immutable in practice.
+**Lifecycle.** `trg_sync_entity_from_page` / `_message` / `_conversation` / `_workspace_user` / `_page_chunk` (AFTER INSERT OR DELETE on each source table) create and remove the matching registry row via the `entity_type_id_for(key)` helper. Deleting a source row removes its entity, cascading `entity_relations`. There are no UPDATE triggers — id and workspace are immutable in practice.
+
+**Page chunks as entities.** `page_chunks` carries no workspace column, so `sync_entity_from_page_chunk()` resolves `workspace_id` and `created_by_workspace_user_id` from the parent page. Chunk identity is checksum-bound: re-chunking deletes the old chunk row (and its entity, embeddings, and any future suggestion rows) and inserts a new UUID, so a `?k=` passage deeplink to text that no longer exists goes stale by design. `position` remains ordering, never identity, and no ProseMirror offsets are stored.
 
 > **Note:** No application code reads or writes these tables yet; they are groundwork for the knowledge graph layer. `pages.entity_id` / `messages.entity_id` remain nullable legacy columns.
 
@@ -186,7 +188,7 @@ erDiagram
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
-| `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page) |
+| `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page); returns `chunk_id` of the winning chunk for passage deeplinks |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
 ## Row-Level Security
@@ -222,6 +224,7 @@ Write patterns:
 | 2026-08-19 | Add `search_pages_semantic` RPC |
 | 2026-08-19 | Rename `page_embeddings` → `page_chunk_embeddings`, `page_semantics` → `page_topics`, `page_semantic_jobs` → `page_topic_jobs` (with indexes, constraints, triggers, RPCs); add `page_topic_embeddings` + enqueue trigger, `claim_page_topic_embedding_batch` RPC, and backfill |
 | 2026-08-20 | Entities registry revamp: drop `entity_annotations` + `annotation_type`, drop `entities.source_id` / `title` / `embedding`, shared-id invariant, `conversation` entity type, `idx_entities_workspace_type`, backfill, and lifecycle sync triggers |
+| 2026-08-21 | Page-chunk deeplink groundwork: `page_chunk` entity type, backfill, `trg_sync_entity_from_page_chunk`, and `search_pages_semantic` now returns `chunk_id` |
 
 ## Related Docs
 
