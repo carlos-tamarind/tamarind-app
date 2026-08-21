@@ -27,6 +27,7 @@ export type SearchResult = {
   matchedField: SearchMatchedField;
   conversationId?: string;
   pageId?: string;
+  chunkId?: string;
   strategy?: SearchStrategyKind;
 };
 

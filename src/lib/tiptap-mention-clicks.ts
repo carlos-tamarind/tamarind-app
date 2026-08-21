@@ -1,4 +1,5 @@
 import type { NavigateOptions } from "@tanstack/react-router";
+import { withConversation, withPage } from "@/lib/workspace-search";
 
 type NavigateFn = (options: NavigateOptions) => void;
 
@@ -15,7 +16,7 @@ export function createMentionClickHandler(options: {
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, p: String(node.attrs.id) }),
+        search: (prev) => withPage(prev, String(node.attrs.id)),
       });
       return true;
     }
@@ -23,7 +24,7 @@ export function createMentionClickHandler(options: {
       navigate({
         to: "/w/$workspaceId",
         params: { workspaceId },
-        search: (prev: Record<string, unknown>) => ({ ...prev, c: String(node.attrs.id) }),
+        search: (prev) => withConversation(prev, String(node.attrs.id)),
       });
       return true;
     }

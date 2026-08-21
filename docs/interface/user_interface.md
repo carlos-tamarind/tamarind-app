@@ -57,18 +57,22 @@ Displays one or both content windows based on URL search params:
 |--------------|-----------|---------|
 | `?c=$conversationId` | `ConversationWindow` | Chat interface |
 | `?p=$pageId` | `PageWindow` | TipTap page editor |
+| `?m=$messageId` | (with `c`) | Scrolls to and flashes that message after load |
+| `?k=$chunkId` | (with `p`) | Scrolls to and flashes that page passage after load |
 
-Both can be open in a split-pane layout (`ResizablePanelGroup`). Example: `/w/abc123?c=conv-uuid&p=page-uuid`
+Both conversation and page can be open in a split-pane layout (`ResizablePanelGroup`). Example: `/w/abc123?c=conv-uuid&p=page-uuid`
 
-**Close-on-drag:** if a pane is dragged below ~20% width, that asset is closed (search param cleared). While dragging toward that threshold, [`CloseHintOverlay`](../../src/components/close-hint-overlay.tsx) shows a progressive blur/scrim and **Close conversation** / **Close page**.
+**Close-on-drag:** if a pane is dragged below ~20% width, that asset is closed (`c`+`m` or `p`+`k` cleared). While dragging toward that threshold, [`CloseHintOverlay`](../../src/components/close-hint-overlay.tsx) shows a progressive blur/scrim and **Close conversation** / **Close page**.
 
 ## Navigation Model
 
 ```
-/w/$workspaceId              → empty state
-/w/$workspaceId?c=uuid       → conversation
-/w/$workspaceId?p=uuid       → page
-/w/$workspaceId?c=uuid&p=uuid → split view
+/w/$workspaceId                    → empty state
+/w/$workspaceId?c=uuid             → conversation
+/w/$workspaceId?c=uuid&m=uuid      → conversation, focused message
+/w/$workspaceId?p=uuid             → page
+/w/$workspaceId?p=uuid&k=uuid      → page, focused passage
+/w/$workspaceId?c=uuid&p=uuid      → split view
 ```
 
 Legacy nested routes redirect to search params:

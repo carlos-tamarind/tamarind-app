@@ -461,7 +461,8 @@
   display: none;
 }
 
-.msg-flash {
+.msg-flash,
+.chunk-flash {
   animation: msg-flash-anim 1.4s var(--ease-out);
 }
 @keyframes msg-flash-anim {

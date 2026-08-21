@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2 } from "lucide-react";
-import { z } from "zod";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,15 +22,10 @@ import {
   listInvites,
   revokeInvite,
 } from "@/lib/invites.functions";
+import { workspaceSearchSchema } from "@/lib/workspace-search";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId/settings")({
-  validateSearch: (search) =>
-    z
-      .object({
-        c: z.string().uuid().optional(),
-        p: z.string().uuid().optional(),
-      })
-      .parse(search),
+  validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: SettingsModal,
 });
 

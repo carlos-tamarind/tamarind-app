@@ -17,7 +17,6 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Settings } from "lucide-react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
-import { z } from "zod";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { listMyPages } from "@/lib/pages.functions";
@@ -43,11 +42,11 @@ import { EmptyStateHome } from "@/components/empty-state-home";
 import { SaveStatusProvider } from "@/lib/save-status-context";
 import { clearComposerDrafts } from "@/lib/composer-drafts";
 import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
-
-const workspaceSearchSchema = z.object({
-  c: z.string().uuid().optional(),
-  p: z.string().uuid().optional(),
-});
+import {
+  workspaceSearchSchema,
+  withConversation,
+  withPage,
+} from "@/lib/workspace-search";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
@@ -205,7 +204,7 @@ function WorkspaceShell() {
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
-          search: (prev: any) => ({ ...prev, c: undefined }),
+          search: (prev) => withConversation(prev, undefined),
           replace: true,
         });
       } else if (pageSize !== undefined && pageSize < COLLAPSE_THRESHOLD) {
@@ -213,7 +212,7 @@ function WorkspaceShell() {
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
-          search: (prev: any) => ({ ...prev, p: undefined }),
+          search: (prev) => withPage(prev, undefined),
           replace: true,
         });
       } else {

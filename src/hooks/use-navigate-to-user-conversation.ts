@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 
 import { findOrCreateConversation } from "@/lib/conversations.functions";
+import { withConversation } from "@/lib/workspace-search";
 
 export function useNavigateToUserConversation(
   workspaceId: string,
@@ -36,10 +37,7 @@ export function useNavigateToUserConversation(
         navigate({
           to: "/w/$workspaceId",
           params: { workspaceId },
-          search: (prev: Record<string, unknown>) => ({
-            ...prev,
-            c: conversationId,
-          }),
+          search: (prev) => withConversation(prev, conversationId),
         });
       } catch (e) {
         console.error(e);

@@ -144,6 +144,7 @@ type SearchResult = {
   matchedField: "title" | "content" | "name"
   conversationId?: string
   pageId?: string
+  chunkId?: string
   strategy?: "keyword" | "semantic"
 }
 ```
