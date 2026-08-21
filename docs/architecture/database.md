@@ -145,7 +145,9 @@ erDiagram
 
 **Entity typing is not denormalized.** The suggestion row stores only `entity_id`; the kind comes from `entities.entity_type_id` → `entity_types`. `ON DELETE CASCADE` means a re-chunked passage drops its suggestion rather than dangling.
 
-**Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
+**Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
+
+**Configurable cooldown.** `list_conversation_suggestion_jobs_due` takes both the debounce (`p_idle`) and the negative-feedback cooldown (`p_cooldown`) as intervals from the caller — there is no hardcoded 14-day window. The worker supplies them from its TypeScript config (exploration default cooldown 120h) and re-checks the last negative `feedback_at` after claiming, since the due-list is only a pre-filter.
 
 
 ## Key Indexes
