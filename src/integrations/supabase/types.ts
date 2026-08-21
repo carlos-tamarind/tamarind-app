@@ -1583,7 +1583,7 @@ export type Database = {
         Returns: boolean
       }
       list_conversation_suggestion_jobs_due: {
-        Args: { p_idle: string; p_limit: number }
+        Args: { p_cooldown: string; p_idle: string; p_limit: number }
         Returns: {
           conversation_id: string
           workspace_id: string
