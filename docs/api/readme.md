@@ -231,8 +231,7 @@ Manual trigger for the conversation suggestion worker during local development.
 }
 ```
 
-The worker body is a placeholder — the DB groundwork (queue tables, RPCs, user-scoped
-search wrappers) is live, the engine lands in a later pass, so every tick returns zeros.
+Runs the conversation suggestion worker: sweep due pairs, claim jobs, LLM judge, persist.
 
 ## POST /api/public/internal/run-conversation-suggestion-worker
 
