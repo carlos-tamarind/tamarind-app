@@ -252,6 +252,26 @@ A pg_cron job calls the page semantic worker every minute via pg_net HTTP POST w
 
 See [Page Semantics](../semantic/page_semantic.md).
 
+## Conversation Suggestion Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (dedicated secret)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job calls the conversation suggestion worker every minute via pg_net HTTP POST with the `x-conversation-suggestions-worker-secret` header (`CONVERSATION_SUGGESTIONS_WORKER_SECRET`).
+
+### Status
+
+[`runConversationSuggestionWorker`](../../src/semantic/conversation-suggestions/worker/runConversationSuggestionWorker.ts) is a placeholder returning zero counts. The database groundwork is live and ready for it:
+
+- `list_conversation_suggestion_jobs_due(p_idle, p_limit)` — participant × conversation pairs with a settled embedded message, no unexpired `PENDING` suggestion, no 14-day negative-feedback cooldown, and no in-flight job
+- `enqueue_conversation_suggestion_job(p_conversation_id, p_workspace_user_id)` — upsert/reset the durable job row (`processing` is left alone)
+- `claim_conversation_suggestion_job(p_stale_after)` — claims one job (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery)
+- `apply_conversation_suggestion_result(...)` — atomically expires stale `PENDING` rows, inserts the suggestion (or commits "none"), and completes the job
+- `search_pages_semantic_for_user` / `search_messages_semantic_for_user` — `SECURITY DEFINER` wrappers that apply ACLs for an explicit user, since `auth.uid()` is null under the service role
+
+All of the above are `service_role`-only.
+
 ## Dev Manual Triggers
 
 For local testing without pg_cron:
@@ -262,6 +282,7 @@ POST /api/run-cti-worker
 POST /api/run-page-chunking-worker
 POST /api/run-page-embedding-worker
 POST /api/run-page-semantic-worker
+POST /api/run-conversation-suggestion-worker
 ```
 
 
