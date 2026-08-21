@@ -94,6 +94,7 @@
     },
   },
   "overrides": {
+    "prosemirror-model": "^1.25.11",
     "seroval": "^1.6.2",
     "seroval-plugins": "^1.6.2",
   },
@@ -1416,27 +1417,15 @@
 
     "prop-types/react-is": ["react-is@16.13.1", "", {}, "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="],
 
-    "prosemirror-commands/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
-
     "prosemirror-dropcursor/prosemirror-view": ["prosemirror-view@1.41.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-view/-/prosemirror-view-1.41.8.tgz", { "dependencies": { "prosemirror-model": "^1.20.0", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-TnKDdohEatgyZNGCDWIdccOHXhYloJwbwU+phw/a23KBvJIR9lWQWW7WHHK3vBdOLDNuF7TaX98GObUZOWkOnA=="],
-
-    "prosemirror-gapcursor/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
 
     "prosemirror-gapcursor/prosemirror-view": ["prosemirror-view@1.41.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-view/-/prosemirror-view-1.41.8.tgz", { "dependencies": { "prosemirror-model": "^1.20.0", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-TnKDdohEatgyZNGCDWIdccOHXhYloJwbwU+phw/a23KBvJIR9lWQWW7WHHK3vBdOLDNuF7TaX98GObUZOWkOnA=="],
 
     "prosemirror-history/prosemirror-view": ["prosemirror-view@1.41.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-view/-/prosemirror-view-1.41.8.tgz", { "dependencies": { "prosemirror-model": "^1.20.0", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-TnKDdohEatgyZNGCDWIdccOHXhYloJwbwU+phw/a23KBvJIR9lWQWW7WHHK3vBdOLDNuF7TaX98GObUZOWkOnA=="],
 
-    "prosemirror-schema-list/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
-
-    "prosemirror-state/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
-
     "prosemirror-state/prosemirror-view": ["prosemirror-view@1.41.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-view/-/prosemirror-view-1.41.8.tgz", { "dependencies": { "prosemirror-model": "^1.20.0", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-TnKDdohEatgyZNGCDWIdccOHXhYloJwbwU+phw/a23KBvJIR9lWQWW7WHHK3vBdOLDNuF7TaX98GObUZOWkOnA=="],
 
-    "prosemirror-tables/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
-
     "prosemirror-tables/prosemirror-view": ["prosemirror-view@1.41.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-view/-/prosemirror-view-1.41.8.tgz", { "dependencies": { "prosemirror-model": "^1.20.0", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-TnKDdohEatgyZNGCDWIdccOHXhYloJwbwU+phw/a23KBvJIR9lWQWW7WHHK3vBdOLDNuF7TaX98GObUZOWkOnA=="],
-
-    "prosemirror-transform/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
 
     "readdirp/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
@@ -1455,10 +1444,6 @@
     "@tanstack/start-plugin-core/@tanstack/router-generator/jiti": ["jiti@2.7.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/jiti/-/jiti-2.7.0.tgz", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
 
     "@tanstack/start-plugin-core/@tanstack/router-plugin/chokidar": ["chokidar@5.0.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/chokidar/-/chokidar-5.0.0.tgz", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
-
-    "prosemirror-dropcursor/prosemirror-view/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
-
-    "prosemirror-history/prosemirror-view/prosemirror-model": ["prosemirror-model@1.25.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/prosemirror-model/-/prosemirror-model-1.25.7.tgz", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-A79aN8QEFUwI6cax8Yq4Rpcx1TJZ3Kagn+ii7qLo4/V8H3mMiHrhFyhTyHHvpSnOgMPpWiDGSwM3etwrxE50ug=="],
 
     "wrangler/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.27.3", "", { "os": "aix", "cpu": "ppc64" }, "sha512-9fJMTNFTWZMh5qwrBItuziu834eOCUcEqymSH7pY+zoMVEZg3gcPuBNxH1EvfVYe9h0x/Ptw8KBzv7qxb7l8dg=="],
 
