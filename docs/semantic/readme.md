@@ -14,6 +14,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 | [Embedding](msg_embedding.md) | Batch worker and OpenAI provider |
 | [Page Embedding](page_embedding.md) | Page chunk and canonical topic vector worker, retries, and drift guards |
 | [Page Semantics](page_semantic.md) | Page-level LLM topic name/description worker |
+| [Conversation Suggestions](conversation_suggestions.md) | Per-participant related-entity nudge worker |
 
 ## Purpose
 

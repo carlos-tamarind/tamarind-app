@@ -1,6 +1,6 @@
 # Semantic Module
 
-The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_chunk_embeddings` rows and canonical `page_topic_embeddings`. Another cron worker produces an LLM topic name and description per page.
+The `src/semantic` module implements Tamarind's message intelligence pipeline and page semantics. It normalizes chat messages, scores their semantic value, persists eligible content, and generates vector embeddings for search. Pages are structurally chunked on a debounce sweeper; a separate cron worker embeds queued `page_chunk_embeddings` rows and canonical `page_topic_embeddings`. Another cron worker produces an LLM topic name and description per page. A conversation-suggestion worker judges whether to nudge a participant toward a related message or page chunk.
 
 This is a **server-only** module. It uses the Supabase admin client (lazy-loaded) and must not be imported from client-side code.
 
@@ -27,6 +27,12 @@ src/semantic/
 │       ├── conversationTopicEngine.ts
 │       ├── planTransition.ts
 │       └── persistence/
+├── conversation-suggestions/                # suggestion worker + LLM judge
+│   ├── types/
+│   ├── errors.ts
+│   ├── engine/                              # config, topic-focus, LLM prompt
+│   ├── persistence/
+│   └── worker/                              # runConversationSuggestionWorker
 ├── messages/                                # Message indexing pipeline
 │   ├── message-checksum/
 │   ├── message-normalization/
@@ -72,6 +78,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `pages/page-chunks/engine/config.ts` | `PAGE_CHUNK_CONFIG` | Debounce, pack sizes, embedding model |
 | `pages/page-embeddings/worker/runPageEmbeddingWorker.ts` | `runPageEmbeddingWorker` | Page embedding worker entry |
 | `pages/page-semantics/worker/runPageSemanticWorker.ts` | `runPageSemanticWorker` | Page semantic worker entry |
+| `conversation-suggestions/worker/runConversationSuggestionWorker.ts` | `runConversationSuggestionWorker` | Conversation suggestion worker entry |
 
 ## Inbound Dependencies (Who Calls This Module)
 
@@ -90,6 +97,8 @@ There is no barrel `index.ts`. Import specific files directly.
 | `src/routes/api/public/internal/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (cron) |
 | `src/routes/api/run-page-semantic-worker.ts` | `runPageSemanticWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-semantic-worker.ts` | `runPageSemanticWorker` (cron) |
+| `src/routes/api/run-conversation-suggestion-worker.ts` | `runConversationSuggestionWorker` (dev-only) |
+| `src/routes/api/public/internal/run-conversation-suggestion-worker.ts` | `runConversationSuggestionWorker` (cron) |
 
 ## Outbound Dependencies
 
@@ -106,6 +115,7 @@ There is no barrel `index.ts`. Import specific files directly.
 | `process.env.PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint auth |
 | `process.env.PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint auth |
 | `process.env.PAGE_SEMANTIC_WORKER_SECRET` | Page semantic cron endpoint auth |
+| `process.env.CONVERSATION_SUGGESTIONS_WORKER_SECRET` | Conversation suggestion cron endpoint auth |
 | `gpt-tokenizer` | cl100k_base token counts for page chunks and snapshot diffs |
 | Supabase RPC `claim_embedding_batch` | Atomic batch claim |
 | Supabase RPC `claim_conversation_topic_job` | Atomic single CTI job claim |
@@ -119,7 +129,13 @@ There is no barrel `index.ts`. Import specific files directly.
 | Supabase RPC `claim_page_topic_job` | Atomic page-semantic job claim |
 | Supabase RPC `enqueue_page_topic_job` | Upsert in-flight analysis job |
 | Supabase RPC `apply_page_topic_result` | Upsert page_topics + complete job |
-| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, `page_topic_embeddings` | Persistence |
+| Supabase RPC `list_conversation_suggestion_jobs_due` | Participant×conversation pairs due for a suggestion pass |
+| Supabase RPC `enqueue_conversation_suggestion_job` | Upsert in-flight suggestion job |
+| Supabase RPC `claim_conversation_suggestion_job` | Atomic suggestion job claim |
+| Supabase RPC `apply_conversation_suggestion_result` | Insert suggestion or complete with none |
+| Supabase RPC `search_messages_semantic_for_user` | ACL-aware message ANN for a workspace user |
+| Supabase RPC `search_pages_semantic_for_user` | ACL-aware page-chunk ANN for a workspace user |
+| DB tables: `messages`, `message_semantics`, `message_embeddings`, `conversation_topic_jobs`, `conversation_topics`, `conversation_topic_evidences`, `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, `page_topic_embeddings`, `conversation_suggestions`, `conversation_suggestion_jobs` | Persistence |
 
 ## Data Flow
 
@@ -195,6 +211,21 @@ Page content save (last_modified_at)
   → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
 ```
 
+### Conversation suggestions (async, cron-driven)
+
+```
+Cron POST /api/public/internal/run-conversation-suggestion-worker
+  → runConversationSuggestionWorker
+  → list_conversation_suggestion_jobs_due (p_idle + p_cooldown from TS config)
+  → enqueue_conversation_suggestion_job
+  → claim_conversation_suggestion_job
+  → recency / cooldown / topic-score / focus gates
+  → search_*_semantic_for_user (winner topic embedding)
+  → llmProvider.complete (gpt-5.4-nano judge)
+  → apply_conversation_suggestion_result (PENDING row or committed_none)
+  → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
+```
+
 ### Phase C: CTI (async, cron-driven)
 
 ```
@@ -226,6 +257,7 @@ NEW → QUEUED → PROCESSING → EMBEDDED
 | `PAGE_CHUNKING_WORKER_SECRET` | Page chunking cron endpoint authentication |
 | `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
 | `PAGE_SEMANTIC_WORKER_SECRET` | Page semantic cron endpoint authentication |
+| `CONVERSATION_SUGGESTIONS_WORKER_SECRET` | Conversation suggestion cron endpoint authentication |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client for persistence |
 
 ## Documentation
@@ -238,3 +270,4 @@ Detailed breakdown in [`docs/semantic/`](../docs/semantic/readme.md):
 - [Embedding](../docs/semantic/msg_embedding.md)
 - [Page Embedding](../docs/semantic/page_embedding.md)
 - [Page Semantics](../docs/semantic/page_semantic.md)
+- [Conversation Suggestions](../docs/semantic/conversation_suggestions.md)

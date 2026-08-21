@@ -242,8 +242,7 @@ SELECT cron.schedule(
 );
 ```
 
-Use a dedicated secret (`CONVERSATION_SUGGESTIONS_WORKER_SECRET`). The worker body is still a
-placeholder; the queue RPCs and user-scoped search wrappers it will use are already live.
+Use a dedicated secret (`CONVERSATION_SUGGESTIONS_WORKER_SECRET`). Each tick sweeps due participant×conversation pairs (`list_conversation_suggestion_jobs_due`) then claims LLM jobs via `claim_conversation_suggestion_job`.
 
 
 

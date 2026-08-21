@@ -57,6 +57,7 @@ import {
 } from "@/lib/conversations.functions";
 import { ConversationSettingsDialog } from "@/components/conversation/conversation-settings-dialog";
 import { AddParticipantsDialog } from "@/components/conversation/add-participants-dialog";
+import { ConversationSuggestionNudge } from "@/components/conversation/conversation-suggestion-nudge";
 import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
@@ -64,6 +65,7 @@ import { MentionList, type MentionItem } from "@/components/editor/mention-list"
 import { QuoteBlock } from "@/components/editor/quote-node";
 import { UserLink } from "@/components/user-link";
 import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
+import { useConversationSuggestion } from "@/hooks/use-conversation-suggestion";
 import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
@@ -485,6 +487,10 @@ export function ConversationWindow({
 
   const myWorkspaceUserId =
     conv?.participants.find((p) => p.isMe)?.workspaceUserId ?? null;
+  const suggestion = useConversationSuggestion({
+    workspaceId,
+    conversationId,
+  });
   const { navigateToUser } = useNavigateToUserConversation(
     workspaceId,
     myWorkspaceUserId,
@@ -1067,6 +1073,15 @@ export function ConversationWindow({
         >
           <ResizablePanel id="messages" defaultSize="80%" minSize="50%">
             <div className="relative h-full">
+            {suggestion.visible && (
+              <ConversationSuggestionNudge
+                suggestion={suggestion.visible}
+                feedback={suggestion.feedback}
+                onOpen={() => void suggestion.onOpen()}
+                onDismiss={() => void suggestion.onDismiss()}
+                onFeedback={(type) => void suggestion.onFeedback(type)}
+              />
+            )}
             <div
               ref={scrollerRef}
               className="h-full overflow-y-auto overflow-x-hidden"

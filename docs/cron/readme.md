@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, page-embedding, and page-semantic workers.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, page-embedding, page-semantic, and conversation-suggestion workers.
 
 ## Overview
 
@@ -47,12 +47,20 @@ flowchart TB
     PageSemantic["LLM → page_topics"]
   end
 
+  subgraph cronSuggestions [Scheduled: conversation suggestions]
+    PGCronSug["pg_cron (every minute)"]
+    PGNetSug["pg_net HTTP POST"]
+    WorkerSug["runConversationSuggestionWorker"]
+    Suggest["LLM → conversation_suggestions"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
   PGCronPages --> PGNetPages --> WorkerPages --> Chunks
   PGCronPageEmbed --> PGNetPageEmbed --> WorkerPageEmbed --> PageEmbed
   PGCronPageSemantic --> PGNetPageSemantic --> WorkerPageSemantic --> PageSemantic
+  PGCronSug --> PGNetSug --> WorkerSug --> Suggest
 ```
 
 ## Inline Semantics Processing
@@ -262,15 +270,17 @@ A pg_cron job calls the conversation suggestion worker every minute via pg_net H
 
 ### Status
 
-[`runConversationSuggestionWorker`](../../src/semantic/conversation-suggestions/worker/runConversationSuggestionWorker.ts) is a placeholder returning zero counts. The database groundwork is live and ready for it:
+[`runConversationSuggestionWorker`](../../src/semantic/conversation-suggestions/worker/runConversationSuggestionWorker.ts) sweeps due participant×conversation pairs, claims jobs, applies recency/cooldown/topic-focus gates, retrieves ACL-aware semantic candidates, asks the LLM judge, and persists a `PENDING` suggestion or `committed_none`.
 
-- `list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)` — participant × conversation pairs with a settled embedded message, no unexpired `PENDING` suggestion, no negative-feedback cooldown, and no in-flight job. Both intervals come from the caller: `p_idle` from the debounce config and `p_cooldown` from `CONVERSATION_SUGGESTION_COOLDOWN_MS` (exploration default 120h). The due-list is only an optimization — the TypeScript constant is the source of truth, so the worker re-reads the last negative `feedback_at` after claiming a job.
+- `list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)` — both intervals come from TypeScript config (`p_idle` from debounce, `p_cooldown` from `CONVERSATION_SUGGESTION_COOLDOWN_MS`). The due-list is only an optimization — the worker re-reads last negative `feedback_at` after claiming.
 - `enqueue_conversation_suggestion_job(p_conversation_id, p_workspace_user_id)` — upsert/reset the durable job row (`processing` is left alone)
 - `claim_conversation_suggestion_job(p_stale_after)` — claims one job (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery)
 - `apply_conversation_suggestion_result(...)` — atomically expires stale `PENDING` rows, inserts the suggestion (or commits "none"), and completes the job
-- `search_pages_semantic_for_user` / `search_messages_semantic_for_user` — `SECURITY DEFINER` wrappers that apply ACLs for an explicit user, since `auth.uid()` is null under the service role
+- `search_pages_semantic_for_user` / `search_messages_semantic_for_user` — `SECURITY DEFINER` wrappers that apply ACLs for an explicit user
 
 All of the above are `service_role`-only.
+
+See [Conversation Suggestions](../semantic/conversation_suggestions.md).
 
 ## Dev Manual Triggers
 
@@ -300,5 +310,6 @@ Available only in development mode (404 in production). See [API Routes](../api/
 - [Embedding](../semantic/msg_embedding.md) — Worker details
 - [Page Embedding](../semantic/page_embedding.md) — Page chunk and topic vector worker
 - [Page Semantics](../semantic/page_semantic.md) — Page-level LLM topic worker
+- [Conversation Suggestions](../semantic/conversation_suggestions.md) — Per-participant related-entity nudge worker
 - [API Routes](../api/readme.md) — HTTP endpoints
 - [Deployment](../deployment.md) — Environment setup
