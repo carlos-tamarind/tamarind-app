@@ -212,6 +212,40 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Response:** Same shape as the dev endpoint.
 
+## POST /api/run-conversation-suggestion-worker
+
+**File:** [`src/routes/api/run-conversation-suggestion-worker.ts`](../../src/routes/api/run-conversation-suggestion-worker.ts)
+
+Manual trigger for the conversation suggestion worker during local development.
+
+**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
+
+**Response:**
+
+```json
+{
+  "enqueued": 0,
+  "processed": 0,
+  "suggested": 0,
+  "failed": 0
+}
+```
+
+The worker body is a placeholder — the DB groundwork (queue tables, RPCs, user-scoped
+search wrappers) is live, the engine lands in a later pass, so every tick returns zeros.
+
+## POST /api/public/internal/run-conversation-suggestion-worker
+
+**File:** [`src/routes/api/public/internal/run-conversation-suggestion-worker.ts`](../../src/routes/api/public/internal/run-conversation-suggestion-worker.ts)
+
+Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-conversation-suggestions-worker-secret` header matching `CONVERSATION_SUGGESTIONS_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
+
+**Response:** Same shape as the dev endpoint.
+
+
+
 
 
 
