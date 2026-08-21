@@ -18,6 +18,7 @@ import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { AddParticipantsDialog } from "./add-participants-dialog";
 import { EditableTitle } from "./editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
+import { PinToggle } from "@/components/pin-toggle";
 import { withPage } from "@/lib/workspace-search";
 
 type Participant = {
@@ -113,6 +114,14 @@ export function ConversationSettingsDialog({
                 editable={isGroup}
                 onSave={onRename}
                 className="justify-center text-base font-medium"
+                trailing={
+                  <PinToggle
+                    workspaceId={workspaceId}
+                    entityId={conversationId}
+                    kind="conversation"
+                    className="size-6"
+                  />
+                }
               />
             </div>
           </div>

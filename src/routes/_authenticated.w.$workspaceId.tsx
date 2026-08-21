@@ -21,6 +21,7 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { listMyPages } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
+import { usePinnedEntities } from "@/hooks/use-pinned-entities";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
@@ -103,6 +104,8 @@ function WorkspaceShell() {
     queryKey: ["my-profile", workspaceId],
     queryFn: () => fetchProfile({ data: { workspaceId } }),
   });
+
+  const pins = usePinnedEntities(workspaceId);
 
   const sortedPages = useMemo(
     () =>
@@ -322,6 +325,9 @@ function WorkspaceShell() {
                   panelRef={navPanelRef}
                   conversations={sortedConversations}
                   pages={sortedPages}
+                  pinnedConversationIds={pins.pins.conversations}
+                  pinnedPageIds={pins.pins.pages}
+                  onUnpin={(entityId, kind) => pins.setPinned(entityId, kind, false)}
                   activeConversationId={conversationId}
                   activePageId={pageId}
                   profile={profile}

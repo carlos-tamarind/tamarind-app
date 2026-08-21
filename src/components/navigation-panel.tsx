@@ -4,6 +4,7 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
   Archive,
   Bookmark,
+  BookmarkX,
   Building2,
   ChevronRight,
   FileLock,
@@ -75,6 +76,9 @@ type Props = {
   panelRef: React.RefObject<PanelImperativeHandle | null>;
   conversations: NavConversation[];
   pages: NavPage[];
+  pinnedConversationIds?: string[];
+  pinnedPageIds?: string[];
+  onUnpin?: (entityId: string, kind: "conversation" | "page") => void;
   activeConversationId?: string;
   activePageId?: string;
   profile?: {
@@ -225,6 +229,9 @@ export function NavigationPanel({
   panelRef,
   conversations,
   pages,
+  pinnedConversationIds = [],
+  pinnedPageIds = [],
+  onUnpin,
   activeConversationId,
   activePageId,
   profile,
@@ -299,6 +306,14 @@ export function NavigationPanel({
     () => pages.filter((p) => p.visibility === "workspace"),
     [pages],
   );
+  const pinnedConversations = useMemo(() => {
+    const ids = new Set(pinnedConversationIds);
+    return conversations.filter((c) => ids.has(c.id));
+  }, [conversations, pinnedConversationIds]);
+  const pinnedPages = useMemo(() => {
+    const ids = new Set(pinnedPageIds);
+    return pages.filter((p) => ids.has(p.id));
+  }, [pages, pinnedPageIds]);
 
   const handleRailSelect = (next: NavSection) => {
     if (folded) {
@@ -380,15 +395,20 @@ export function NavigationPanel({
         : "text-foreground/80 hover:bg-accent hover:text-foreground"
     }`;
 
-  const conversationItem = (c: NavConversation, Icon: typeof UserIcon) => {
+  const conversationItem = (
+    c: NavConversation,
+    Icon: typeof UserIcon,
+    opts?: { onUnpin?: () => void },
+  ) => {
     const active = activeConversationId === c.id;
+    const unpinHint = "Un-pin this conversation";
     return (
-      <li key={c.id}>
+      <li key={c.id} className="group/pin relative">
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
           search={(prev) => withConversation(prev, c.id)}
-          className={rowClass(active)}
+          className={`${rowClass(active)} ${opts?.onUnpin ? "pr-8" : ""}`}
         >
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
@@ -396,11 +416,30 @@ export function NavigationPanel({
           <Icon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
           <span className="truncate">{c.title}</span>
         </Link>
+        {opts?.onUnpin ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={unpinHint}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  opts.onUnpin?.();
+                }}
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover/pin:opacity-100"
+              >
+                <BookmarkX className="size-3.5" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{unpinHint}</TooltipContent>
+          </Tooltip>
+        ) : null}
       </li>
     );
   };
 
-  const pageItem = (p: NavPage) => {
+  const pageItem = (p: NavPage, opts?: { onUnpin?: () => void }) => {
     const active = activePageId === p.id;
     const VisibilityIcon =
       p.visibility === "private"
@@ -410,13 +449,14 @@ export function NavigationPanel({
           : p.visibility === "conversation"
             ? MessageSquareLock
             : null;
+    const unpinHint = "Un-pin this page";
     return (
-      <li key={p.id}>
+      <li key={p.id} className="group/pin relative">
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
           search={(prev) => withPage(prev, p.id)}
-          className={rowClass(active)}
+          className={`${rowClass(active)} ${opts?.onUnpin ? "pr-8" : ""}`}
         >
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
@@ -429,6 +469,25 @@ export function NavigationPanel({
             />
           ) : null}
         </Link>
+        {opts?.onUnpin ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={unpinHint}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  opts.onUnpin?.();
+                }}
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover/pin:opacity-100"
+              >
+                <BookmarkX className="size-3.5" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{unpinHint}</TooltipContent>
+          </Tooltip>
+        ) : null}
       </li>
     );
   };
@@ -563,11 +622,21 @@ export function NavigationPanel({
                   id="pinned-conversations"
                   icon={Bookmark}
                   label="Pinned"
-                  empty
+                  empty={pinnedConversations.length === 0}
                   emptyHint="Pinned conversations will appear here"
                   isCollapsed={collapsedSections.has("pinned-conversations")}
                   onToggle={toggleSectionOpen}
-                />
+                >
+                  <ul className="space-y-px">
+                    {pinnedConversations.map((c) =>
+                      conversationItem(c, c.type === "direct" ? UserIcon : Users, {
+                        onUnpin: onUnpin
+                          ? () => onUnpin(c.id, "conversation")
+                          : undefined,
+                      }),
+                    )}
+                  </ul>
+                </Section>
                 <Section
                   id="unread"
                   icon={MessageSquareDot}
@@ -615,11 +684,19 @@ export function NavigationPanel({
                   id="pinned-pages"
                   icon={Bookmark}
                   label="Pinned"
-                  empty
+                  empty={pinnedPages.length === 0}
                   emptyHint="Pinned pages will appear here"
                   isCollapsed={collapsedSections.has("pinned-pages")}
                   onToggle={toggleSectionOpen}
-                />
+                >
+                  <ul className="space-y-px">
+                    {pinnedPages.map((p) =>
+                      pageItem(p, {
+                        onUnpin: onUnpin ? () => onUnpin(p.id, "page") : undefined,
+                      }),
+                    )}
+                  </ul>
+                </Section>
                 <Section
                   id="private-pages"
                   icon={FileLock}
@@ -631,7 +708,7 @@ export function NavigationPanel({
                   isCollapsed={collapsedSections.has("private-pages")}
                   onToggle={toggleSectionOpen}
                 >
-                  <ul className="space-y-px">{privatePages.map(pageItem)}</ul>
+                  <ul className="space-y-px">{privatePages.map((p) => pageItem(p))}</ul>
                 </Section>
                 <Section
                   id="conversation-pages"
@@ -642,7 +719,7 @@ export function NavigationPanel({
                   isCollapsed={collapsedSections.has("conversation-pages")}
                   onToggle={toggleSectionOpen}
                 >
-                  <ul className="space-y-px">{conversationPages.map(pageItem)}</ul>
+                  <ul className="space-y-px">{conversationPages.map((p) => pageItem(p))}</ul>
                 </Section>
                 <Section
                   id="workspace-pages"
@@ -655,7 +732,7 @@ export function NavigationPanel({
                   isCollapsed={collapsedSections.has("workspace-pages")}
                   onToggle={toggleSectionOpen}
                 >
-                  <ul className="space-y-px">{workspacePages.map(pageItem)}</ul>
+                  <ul className="space-y-px">{workspacePages.map((p) => pageItem(p))}</ul>
                 </Section>
                 <Section
                   id="archived"

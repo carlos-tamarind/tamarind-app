@@ -55,6 +55,7 @@ import {
   listWorkspaceMembers,
   renameConversation,
 } from "@/lib/conversations.functions";
+import { PinToggle } from "@/components/pin-toggle";
 import { ConversationSettingsDialog } from "@/components/conversation/conversation-settings-dialog";
 import { AddParticipantsDialog } from "@/components/conversation/add-participants-dialog";
 import { ConversationSuggestionNudge } from "@/components/conversation/conversation-suggestion-nudge";
@@ -1056,6 +1057,11 @@ export function ConversationWindow({
                 <TooltipContent side="bottom">Participants</TooltipContent>
               </Tooltip>
             )}
+            <PinToggle
+              workspaceId={workspaceId}
+              entityId={conversationId}
+              kind="conversation"
+            />
             <Button
               size="icon"
               variant="ghost"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, LockKeyhole, Pencil, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,14 @@ export function EditableTitle({
   onSave,
   className,
   inputClassName,
+  trailing,
 }: {
   value: string;
   editable: boolean;
   onSave: (next: string) => Promise<void> | void;
   className?: string;
   inputClassName?: string;
+  trailing?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -89,6 +91,7 @@ export function EditableTitle({
           </TooltipTrigger>
           <TooltipContent side="bottom">Private conversation</TooltipContent>
         </Tooltip>
+        {trailing}
       </div>
     );
   }
@@ -111,6 +114,7 @@ export function EditableTitle({
           </TooltipTrigger>
           <TooltipContent side="bottom">Rename conversation</TooltipContent>
         </Tooltip>
+        {trailing}
       </div>
     );
   }
@@ -163,6 +167,7 @@ export function EditableTitle({
       >
         <Check className="size-3.5" />
       </Button>
+      {trailing}
     </div>
   );
 }

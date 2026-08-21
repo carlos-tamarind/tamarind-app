@@ -55,6 +55,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { PinToggle } from "@/components/pin-toggle";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
 import { SharePageDialog } from "@/components/page/share-page-dialog";
 import { DuplicatePageDialog } from "@/components/page/duplicate-page-dialog";
@@ -843,6 +844,12 @@ export function PageWindow({
           </DropdownMenuContent>
 
         </DropdownMenu>
+
+        <PinToggle
+          workspaceId={workspaceId}
+          entityId={pageId}
+          kind="page"
+        />
 
         <Tooltip>
           <TooltipTrigger asChild>
