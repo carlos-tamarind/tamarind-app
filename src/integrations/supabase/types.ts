@@ -1355,6 +1355,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_conversation_suggestion_result: {
+        Args: {
+          p_conversation_topic_id?: string
+          p_entity_id?: string
+          p_entity_similarity_score?: number
+          p_expires_at?: string
+          p_job_id: string
+          p_llm_confidence?: number
+          p_notification_text?: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       apply_cti_plan_and_commit: {
         Args: { p_job_id: string; p_plan?: Json }
         Returns: string
@@ -1374,6 +1387,29 @@ export type Database = {
       can_read_page_as: {
         Args: { _page_id: string; _workspace_user_id: string }
         Returns: boolean
+      }
+      claim_conversation_suggestion_job: {
+        Args: { p_stale_after: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          last_modified_at: string
+          next_retry_at: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["conversation_suggestion_job_status"]
+          workspace_id: string
+          workspace_user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversation_suggestion_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       claim_conversation_topic_job: {
         Args: { p_stale_after?: string }
@@ -1507,6 +1543,10 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
+      enqueue_conversation_suggestion_job: {
+        Args: { p_conversation_id: string; p_workspace_user_id: string }
+        Returns: string
+      }
       enqueue_page_topic_job: {
         Args: { p_hash: string; p_page_id: string }
         Returns: string
@@ -1541,6 +1581,14 @@ export type Database = {
       is_workspace_member_as: {
         Args: { _workspace_id: string; _workspace_user_id: string }
         Returns: boolean
+      }
+      list_conversation_suggestion_jobs_due: {
+        Args: { p_idle: string; p_limit: number }
+        Returns: {
+          conversation_id: string
+          workspace_id: string
+          workspace_user_id: string
+        }[]
       }
       list_pages_due_for_chunking: {
         Args: { p_idle?: string; p_limit?: number }
