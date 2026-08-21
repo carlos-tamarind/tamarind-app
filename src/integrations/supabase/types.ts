@@ -1120,37 +1120,48 @@ export type Database = {
           },
         ]
       }
-      pinned_assets: {
+      pinned_entities: {
         Row: {
-          asset_id: string
-          asset_type: Database["public"]["Enums"]["pinned_asset_type"]
           created_at: string
+          entity_id: string
           id: string
-          user_id: string
           workspace_id: string
+          workspace_user_id: string
         }
         Insert: {
-          asset_id: string
-          asset_type: Database["public"]["Enums"]["pinned_asset_type"]
           created_at?: string
+          entity_id: string
           id?: string
-          user_id: string
           workspace_id: string
+          workspace_user_id: string
         }
         Update: {
-          asset_id?: string
-          asset_type?: Database["public"]["Enums"]["pinned_asset_type"]
           created_at?: string
+          entity_id?: string
           id?: string
-          user_id?: string
           workspace_id?: string
+          workspace_user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "pinned_assets_workspace_id_fkey"
+            foreignKeyName: "pinned_entities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_entities_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_entities_workspace_user_id_fkey"
+            columns: ["workspace_user_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_users"
             referencedColumns: ["id"]
           },
         ]
@@ -1813,7 +1824,6 @@ export type Database = {
         | "FAILED"
       page_type: "standard" | "template" | "generated" | "imported"
       page_visibility: "private" | "conversation" | "workspace" | "external"
-      pinned_asset_type: "conversation" | "page"
       plan_tier: "free" | "pro" | "enterprise"
       relation_type:
         | "quoted_from"
@@ -1994,7 +2004,6 @@ export const Constants = {
       ],
       page_type: ["standard", "template", "generated", "imported"],
       page_visibility: ["private", "conversation", "workspace", "external"],
-      pinned_asset_type: ["conversation", "page"],
       plan_tier: ["free", "pro", "enterprise"],
       relation_type: [
         "quoted_from",
