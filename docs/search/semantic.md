@@ -128,6 +128,7 @@ Runs as `SECURITY INVOKER`; existing `page_chunk_embeddings` / `page_chunks` RLS
 | Column | Maps to |
 |--------|---------|
 | `asset_id` | Page UUID |
+| `chunk_id` | Winning `page_chunks.id` (for `?p=&k=` passage deeplinks; may go stale after re-chunking) |
 | `title` | `pages.title` |
 | `match_text` | Winning `page_chunks.content` |
 | `matched_field` | Always `content` |
