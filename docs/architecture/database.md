@@ -134,6 +134,19 @@ erDiagram
 
 **Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
 
+### Conversation Suggestions
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `conversation_suggestions` | Per-participant suggestion of a related entity (`entity_similarity_score`, `llm_confidence`, `reason`, `notification_text`, `status`, `feedback_type`, `feedback_at`, `expires_at`) | → `workspaces`, → `conversations`, → `entities` (CASCADE), → `conversation_topics`, composite FK (conversation_id, workspace_user_id) → `conversation_participants` |
+| `conversation_suggestion_jobs` | Work queue per (conversation, participant): `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error` | → `conversations`, → `workspaces`, → `workspace_users`; UNIQUE(conversation_id, workspace_user_id) |
+
+**Status model.** `conversation_suggestion_status` is `PENDING` → `SHOWN` / `EXPIRED` only. A partial unique index on `(conversation_id, workspace_user_id) WHERE status = 'PENDING'` allows at most one live suggestion per participant per conversation; terminal rows accumulate as history.
+
+**Entity typing is not denormalized.** The suggestion row stores only `entity_id`; the kind comes from `entities.entity_type_id` → `entity_types`. `ON DELETE CASCADE` means a re-chunked passage drops its suggestion rather than dangling.
+
+**Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
+
 
 ## Key Indexes
 

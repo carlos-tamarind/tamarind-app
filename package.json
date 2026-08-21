@@ -100,10 +100,14 @@
   },
   "overrides": {
     "seroval": "^1.6.2",
-    "seroval-plugins": "^1.6.2"
+    "seroval-plugins": "^1.6.2",
+    "prosemirror-model": "^1.25.11",
+    "prosemirror-view": "^1.42.0"
   },
   "resolutions": {
     "seroval": "^1.6.2",
-    "seroval-plugins": "^1.6.2"
+    "seroval-plugins": "^1.6.2",
+    "prosemirror-model": "^1.25.11",
+    "prosemirror-view": "^1.42.0"
   }
 }
