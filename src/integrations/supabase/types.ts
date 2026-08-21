@@ -53,6 +53,195 @@ export type Database = {
           },
         ]
       }
+      conversation_suggestion_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          last_modified_at: string
+          next_retry_at: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["conversation_suggestion_job_status"]
+          workspace_id: string
+          workspace_user_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_modified_at?: string
+          next_retry_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["conversation_suggestion_job_status"]
+          workspace_id: string
+          workspace_user_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_modified_at?: string
+          next_retry_at?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["conversation_suggestion_job_status"]
+          workspace_id?: string
+          workspace_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_suggestion_jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestion_jobs_participant_fkey"
+            columns: ["conversation_id", "workspace_user_id"]
+            isOneToOne: true
+            referencedRelation: "conversation_participants"
+            referencedColumns: ["conversation_id", "workspace_user_id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestion_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestion_jobs_workspace_user_id_fkey"
+            columns: ["workspace_user_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_suggestions: {
+        Row: {
+          clicked_at: string | null
+          conversation_id: string
+          conversation_topic_id: string
+          created_at: string
+          dismissed_at: string | null
+          entity_id: string
+          entity_similarity_score: number
+          expires_at: string
+          feedback_at: string | null
+          feedback_type:
+            | Database["public"]["Enums"]["conversation_suggestion_feedback"]
+            | null
+          id: string
+          last_modified_at: string
+          llm_confidence: number
+          notification_text: string
+          reason: string
+          shown_at: string | null
+          status: Database["public"]["Enums"]["conversation_suggestion_status"]
+          workspace_id: string
+          workspace_user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          conversation_id: string
+          conversation_topic_id: string
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id: string
+          entity_similarity_score: number
+          expires_at?: string
+          feedback_at?: string | null
+          feedback_type?:
+            | Database["public"]["Enums"]["conversation_suggestion_feedback"]
+            | null
+          id?: string
+          last_modified_at?: string
+          llm_confidence: number
+          notification_text: string
+          reason: string
+          shown_at?: string | null
+          status?: Database["public"]["Enums"]["conversation_suggestion_status"]
+          workspace_id: string
+          workspace_user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          conversation_id?: string
+          conversation_topic_id?: string
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id?: string
+          entity_similarity_score?: number
+          expires_at?: string
+          feedback_at?: string | null
+          feedback_type?:
+            | Database["public"]["Enums"]["conversation_suggestion_feedback"]
+            | null
+          id?: string
+          last_modified_at?: string
+          llm_confidence?: number
+          notification_text?: string
+          reason?: string
+          shown_at?: string | null
+          status?: Database["public"]["Enums"]["conversation_suggestion_status"]
+          workspace_id?: string
+          workspace_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_suggestions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestions_participant_fkey"
+            columns: ["conversation_id", "workspace_user_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_participants"
+            referencedColumns: ["conversation_id", "workspace_user_id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestions_topic_fkey"
+            columns: ["conversation_topic_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_topics"
+            referencedColumns: ["id", "conversation_id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_suggestions_workspace_user_id_fkey"
+            columns: ["workspace_user_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_topic_evidences: {
         Row: {
           conversation_id: string
@@ -1481,6 +1670,14 @@ export type Database = {
     }
     Enums: {
       conversation_role: "admin" | "member" | "viewer"
+      conversation_suggestion_feedback: "positive" | "negative"
+      conversation_suggestion_job_status:
+        | "QUEUED"
+        | "PROCESSING"
+        | "RETRY_WAIT"
+        | "COMPLETED"
+        | "FAILED"
+      conversation_suggestion_status: "PENDING" | "SHOWN" | "EXPIRED"
       conversation_type: "direct" | "group" | "channel"
       cti_job_status:
         | "QUEUED"
@@ -1649,6 +1846,15 @@ export const Constants = {
   public: {
     Enums: {
       conversation_role: ["admin", "member", "viewer"],
+      conversation_suggestion_feedback: ["positive", "negative"],
+      conversation_suggestion_job_status: [
+        "QUEUED",
+        "PROCESSING",
+        "RETRY_WAIT",
+        "COMPLETED",
+        "FAILED",
+      ],
+      conversation_suggestion_status: ["PENDING", "SHOWN", "EXPIRED"],
       conversation_type: ["direct", "group", "channel"],
       cti_job_status: [
         "QUEUED",
