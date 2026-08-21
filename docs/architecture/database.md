@@ -188,7 +188,7 @@ erDiagram
 | `search_messages_keyword(...)` | Keyword search over normalized message text |
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
-| `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page) |
+| `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page); returns `chunk_id` of the winning chunk for passage deeplinks |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
 ## Row-Level Security
