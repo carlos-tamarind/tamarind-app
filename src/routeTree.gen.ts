@@ -21,6 +21,7 @@ import { Route as ApiRunPageEmbeddingWorkerRouteImport } from './routes/api/run-
 import { Route as ApiRunPageChunkingWorkerRouteImport } from './routes/api/run-page-chunking-worker'
 import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
 import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
+import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
@@ -96,6 +97,12 @@ const ApiRunCtiWorkerRoute = ApiRunCtiWorkerRouteImport.update({
   path: '/api/run-cti-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunConversationSuggestionWorkerRoute =
+  ApiRunConversationSuggestionWorkerRouteImport.update({
+    id: '/api/run-conversation-suggestion-worker',
+    path: '/api/run-conversation-suggestion-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
   id: '/api/generate-embeddings',
   path: '/api/generate-embeddings',
@@ -175,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
@@ -200,6 +208,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
@@ -227,6 +236,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
@@ -305,6 +317,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/generate-embeddings'
+    | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
     | '/api/run-page-chunking-worker'
@@ -332,6 +345,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
+  ApiRunConversationSuggestionWorkerRoute: typeof ApiRunConversationSuggestionWorkerRoute
   ApiRunCtiWorkerRoute: typeof ApiRunCtiWorkerRoute
   ApiRunEmbeddingWorkerRoute: typeof ApiRunEmbeddingWorkerRoute
   ApiRunPageChunkingWorkerRoute: typeof ApiRunPageChunkingWorkerRoute
@@ -430,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/api/run-cti-worker'
       fullPath: '/api/run-cti-worker'
       preLoaderRoute: typeof ApiRunCtiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-conversation-suggestion-worker': {
+      id: '/api/run-conversation-suggestion-worker'
+      path: '/api/run-conversation-suggestion-worker'
+      fullPath: '/api/run-conversation-suggestion-worker'
+      preLoaderRoute: typeof ApiRunConversationSuggestionWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-embeddings': {
@@ -561,6 +582,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
+  ApiRunConversationSuggestionWorkerRoute:
+    ApiRunConversationSuggestionWorkerRoute,
   ApiRunCtiWorkerRoute: ApiRunCtiWorkerRoute,
   ApiRunEmbeddingWorkerRoute: ApiRunEmbeddingWorkerRoute,
   ApiRunPageChunkingWorkerRoute: ApiRunPageChunkingWorkerRoute,
