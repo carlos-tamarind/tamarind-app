@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserLink } from "@/components/user-link";
+import { PinToggle } from "@/components/pin-toggle";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 type Collaborator = {
   workspaceUserId: string;
@@ -74,6 +76,7 @@ export function PageSettingsDialog({
   const closeOnNavigate = () => onOpenChange(false);
 
   return (
+    <TooltipProvider delayDuration={200}>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="detail">
         <DialogHeader>
@@ -85,12 +88,21 @@ export function PageSettingsDialog({
             <label className="text-xs font-semibold text-muted-foreground">
               Title
             </label>
-            <Input
-              value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
-              onBlur={onTitleCommit}
-              placeholder="Untitled"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                className="min-w-0 flex-1"
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+                onBlur={onTitleCommit}
+                placeholder="Untitled"
+              />
+              <PinToggle
+                workspaceId={workspaceId}
+                entityId={pageId}
+                kind="page"
+                className="size-8 shrink-0"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -175,5 +187,6 @@ export function PageSettingsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }
