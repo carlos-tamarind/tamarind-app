@@ -223,6 +223,30 @@ SELECT cron.schedule(
 
 Use a dedicated secret (`PAGE_SEMANTIC_WORKER_SECRET`) — do not reuse any other worker secret. Each tick sweeps due pages (`list_pages_due_for_topics`) then claims LLM jobs via `claim_page_topic_job`.
 
+## Conversation Suggestion Worker Cron
+
+```sql
+SELECT cron.schedule(
+  'run-conversation-suggestion-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-conversation-suggestion-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-conversation-suggestions-worker-secret', 'your-conversation-suggestions-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret (`CONVERSATION_SUGGESTIONS_WORKER_SECRET`). The worker body is still a
+placeholder; the queue RPCs and user-scoped search wrappers it will use are already live.
+
+
+
 
 ## Database Migrations
 
