@@ -98,6 +98,7 @@ Required in `.env.local`:
 - `PAGE_CHUNKING_WORKER_SECRET` (for page chunking cron endpoint testing)
 - `PAGE_EMBEDDING_WORKER_SECRET` (for page embedding cron endpoint testing)
 - `PAGE_SEMANTIC_WORKER_SECRET` (for page semantic cron endpoint testing)
+- `CONVERSATION_SUGGESTIONS_WORKER_SECRET` (for conversation suggestion cron endpoint testing)
 
 ## Supabase Setup
 
