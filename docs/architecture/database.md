@@ -224,6 +224,7 @@ Write patterns:
 | 2026-08-19 | Add `search_pages_semantic` RPC |
 | 2026-08-19 | Rename `page_embeddings` → `page_chunk_embeddings`, `page_semantics` → `page_topics`, `page_semantic_jobs` → `page_topic_jobs` (with indexes, constraints, triggers, RPCs); add `page_topic_embeddings` + enqueue trigger, `claim_page_topic_embedding_batch` RPC, and backfill |
 | 2026-08-20 | Entities registry revamp: drop `entity_annotations` + `annotation_type`, drop `entities.source_id` / `title` / `embedding`, shared-id invariant, `conversation` entity type, `idx_entities_workspace_type`, backfill, and lifecycle sync triggers |
+| 2026-08-21 | Page-chunk deeplink groundwork: `page_chunk` entity type, backfill, `trg_sync_entity_from_page_chunk`, and `search_pages_semantic` now returns `chunk_id` |
 
 ## Related Docs
 
