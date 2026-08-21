@@ -1371,6 +1371,10 @@ export type Database = {
         Returns: string
       }
       can_read_page: { Args: { _page_id: string }; Returns: boolean }
+      can_read_page_as: {
+        Args: { _page_id: string; _workspace_user_id: string }
+        Returns: boolean
+      }
       claim_conversation_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
@@ -1524,8 +1528,20 @@ export type Database = {
         Args: { _conversation_id: string }
         Returns: boolean
       }
+      is_conversation_participant_as: {
+        Args: { _conversation_id: string; _workspace_user_id: string }
+        Returns: boolean
+      }
       is_page_collaborator: { Args: { _page_id: string }; Returns: boolean }
+      is_page_collaborator_as: {
+        Args: { _page_id: string; _workspace_user_id: string }
+        Returns: boolean
+      }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      is_workspace_member_as: {
+        Args: { _workspace_id: string; _workspace_user_id: string }
+        Returns: boolean
+      }
       list_pages_due_for_chunking: {
         Args: { p_idle?: string; p_limit?: number }
         Returns: {
@@ -1626,6 +1642,27 @@ export type Database = {
           title: string
         }[]
       }
+      search_messages_semantic_for_user: {
+        Args: {
+          p_embedding: string
+          p_limit: number
+          p_recency_half_life_days?: number
+          p_similarity_threshold?: number
+          p_weight_quality?: number
+          p_weight_recency?: number
+          p_weight_similarity?: number
+          p_workspace_id: string
+          p_workspace_user_id: string
+        }
+        Returns: {
+          asset_id: string
+          conversation_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
       search_pages_keyword: {
         Args: { p_limit: number; p_query: string; p_workspace_id: string }
         Returns: {
@@ -1646,6 +1683,27 @@ export type Database = {
           p_weight_recency?: number
           p_weight_similarity?: number
           p_workspace_id: string
+        }
+        Returns: {
+          asset_id: string
+          chunk_id: string
+          match_text: string
+          matched_field: Database["public"]["Enums"]["search_matched_field"]
+          score: number
+          title: string
+        }[]
+      }
+      search_pages_semantic_for_user: {
+        Args: {
+          p_embedding: string
+          p_embedding_model?: string
+          p_limit: number
+          p_recency_half_life_days?: number
+          p_similarity_threshold?: number
+          p_weight_recency?: number
+          p_weight_similarity?: number
+          p_workspace_id: string
+          p_workspace_user_id: string
         }
         Returns: {
           asset_id: string
