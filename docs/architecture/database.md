@@ -148,6 +148,23 @@ erDiagram
 **Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
 
 **Configurable cooldown.** `list_conversation_suggestion_jobs_due` takes both the debounce (`p_idle`) and the negative-feedback cooldown (`p_cooldown`) as intervals from the caller — there is no hardcoded 14-day window. The worker supplies them from its TypeScript config (exploration default cooldown 120h) and re-checks the last negative `feedback_at` after claiming, since the due-list is only a pre-filter.
+### Pinned Entities
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `pinned_entities` | Per-workspace-user pins of a conversation or page (`created_at` only) | → `workspaces` (CASCADE), → `workspace_users` (CASCADE), → `entities` (CASCADE); UNIQUE(workspace_user_id, entity_id) |
+
+Replaces the earlier unused `pinned_assets` table and its `pinned_asset_type` enum, both dropped.
+
+**Entity typing is not denormalized.** The pin row stores only `entity_id`; the kind comes from `entities.entity_type_id` → `entity_types`. Only `conversation` and `page` are pinnable — messages, workspace users, and page chunks are rejected by the insert trigger.
+
+**Insert guard.** `trg_pinned_entities_validate` (BEFORE INSERT, `SECURITY DEFINER`) is the real ACL, since server functions run as `service_role` and bypass RLS. It requires `entities.workspace_id = pin.workspace_id`, workspace membership via `is_workspace_member_as`, and then `is_conversation_participant_as` / `can_read_page_as` for the respective kind.
+
+**Access.** Grants are `SELECT, INSERT, DELETE` to `authenticated` and `ALL` to `service_role`; there is no UPDATE path. RLS scopes every statement to `workspace_user_id = current_workspace_user_id(workspace_id)` plus workspace membership, and the INSERT `WITH CHECK` additionally requires the session helpers `is_conversation_participant` / `can_read_page` (the `_as` variants stay `service_role`-only).
+
+**Revocation.** CASCADE from `entities` removes pins when the conversation/page is deleted, and CASCADE from `workspace_users` removes them when the member leaves the workspace. Three further triggers drop pins that access changes would strand: `trg_unpin_on_conversation_participant_delete` (AFTER DELETE on `conversation_participants` — unpins that conversation and any page the user can no longer read), `trg_unpin_on_page_collaborator_delete`, and `trg_unpin_on_page_access_change` (AFTER UPDATE OF `visibility`, `owner_workspace_user_id`, `conversation_id` on `pages`).
+
+Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id, created_at DESC)`.
 
 
 ## Key Indexes
