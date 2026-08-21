@@ -264,7 +264,7 @@ A pg_cron job calls the conversation suggestion worker every minute via pg_net H
 
 [`runConversationSuggestionWorker`](../../src/semantic/conversation-suggestions/worker/runConversationSuggestionWorker.ts) is a placeholder returning zero counts. The database groundwork is live and ready for it:
 
-- `list_conversation_suggestion_jobs_due(p_idle, p_limit)` — participant × conversation pairs with a settled embedded message, no unexpired `PENDING` suggestion, no 14-day negative-feedback cooldown, and no in-flight job
+- `list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)` — participant × conversation pairs with a settled embedded message, no unexpired `PENDING` suggestion, no negative-feedback cooldown, and no in-flight job. Both intervals come from the caller: `p_idle` from the debounce config and `p_cooldown` from `CONVERSATION_SUGGESTION_COOLDOWN_MS` (exploration default 120h). The due-list is only an optimization — the TypeScript constant is the source of truth, so the worker re-reads the last negative `feedback_at` after claiming a job.
 - `enqueue_conversation_suggestion_job(p_conversation_id, p_workspace_user_id)` — upsert/reset the durable job row (`processing` is left alone)
 - `claim_conversation_suggestion_job(p_stale_after)` — claims one job (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery)
 - `apply_conversation_suggestion_result(...)` — atomically expires stale `PENDING` rows, inserts the suggestion (or commits "none"), and completes the job
