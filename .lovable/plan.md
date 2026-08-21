@@ -1,41 +1,55 @@
-# Review — conversation suggestions DB migration
+# Conversation suggestions — DB migration
 
-Overall the plan is sound and matches existing conventions (page_topic_jobs queue shape, service-role writes, RLS-gated reads). Below are the issues I verified against the live database plus the corrections I would apply before running the migration.
+Prepares the database for the upcoming conversation suggestions feature: two tables, three enums, queue RPCs, user-scoped search wrappers, plus the secret-guarded worker route stub and its cron schedule.
 
-## Blocking issues found
+## Decisions locked in
 
-**1. Partial unique index with `now()` will be rejected.** `now()` is not immutable, so it cannot appear in an index predicate. Use the fallback the document already anticipates: partial unique on `(workspace_user_id, conversation_id) WHERE status = 'PENDING'`, and enforce expiry (flip `PENDING` → `EXPIRED`) in the worker/RPC before inserting a new suggestion.
+- Partial unique index cannot use `now()` (not immutable) → unique on `PENDING` rows only; expiry enforced in the RPC/worker.
+- No denormalized `entity_type` column — readers join `entity_types` through `entities`.
+- `entity_id` FK → `entities(id)` **ON DELETE CASCADE** (page_chunk entities die on every re-chunk).
+- Status enum stays `PENDING` / `SHOWN` / `EXPIRED`; clicks and dismissals are timestamps.
+- Job table column names match `page_topic_jobs`: `attempts`, `started_at`, `completed_at`.
+- Version bump to `0.3.12`.
 
-**2. The denormalized `entity_type` cannot be FK-validated as written.** `entities` has only `PRIMARY KEY (id)` — no unique on `(id, entity_type_id)` — so there is no composite FK to keep `entity_type` honest. Options: add `UNIQUE (entities.id, entity_type_id)` and a composite FK, or drop the denormalized column and join `entity_types` (cheap, indexed). Recommendation: add the unique + composite FK so the CHECK and the real type can never diverge.
+## 1. Migration A — enums and tables
 
-**3. `entity_id` needs `ON DELETE CASCADE`.** `page_chunk` entities are deleted on every re-chunk. Without cascade, inserts of new suggestions are fine but old rows block chunk deletion and break the chunking worker.
+Enums: `conversation_suggestion_status` (`PENDING`, `SHOWN`, `EXPIRED`), `conversation_suggestion_feedback` (`positive`, `negative`), `conversation_suggestion_job_status` (`QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `FAILED`).
 
-**4. The user-scoped search wrappers need parameterized ACL helpers.** `can_read_page`, `is_conversation_participant` and `current_workspace_user_id` all resolve the caller via `auth.uid()` — under `service_role` cron they return nothing. So "wrap the existing function" is not enough; the migration must also add `_as_workspace_user` variants (e.g. `can_read_page_as(_page_id, _workspace_user_id)`, `is_conversation_participant_as(...)`) that take the user explicitly, with the same logic. The ranking SQL is still not forked — the `SECURITY DEFINER` wrapper calls the base RPC and post-filters — but the wrapper must over-fetch (e.g. `p_limit * 4`) before ACL filtering, otherwise ACL pruning silently shrinks results below `p_limit`.
+`conversation_suggestions`: id, workspace_id, workspace_user_id, conversation_id (+ composite FK to `conversation_participants`), entity_id (CASCADE), conversation_topic_id (composite FK to `conversation_topics(id, conversation_id)` — the required unique exists), status, `entity_similarity_score` and `llm_confidence` float4 CHECK 0..1, reason, notification_text, created_at, last_modified_at (trigger), expires_at default `now() + 48h`, shown_at / clicked_at / dismissed_at / feedback_at, feedback_type. CHECKs exactly as specified (ordering, timestamps require `shown_at`, feedback pair both-or-neither).
 
-## Smaller corrections
+`conversation_suggestion_jobs`: id, conversation_id, workspace_id, workspace_user_id, composite participant FK, `UNIQUE (conversation_id, workspace_user_id)`, status, `attempts` int CHECK >= 0, next_retry_at, `started_at`, `completed_at`, last_error, created_at, last_modified_at.
 
-- Every new public table needs explicit `GRANT`s in the same migration (`SELECT` to `authenticated`, `ALL` to `service_role`) — RLS alone leaves the Data API returning permission errors.
-- The composite FK `(conversation_id, workspace_user_id) → conversation_participants` already implies the conversation FK; keeping the standalone `conversation_id` FK is harmless but redundant. Keep it only for the explicit `ON DELETE CASCADE` semantics.
-- `status` has no `CLICKED`/`DISMISSED` value, so clicked/dismissed rows stay `SHOWN` and are distinguished only by timestamps. That is workable; confirm the reader queries assume it.
-- Column-name drift is intentional per the document (`attempt_count`, `processing_started_at`, `processing_completed_at` vs. the page tables' `attempts`, `started_at`, `completed_at`). Fine, but it means the page-jobs claim RPC cannot be copied verbatim.
-- `conversation_topics` does have `UNIQUE (id, conversation_id)`, so the composite topic FK works as written. `conversation_participants` PK is `(conversation_id, workspace_user_id)` — the composite FK works too. Both verified.
-- Job-table RLS: existing sibling tables (`page_topic_jobs`, `conversation_topic_jobs`) expose SELECT to `authenticated` only. Mirroring that is consistent.
+Indexes as drafted: unique partial on PENDING; `(workspace_user_id, conversation_id, entity_id, created_at DESC)`; `(workspace_user_id, conversation_id, feedback_type, feedback_at DESC)`; `(conversation_id, status)`; `expires_at`; `entity_id`; jobs claimable partial `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')`; stale `started_at WHERE status = 'PROCESSING'`.
 
-## Scope conflicts to resolve
+GRANTs in the same migration: `SELECT` to `authenticated`, `ALL` to `service_role` (plus `UPDATE` to `authenticated` on `conversation_suggestions` for the feedback path). RLS on both tables: suggestions readable/updatable when `workspace_user_id = current_workspace_user_id(workspace_id)` AND `is_conversation_participant(conversation_id)`; jobs SELECT-only for the owning participant; INSERT/DELETE service role only.
 
-- **Cron target does not exist.** The plan schedules `pg_cron` → `/api/public/internal/run-conversation-suggestion-worker`, but app changes are out of scope, so that route would 404 on every tick. Either create the secret-guarded route stub in this pass (as was done for the page-semantic worker) or defer scheduling the cron until the worker lands.
-- **Version number.** The document says bump to `0.3.12`, but `src/lib/version.ts` currently reads `0.3.111`. `0.3.12` would be a downgrade under string ordering; `0.3.112` is the consistent next patch.
+## 2. Migration B — user-scoped search wrappers
 
-## Proposed execution order (once the above are settled)
+Existing ACL helpers (`can_read_page`, `is_conversation_participant`, `current_workspace_user_id`) resolve the caller through `auth.uid()`, which is null under the service-role cron. So this migration adds explicit-user variants (`can_read_page_as(_page_id, _workspace_user_id)`, `is_conversation_participant_as(_conversation_id, _workspace_user_id)`) with the same logic, then:
 
-1. Migration A — enums, `conversation_suggestions`, `conversation_suggestion_jobs`, GRANTs, RLS policies, indexes, `last_modified_at` triggers, plus `UNIQUE (id, entity_type_id)` on `entities`.
-2. Migration B — parameterized ACL helpers and the two `SECURITY DEFINER` user-scoped search wrappers (`service_role` execute only).
-3. Migration C — the four queue RPCs (`list_..._due`, `enqueue_...`, `claim_...`, `apply_..._result`), `service_role` execute only.
-4. Secret `CONVERSATION_SUGGESTION_WORKER_SECRET` + cron schedule (only if the route stub is in scope).
-5. Regenerate `types.ts`, update `docs/architecture/database.md` (tables, indexes, functions, migration timeline) and `docs/cron/readme.md`, bump version.
+- `search_pages_semantic_for_user(p_workspace_user_id, ...)` and `search_messages_semantic_for_user(p_workspace_user_id, ...)` — `SECURITY DEFINER`, execute granted to `service_role` only.
+- Both call the existing ranking RPC unchanged (no forked ranking SQL), over-fetch (`p_limit * 4`) and post-filter by the user ACL before trimming to `p_limit`, so ACL pruning cannot silently shrink results.
+- Same return shapes, including `chunk_id` and `match_text`. Messages are **not** filtered to exclude the current conversation.
 
-## Open questions
+## 3. Migration C — queue RPCs (service_role execute only)
 
-- Create the worker route stub now, or hold the cron job until the app-side worker exists?
-- Confirm version target `0.3.112`.
-- Keep the denormalized `entity_type` (with the new composite FK) or drop it in favour of a join?
+- `list_conversation_suggestion_jobs_due(p_idle, p_limit)` — participant×conversation pairs with a winner topic, recent embedded message, no negative-feedback cooldown, no unexpired PENDING suggestion, and job missing / `COMPLETED` / `FAILED` / due `RETRY_WAIT`. Limit capped at 100.
+- `enqueue_conversation_suggestion_job(p_conversation_id, p_workspace_user_id)` — upsert returning `enqueued` / `requeued` / `processing`.
+- `claim_conversation_suggestion_job(p_stale_after)` — `FOR UPDATE SKIP LOCKED`, stale `PROCESSING` recovery via `started_at`, bumps `attempts`.
+- `apply_conversation_suggestion_result(...)` — expires stale PENDING rows, inserts the suggestion (or completes with none/reject) and sets the job `COMPLETED` + `completed_at` in one transaction; enforces PENDING uniqueness.
+
+## 4. Worker route stub and cron
+
+- `src/routes/api/public/internal/run-conversation-suggestion-worker.ts` — same shape as the page-semantic route: header `x-conversation-suggestions-worker-secret`, timing-safe compare, 503 when the secret is unset, 404 on mismatch, `DebugLogger` tick logging.
+- A minimal `runConversationSuggestionWorker()` placeholder under `src/semantic/conversation-suggestions/worker/` returning zero counters, so the endpoint is live but inert until the real worker lands.
+- Dev-only mirror route `src/routes/api/run-conversation-suggestion-worker.ts` for local triggering, matching the existing pattern.
+- Secret `CONVERSATION_SUGGESTIONS_WORKER_SECRET` (new, not reused).
+- `pg_cron` + `pg_net` job every 10 minutes against the stable project host.
+
+## 5. Types, docs, version
+
+Regenerate `src/integrations/supabase/types.ts`; update `docs/architecture/database.md` (tables, enums, indexes, functions, migration timeline), `docs/cron/readme.md`, `docs/api/readme.md`, `docs/deployment.md`; bump `src/lib/version.ts` to `0.3.12`.
+
+## Out of scope
+
+No suggestion engine, no UI, no changes to existing search strategies or the search overlay.
