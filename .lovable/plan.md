@@ -31,12 +31,13 @@ No RLS policy, constraint, or grant references the enum, so none change.
 - Regenerate `src/integrations/supabase/types.ts` (enum union loses `"NEW"`).
 - App version bumped to `0.3.124` unless you prefer another number.
 
-## Notification: one app file will otherwise be stale
+## Approved app-code change
 
-`src/semantic/messages/message-persistence/types.ts` declares:
+`src/semantic/messages/message-persistence/types.ts` currently declares:
 
 ```ts
 export type EmbeddingStatus = "NEW" | "QUEUED" | "PROCESSING" | "EMBEDDED" | "FAILED" | "SKIPPED";
 ```
 
-After the enum drop this hand-written union is wrong (nothing assigns `"NEW"`, so removing it is type-safe and non-behavioural). It is outside the stated scope, so I will only remove `"NEW"` from that union if you approve; otherwise the file stays as-is and simply over-declares one unreachable literal.
+`"NEW"` is removed from that union. Nothing assigns it, so the change is type-safe and non-behavioural.
+
