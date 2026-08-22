@@ -29,14 +29,15 @@ No RLS policy, constraint, or grant references the enum, so none change.
 - `docs/architecture/database.md`: enum table row for `embedding_status` drops `NEW`; add a migration-timeline entry dated 2026-08-22.
 - `docs/semantic/pipeline.md` line ~151: remove the `NEW (initial, rarely seen)` node from the state diagram; the pipeline inserts directly as `QUEUED` or `SKIPPED`.
 - Regenerate `src/integrations/supabase/types.ts` (enum union loses `"NEW"`).
-- App version bumped to `0.3.124` unless you prefer another number.
+- App version bumped from `0.3.132` to `0.3.133`.
 
-## Notification: one app file will otherwise be stale
+## Approved app-code change
 
-`src/semantic/messages/message-persistence/types.ts` declares:
+`src/semantic/messages/message-persistence/types.ts` currently declares:
 
 ```ts
 export type EmbeddingStatus = "NEW" | "QUEUED" | "PROCESSING" | "EMBEDDED" | "FAILED" | "SKIPPED";
 ```
 
-After the enum drop this hand-written union is wrong (nothing assigns `"NEW"`, so removing it is type-safe and non-behavioural). It is outside the stated scope, so I will only remove `"NEW"` from that union if you approve; otherwise the file stays as-is and simply over-declares one unreachable literal.
+`"NEW"` is removed from that union. Nothing assigns it, so the change is type-safe and non-behavioural.
+
