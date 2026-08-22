@@ -148,7 +148,7 @@ See [Page Semantics](page_semantic.md).
 
 ```
               persistMessageSemantics (no intermediate state)
-              ┌──────────┴──────────┐
+              ┌─────────────────────┐
               │                     │
         shouldEmbed=true      shouldEmbed=false
               │                     │
