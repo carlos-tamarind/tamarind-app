@@ -61,7 +61,7 @@ erDiagram
 | `page_origin` | `user`, `conversation`, `import`, `ai` |
 
 | `relation_type` | `quoted_from`, `derived_from_message`, `cited_in`, `child_of`, `attached_to`, `linked_by_user` |
-| `embedding_status` | `NEW`, `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` |
+| `embedding_status` | `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` (column default `QUEUED`) |
 | `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
 | `page_semantic_job_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `FAILED` |
 
@@ -258,6 +258,7 @@ Write patterns:
 | 2026-08-20 | Entities registry revamp: drop `entity_annotations` + `annotation_type`, drop `entities.source_id` / `title` / `embedding`, shared-id invariant, `conversation` entity type, `idx_entities_workspace_type`, backfill, and lifecycle sync triggers |
 | 2026-08-21 | Page-chunk deeplink groundwork: `page_chunk` entity type, backfill, `trg_sync_entity_from_page_chunk`, and `search_pages_semantic` now returns `chunk_id` |
 | 2026-08-21 | Drop unused `pinned_assets` + `pinned_asset_type`; add `pinned_entities` with insert-guard and access-revocation triggers |
+| 2026-08-22 | Drop unreachable `NEW` from `embedding_status`; default `message_semantics.embedding_status` to `QUEUED`; recreate status indexes and `cti_is_next_processable` |
 
 
 ## Related Docs

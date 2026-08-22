@@ -1,4 +1,4 @@
-export type EmbeddingStatus = "NEW" | "QUEUED" | "PROCESSING" | "EMBEDDED" | "FAILED" | "SKIPPED";
+export type EmbeddingStatus = "QUEUED" | "PROCESSING" | "EMBEDDED" | "FAILED" | "SKIPPED";
 
 export type MessageSemantics = {
   id: string;

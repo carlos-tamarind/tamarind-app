@@ -1803,7 +1803,6 @@ export type Database = {
         | "RETRY_WAIT"
         | "QUARANTINED"
       embedding_status:
-        | "NEW"
         | "QUEUED"
         | "PROCESSING"
         | "EMBEDDED"
@@ -1980,7 +1979,6 @@ export const Constants = {
         "QUARANTINED",
       ],
       embedding_status: [
-        "NEW",
         "QUEUED",
         "PROCESSING",
         "EMBEDDED",
