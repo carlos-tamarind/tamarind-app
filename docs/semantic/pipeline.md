@@ -149,8 +149,7 @@ See [Page Semantics](page_semantic.md).
 ```
                     persistMessageSemantics
                          │ (row inserted directly, no intermediate state)
-              ┌──────────┴──────────┐
-
+              │                     │
         shouldEmbed=true      shouldEmbed=false
               │                     │
               ▼                     ▼
