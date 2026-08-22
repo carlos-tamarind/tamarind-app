@@ -147,11 +147,8 @@ See [Page Semantics](page_semantic.md).
 ## Embedding Status Lifecycle
 
 ```
-                    ┌──────────┐
-                    │   NEW    │ (initial, rarely seen)
-                    └────┬─────┘
-                         │
-              ┌──────────┴──────────┐
+              persistMessageSemantics (no intermediate state)
+              ┌─────────────────────┐
               │                     │
         shouldEmbed=true      shouldEmbed=false
               │                     │
