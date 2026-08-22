@@ -147,8 +147,8 @@ See [Page Semantics](page_semantic.md).
 ## Embedding Status Lifecycle
 
 ```
-                    persistMessageSemantics
-                         │ (row inserted directly, no intermediate state)
+              persistMessageSemantics (no intermediate state)
+              ┌──────────┴──────────┐
               │                     │
         shouldEmbed=true      shouldEmbed=false
               │                     │
