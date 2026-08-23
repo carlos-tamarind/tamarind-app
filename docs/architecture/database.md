@@ -172,11 +172,25 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 |-------|---------|-------------------|
 | `purgeable_entity_types` | Registry of which entity kinds are trashable/purgeable: `entity_type_key` (PK, matches `entity_types.key`), `table_name`, `purge_order` | — (seeded with `message` = 10, `page` = 20) |
 
-**Soft delete.** `pages.purged_at` and `messages.purged_at` (both `timestamptz NULL`) mark trash state: non-null means "in trash, eligible for hard delete at that instant"; recover sets it back to NULL. Partial indexes `idx_pages_purged_at` / `idx_messages_purged_at` on `(purged_at) WHERE purged_at IS NOT NULL` keep trash lookups cheap. `messages.purged_at` is groundwork only — no message trash UI yet.
+**Soft delete.** `pages.purged_at` and `messages.purged_at` (both `timestamptz NULL`) mark trash state: non-null means "deleted, due for purge at that instant"; recover sets it back to NULL. Partial indexes `idx_pages_purged_at` / `idx_messages_purged_at` on `(purged_at) WHERE purged_at IS NOT NULL` keep trash lookups cheap.
 
-**Type-agnostic purge.** `purge_due_entities(p_entity_ids uuid[] DEFAULT NULL)` (`SECURITY DEFINER`, `service_role`-only) walks `purgeable_entity_types` in `purge_order` and deletes rows with `purged_at IS NOT NULL AND purged_at <= now()`, optionally intersected with `p_entity_ids`. It returns `TABLE(entity_type text, id uuid)` for everything actually deleted. Existing `ON DELETE CASCADE` chains handle semantics, chunks, embeddings, topics, suggestions, and the `entities` registry row (via the sync triggers). Adding a new deletable kind means adding a `purged_at` column plus one registry row — no change to the RPC.
+`purged_at` semantics differ per kind:
 
-**Deliberately unchanged.** `list_pages_due_for_chunking` / `list_pages_due_for_topics` still include trashed pages, and RLS is untouched — a trashed page stays readable under existing visibility so recover flows need no special policy. `purgeable_entity_types` has RLS enabled with a `USING (false)` SELECT policy; only `service_role` can read it.
+| Value | Page | Message |
+|-------|------|---------|
+| `NULL` | Live | Live |
+| Future | In trash, recoverable | `[Message deleted]` placeholder + author Undo; `raw_text` and evidences still present |
+| Past | Due for row **DELETE** | Placeholder, no Undo; after the worker tick: `raw_text = ''`, no semantics/jobs/evidences |
+
+**Type-agnostic purge.** `purge_due_entities(p_entity_ids uuid[] DEFAULT NULL)` (`SECURITY DEFINER`, `service_role`-only) walks `purgeable_entity_types` in `purge_order`, selects rows with `purged_at IS NOT NULL AND purged_at <= now()` (optionally intersected with `p_entity_ids`), and applies one of two strategies keyed on `entity_type_key`. It returns `TABLE(entity_type text, id uuid)` for everything processed.
+
+- **Delete strategy (default, e.g. `page`).** Hard-deletes the row; existing `ON DELETE CASCADE` chains handle semantics, chunks, embeddings, topics, suggestions, and the `entities` registry row (via the sync triggers). Adding a new hard-deletable kind means adding a `purged_at` column plus one registry row — no change to the RPC.
+- **Scrub strategy (`message`).** Keeps the row as a permanent tombstone so the `[Message deleted]` placeholder survives: deletes `conversation_topic_evidences`, `conversation_topic_jobs`, and `message_semantics` (embeddings cascade) for the due ids, then sets `messages.raw_text = ''`. `id`, `conversation_id`, `author_workspace_user_id`, `created_at` and `purged_at` are left intact, and because the message row is never deleted the `entities` registry row survives too. Topic recounting (`evidence_count`, `historical_weight`, candidate demotion, `conversations.current_topic_id`) is reconciled by the purge worker after the RPC returns.
+
+**Search and CTI exclusions.** `search_messages_keyword` and `search_messages_semantic` (and therefore `search_messages_semantic_for_user`) filter `m.purged_at IS NULL`, so a deleted message disappears from search immediately — during the grace window as well as after the scrub. `cti_is_next_processable` ignores earlier messages with `purged_at IS NOT NULL` (they are never blockers) and `claim_conversation_topic_job` skips jobs whose message is purged, so a deleted message cannot freeze a conversation's topic queue during its grace hour.
+
+**Deliberately unchanged.** `list_pages_due_for_chunking` / `list_pages_due_for_topics` still include trashed pages, and RLS is untouched — a trashed page stays readable under existing visibility so recover flows need no special policy, and message authors already hold `UPDATE` on their own rows (hard `DELETE` remains service_role-only). `purgeable_entity_types` has RLS enabled with a `USING (false)` SELECT policy; only `service_role` can read it.
+
 
 
 
