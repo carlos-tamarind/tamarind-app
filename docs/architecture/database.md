@@ -162,9 +162,22 @@ Replaces the earlier unused `pinned_assets` table and its `pinned_asset_type` en
 
 **Access.** Grants are `SELECT, INSERT, DELETE` to `authenticated` and `ALL` to `service_role`; there is no UPDATE path. RLS scopes every statement to `workspace_user_id = current_workspace_user_id(workspace_id)` plus workspace membership, and the INSERT `WITH CHECK` additionally requires the session helpers `is_conversation_participant` / `can_read_page` (the `_as` variants stay `service_role`-only).
 
-**Revocation.** CASCADE from `entities` removes pins when the conversation/page is deleted, and CASCADE from `workspace_users` removes them when the member leaves the workspace. Three further triggers drop pins that access changes would strand: `trg_unpin_on_conversation_participant_delete` (AFTER DELETE on `conversation_participants` — unpins that conversation and any page the user can no longer read), `trg_unpin_on_page_collaborator_delete`, and `trg_unpin_on_page_access_change` (AFTER UPDATE OF `visibility`, `owner_workspace_user_id`, `conversation_id` on `pages`).
+**Revocation.** CASCADE from `entities` removes pins when the conversation/page is deleted, and CASCADE from `workspace_users` removes them when the member leaves the workspace. Four further triggers drop pins that access changes would strand: `trg_unpin_on_conversation_participant_delete` (AFTER DELETE on `conversation_participants` — unpins that conversation and any page the user can no longer read), `trg_unpin_on_page_collaborator_delete`, `trg_unpin_on_page_access_change` (AFTER UPDATE OF `visibility`, `owner_workspace_user_id`, `conversation_id` on `pages`), and `trg_pages_unpin_on_purge` (AFTER UPDATE OF `purged_at` when it goes NULL → non-null — trashing a page unpins it for every user; recovering does **not** restore pins).
 
 Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id, created_at DESC)`.
+
+### Entity Deletion (Trash & Purge)
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `purgeable_entity_types` | Registry of which entity kinds are trashable/purgeable: `entity_type_key` (PK, matches `entity_types.key`), `table_name`, `purge_order` | — (seeded with `message` = 10, `page` = 20) |
+
+**Soft delete.** `pages.purged_at` and `messages.purged_at` (both `timestamptz NULL`) mark trash state: non-null means "in trash, eligible for hard delete at that instant"; recover sets it back to NULL. Partial indexes `idx_pages_purged_at` / `idx_messages_purged_at` on `(purged_at) WHERE purged_at IS NOT NULL` keep trash lookups cheap. `messages.purged_at` is groundwork only — no message trash UI yet.
+
+**Type-agnostic purge.** `purge_due_entities(p_entity_ids uuid[] DEFAULT NULL)` (`SECURITY DEFINER`, `service_role`-only) walks `purgeable_entity_types` in `purge_order` and deletes rows with `purged_at IS NOT NULL AND purged_at <= now()`, optionally intersected with `p_entity_ids`. It returns `TABLE(entity_type text, id uuid)` for everything actually deleted. Existing `ON DELETE CASCADE` chains handle semantics, chunks, embeddings, topics, suggestions, and the `entities` registry row (via the sync triggers). Adding a new deletable kind means adding a `purged_at` column plus one registry row — no change to the RPC.
+
+**Deliberately unchanged.** `list_pages_due_for_chunking` / `list_pages_due_for_topics` still include trashed pages, and RLS is untouched — a trashed page stays readable under existing visibility so recover flows need no special policy. `purgeable_entity_types` has RLS enabled with a `USING (false)` SELECT policy; only `service_role` can read it.
+
 
 
 ## Key Indexes
