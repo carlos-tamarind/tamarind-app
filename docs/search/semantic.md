@@ -80,7 +80,7 @@ flowchart TB
   Dedupe --> Return["Top p_limit rows"]
 ```
 
-1. **Nearest candidates** — Order `message_embeddings` by cosine distance (`<=>`) to the query vector; fetch `p_limit * 3` rows where `is_active = true` and message belongs to the workspace
+1. **Nearest candidates** — Order `message_embeddings` by cosine distance (`<=>`) to the query vector; fetch `p_limit * 3` rows where `is_active = true`, the message belongs to the workspace, and `messages.purged_at IS NULL` (deleted messages are excluded immediately, before the purge worker scrubs them)
 2. **Threshold filter** — Keep rows where `1 - distance >= p_similarity_threshold`
 3. **Score blend** — For each candidate:
 

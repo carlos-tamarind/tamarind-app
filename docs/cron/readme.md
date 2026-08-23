@@ -304,10 +304,12 @@ A pg_cron job (`run-purge-worker`) calls the purge endpoint **hourly** (`0 * * *
 
 1. Reads `purgeable_entity_types` ordered by `purge_order` (logging/observability only)
 2. Rewrites mentions/quotes that point at entities about to disappear (page mentions become `[Deleted page]`)
-3. Calls the service-role `purge_due_entities()` RPC with no `p_entity_ids` (global sweep); the RPC walks the registry and hard-deletes rows whose `purged_at <= now()`
-4. Returns `{ purged, byType }` aggregated from the deleted rows
+3. Calls the service-role `purge_due_entities()` RPC with no `p_entity_ids` (global sweep); the RPC walks the registry and processes rows whose `purged_at <= now()` — **pages are hard-deleted**, **messages are scrubbed in place** (evidences, topic jobs and semantics deleted, `raw_text` emptied) so the `[Message deleted]` placeholder survives forever
+4. Reconciles conversation topics for scrubbed messages (evidence recount, weight decay, candidate demotion, `current_topic_id` reselection) — the RPC intentionally does not do this
+5. Returns `{ purged, byType }` aggregated from the returned rows
 
 The worker never hardcodes table names — adding a deletable entity type is a registry row, not a code change. Mention rewrite runs immediately before the RPC so remaining links become plain `[Deleted page]` text.
+
 
 ## Dev Manual Triggers
 

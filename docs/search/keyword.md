@@ -85,6 +85,8 @@ Mapped to `SearchResult` with `assetType: "message"`.
 
 Only messages that passed normalization and were persisted to `message_semantics` are searchable. Raw message text is not queried directly.
 
+Deleted messages are excluded: the RPC filters `messages.purged_at IS NULL`, so a message disappears from results as soon as its author deletes it — during the 1-hour Undo window as well as after the purge worker scrubs it.
+
 ### `search_people_keyword`
 
 | Field | Source |
