@@ -374,6 +374,10 @@
   background-color: var(--accent-subtle);
   transition: background-color var(--motion-fast) var(--ease-out);
 }
+.mention-member,
+.mention-conversation {
+  vertical-align: middle;
+}
 .mention-member:hover,
 .mention-page:hover,
 .mention-conversation:hover {
@@ -382,31 +386,34 @@
 .mention-member-self {
   cursor: default;
 }
-.mention-icon {
+.mention-icon,
+.mention-avatar,
+.mention-avatar-fallback {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
 }
 .mention-avatar {
-  width: 1em;
-  height: 1em;
   border-radius: 9999px;
   object-fit: cover;
-  flex-shrink: 0;
 }
 .mention-avatar-fallback {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 1em;
-  height: 1em;
   border-radius: 9999px;
-  flex-shrink: 0;
   font-size: 0.55em;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
   color: var(--muted-foreground);
   background-color: var(--muted);
+}
+.prose img.mention-avatar,
+.prose-sm img.mention-avatar {
+  margin: 0;
+  display: block;
 }
 .ProseMirror a {
   color: var(--primary);
