@@ -23,6 +23,7 @@ import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embe
 import { Route as ApiRunPageChunkingWorkerRouteImport } from './routes/api/run-page-chunking-worker'
 import { Route as ApiRunPageEmbeddingWorkerRouteImport } from './routes/api/run-page-embedding-worker'
 import { Route as ApiRunPageSemanticWorkerRouteImport } from './routes/api/run-page-semantic-worker'
+import { Route as ApiRunPurgeWorkerRouteImport } from './routes/api/run-purge-worker'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
@@ -32,6 +33,7 @@ import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './route
 import { Route as ApiPublicInternalRunPageChunkingWorkerRouteImport } from './routes/api/public/internal/run-page-chunking-worker'
 import { Route as ApiPublicInternalRunPageEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-page-embedding-worker'
 import { Route as ApiPublicInternalRunPageSemanticWorkerRouteImport } from './routes/api/public/internal/run-page-semantic-worker'
+import { Route as ApiPublicInternalRunPurgeWorkerRouteImport } from './routes/api/public/internal/run-purge-worker'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 
@@ -108,6 +110,11 @@ const ApiRunPageSemanticWorkerRoute =
     path: '/api/run-page-semantic-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiRunPurgeWorkerRoute = ApiRunPurgeWorkerRouteImport.update({
+  id: '/api/run-purge-worker',
+  path: '/api/run-purge-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWWorkspaceIdRoute =
   AuthenticatedWWorkspaceIdRouteImport.update({
     id: '/w/$workspaceId',
@@ -161,6 +168,12 @@ const ApiPublicInternalRunPageSemanticWorkerRoute =
     path: '/api/public/internal/run-page-semantic-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalRunPurgeWorkerRoute =
+  ApiPublicInternalRunPurgeWorkerRouteImport.update({
+    id: '/api/public/internal/run-purge-worker',
+    path: '/api/public/internal/run-purge-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedWWorkspaceIdCConversationIdRoute =
   AuthenticatedWWorkspaceIdCConversationIdRouteImport.update({
     id: '/c/$conversationId',
@@ -188,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
   '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
+  '/api/run-purge-worker': typeof ApiRunPurgeWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -197,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
+  '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -214,6 +229,7 @@ export interface FileRoutesByTo {
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
   '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
+  '/api/run-purge-worker': typeof ApiRunPurgeWorkerRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -223,6 +239,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
+  '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -242,6 +259,7 @@ export interface FileRoutesById {
   '/api/run-page-chunking-worker': typeof ApiRunPageChunkingWorkerRoute
   '/api/run-page-embedding-worker': typeof ApiRunPageEmbeddingWorkerRoute
   '/api/run-page-semantic-worker': typeof ApiRunPageSemanticWorkerRoute
+  '/api/run-purge-worker': typeof ApiRunPurgeWorkerRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
@@ -251,6 +269,7 @@ export interface FileRoutesById {
   '/api/public/internal/run-page-chunking-worker': typeof ApiPublicInternalRunPageChunkingWorkerRoute
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
+  '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -270,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
     | '/api/run-page-semantic-worker'
+    | '/api/run-purge-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -279,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-chunking-worker'
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
+    | '/api/public/internal/run-purge-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -296,6 +317,7 @@ export interface FileRouteTypes {
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
     | '/api/run-page-semantic-worker'
+    | '/api/run-purge-worker'
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
@@ -305,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-chunking-worker'
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
+    | '/api/public/internal/run-purge-worker'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -323,6 +346,7 @@ export interface FileRouteTypes {
     | '/api/run-page-chunking-worker'
     | '/api/run-page-embedding-worker'
     | '/api/run-page-semantic-worker'
+    | '/api/run-purge-worker'
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
@@ -332,6 +356,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-chunking-worker'
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
+    | '/api/public/internal/run-purge-worker'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -351,6 +376,7 @@ export interface RootRouteChildren {
   ApiRunPageChunkingWorkerRoute: typeof ApiRunPageChunkingWorkerRoute
   ApiRunPageEmbeddingWorkerRoute: typeof ApiRunPageEmbeddingWorkerRoute
   ApiRunPageSemanticWorkerRoute: typeof ApiRunPageSemanticWorkerRoute
+  ApiRunPurgeWorkerRoute: typeof ApiRunPurgeWorkerRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
   ApiPublicInternalRunConversationSuggestionWorkerRoute: typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
   ApiPublicInternalRunCtiWorkerRoute: typeof ApiPublicInternalRunCtiWorkerRoute
@@ -358,6 +384,7 @@ export interface RootRouteChildren {
   ApiPublicInternalRunPageChunkingWorkerRoute: typeof ApiPublicInternalRunPageChunkingWorkerRoute
   ApiPublicInternalRunPageEmbeddingWorkerRoute: typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   ApiPublicInternalRunPageSemanticWorkerRoute: typeof ApiPublicInternalRunPageSemanticWorkerRoute
+  ApiPublicInternalRunPurgeWorkerRoute: typeof ApiPublicInternalRunPurgeWorkerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -460,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRunPageSemanticWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/run-purge-worker': {
+      id: '/api/run-purge-worker'
+      path: '/api/run-purge-worker'
+      fullPath: '/api/run-purge-worker'
+      preLoaderRoute: typeof ApiRunPurgeWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/w/$workspaceId': {
       id: '/_authenticated/w/$workspaceId'
       path: '/w/$workspaceId'
@@ -521,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/internal/run-page-semantic-worker'
       fullPath: '/api/public/internal/run-page-semantic-worker'
       preLoaderRoute: typeof ApiPublicInternalRunPageSemanticWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-purge-worker': {
+      id: '/api/public/internal/run-purge-worker'
+      path: '/api/public/internal/run-purge-worker'
+      fullPath: '/api/public/internal/run-purge-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunPurgeWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/w/$workspaceId/c/$conversationId': {
@@ -589,6 +630,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRunPageChunkingWorkerRoute: ApiRunPageChunkingWorkerRoute,
   ApiRunPageEmbeddingWorkerRoute: ApiRunPageEmbeddingWorkerRoute,
   ApiRunPageSemanticWorkerRoute: ApiRunPageSemanticWorkerRoute,
+  ApiRunPurgeWorkerRoute: ApiRunPurgeWorkerRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
   ApiPublicInternalRunConversationSuggestionWorkerRoute:
     ApiPublicInternalRunConversationSuggestionWorkerRoute,
@@ -601,6 +643,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicInternalRunPageEmbeddingWorkerRoute,
   ApiPublicInternalRunPageSemanticWorkerRoute:
     ApiPublicInternalRunPageSemanticWorkerRoute,
+  ApiPublicInternalRunPurgeWorkerRoute: ApiPublicInternalRunPurgeWorkerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
