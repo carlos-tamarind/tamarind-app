@@ -250,7 +250,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
 | `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page); returns `chunk_id` of the winning chunk for passage deeplinks |
-| `purge_due_entities(p_entity_ids)` | Trash: hard-delete due trashed rows across every kind listed in `purgeable_entity_types` (service_role only) |
+| `purge_due_entities(p_entity_ids)` | Trash: process due trashed rows across every kind listed in `purgeable_entity_types` — hard-delete for pages, scrub-in-place for messages (service_role only) |
 | `unpin_on_page_purge()` | Trigger on `pages`: drops all pins for a page when it is moved to trash |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
