@@ -1,4 +1,4 @@
-import { FileLock, Building2, MessageSquareLock } from "lucide-react";
+import { FileLock, Building2, MessageSquareLock, MessageSquareShare, Copy, Trash2 } from "lucide-react";
 
 import {
   Dialog,
@@ -11,7 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserLink } from "@/components/user-link";
 import { PinToggle } from "@/components/pin-toggle";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PageDeletionBanner } from "@/components/page/page-deletion-banner";
+import { isTrashed } from "@/lib/delete-entities/config";
 
 type Collaborator = {
   workspaceUserId: string;
@@ -33,10 +40,15 @@ export function PageSettingsDialog({
   ownerDisplayName,
   ownerWorkspaceUserId,
   visibility,
+  isOwner = false,
+  purgedAt,
   collaborators,
   onPublish,
   onShare,
   onDuplicate,
+  onTrash,
+  onRecover,
+  onEraseNow,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,11 +62,16 @@ export function PageSettingsDialog({
   ownerWorkspaceUserId: string | null;
   visibility: PageVisibility;
   isOwner?: boolean;
+  purgedAt?: string | null;
   collaborators: Collaborator[];
   onPublish: () => void;
   onShare: () => void;
   onDuplicate: () => void;
+  onTrash?: () => void;
+  onRecover?: () => void;
+  onEraseNow?: () => void;
 }) {
+  const trashed = isTrashed(purgedAt);
   const visibilityLabel =
     visibility === "private" ? (
       <>
@@ -71,8 +88,8 @@ export function PageSettingsDialog({
     );
 
   const showCollaborators = visibility === "conversation" || visibility === "external";
-  const showPublish = visibility === "private";
-  const showShare = visibility !== "workspace";
+  const showPublish = visibility === "private" && !trashed;
+  const showShare = visibility !== "workspace" && !trashed;
   const closeOnNavigate = () => onOpenChange(false);
 
   return (
@@ -96,12 +113,14 @@ export function PageSettingsDialog({
                 onBlur={onTitleCommit}
                 placeholder="Untitled"
               />
-              <PinToggle
-                workspaceId={workspaceId}
-                entityId={pageId}
-                kind="page"
-                className="size-8 shrink-0"
-              />
+              {!trashed && (
+                <PinToggle
+                  workspaceId={workspaceId}
+                  entityId={pageId}
+                  kind="page"
+                  className="size-8 shrink-0"
+                />
+              )}
             </div>
           </div>
 
@@ -170,21 +189,52 @@ export function PageSettingsDialog({
           )}
         </div>
 
-        <DialogFooter className="flex-row gap-2 sm:justify-between">
-          {showPublish && (
-            <Button variant="secondary" className="flex-1" onClick={onPublish}>
-              <Building2 className="size-3.5" /> Publish
-            </Button>
-          )}
-          {showShare && (
-            <Button variant="secondary" className="flex-1" onClick={onShare}>
-              Share
-            </Button>
-          )}
-          <Button variant="secondary" className="flex-1" onClick={onDuplicate}>
-            Duplicate
-          </Button>
-        </DialogFooter>
+        {trashed && purgedAt ? (
+          <DialogFooter className="sm:justify-start">
+            <PageDeletionBanner
+              purgedAt={purgedAt}
+              isOwner={isOwner}
+              onRecover={onRecover}
+              onEraseNow={onEraseNow}
+            />
+          </DialogFooter>
+        ) : (
+          <>
+            <DialogFooter className="flex-row justify-center gap-2 sm:justify-center">
+              {showPublish && (
+                <Button variant="secondary" onClick={onPublish}>
+                  <Building2 className="size-3.5" /> Publish
+                </Button>
+              )}
+              {showShare && (
+                <Button variant="secondary" onClick={onShare}>
+                  <MessageSquareShare className="size-3.5" /> Share
+                </Button>
+              )}
+              <Button variant="secondary" onClick={onDuplicate}>
+                <Copy className="size-3.5" /> Duplicate
+              </Button>
+            </DialogFooter>
+            {isOwner && onTrash && (
+              <div className="flex justify-end">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      aria-label="Delete page"
+                      onClick={onTrash}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Delete page</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </>
+        )}
       </DialogContent>
     </Dialog>
     </TooltipProvider>

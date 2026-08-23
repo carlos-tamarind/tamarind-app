@@ -6,7 +6,7 @@ import {
   useParams,
   useSearch,
 } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Tooltip,
@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Settings } from "lucide-react";
+import { toast } from "sonner";
 import type { PanelImperativeHandle } from "react-resizable-panels";
 
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
-import { listMyPages } from "@/lib/pages.functions";
+import { listMyPages, recoverPage } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
 import { usePinnedEntities } from "@/hooks/use-pinned-entities";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
@@ -82,8 +83,10 @@ function WorkspaceShell() {
   const toggleRail = useCallback(() => setRailOpen((v) => !v), []);
 
   const fetchPages = useServerFn(listMyPages);
+  const recoverTrashedPage = useServerFn(recoverPage);
   const fetchConvs = useServerFn(listMyConversations);
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
+  const queryClient = useQueryClient();
 
   const { data: workspaces } = useQuery({
     queryKey: ["my-workspaces"],
@@ -328,6 +331,18 @@ function WorkspaceShell() {
                   pinnedConversationIds={pins.pins.conversations}
                   pinnedPageIds={pins.pins.pages}
                   onUnpin={(entityId, kind) => pins.setPinned(entityId, kind, false)}
+                  onRecoverPage={async (id) => {
+                    try {
+                      await recoverTrashedPage({ data: { pageId: id } });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["pages-list", workspaceId],
+                      });
+                      await queryClient.invalidateQueries({ queryKey: ["page", id] });
+                      toast("Page recovered");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Could not recover page");
+                    }
+                  }}
                   activeConversationId={conversationId}
                   activePageId={pageId}
                   profile={profile}

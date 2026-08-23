@@ -41,7 +41,7 @@ Resizable, collapsible. Icon rail (always visible when the panel is open or fold
 | Knowledge base | Placeholder (“coming soon”) |
 | Create | New conversation / new page |
 
-Sections use uppercase labels (`Section` in [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx)). Fold and open-section state persist in `localStorage`.
+Sections use uppercase labels (`Section` in [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx)). The pages list includes Private library, From conversations, Public pages, and Deleted (owner-trashed pages only). Fold and open-section state persist in `localStorage`.
 
 ### Search
 

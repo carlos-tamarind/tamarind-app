@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
 import {
-  Archive,
   Bookmark,
   BookmarkX,
   Building2,
@@ -24,6 +23,8 @@ import {
   Plus,
   Search,
   SquarePen,
+  Trash2,
+  Undo2,
   User as UserIcon,
   Users,
 } from "lucide-react";
@@ -65,6 +66,8 @@ export type NavPage = {
   title: string | null;
   visibility: string;
   lastModifiedAt?: string | null;
+  purgedAt?: string | null;
+  ownerWorkspaceUserId?: string | null;
 };
 
 type Props = {
@@ -79,9 +82,11 @@ type Props = {
   pinnedConversationIds?: string[];
   pinnedPageIds?: string[];
   onUnpin?: (entityId: string, kind: "conversation" | "page") => void;
+  onRecoverPage?: (pageId: string) => void;
   activeConversationId?: string;
   activePageId?: string;
   profile?: {
+    workspaceUserId?: string | null;
     displayName?: string | null;
     email?: string | null;
     avatarUrl?: string | null;
@@ -102,7 +107,11 @@ function readCollapsedSections(): Set<string> {
     const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? new Set(parsed as string[]) : new Set();
+    if (!Array.isArray(parsed)) return new Set();
+    const ids = (parsed as string[]).map((id) =>
+      id === "archived" ? "deleted" : id,
+    );
+    return new Set(ids);
   } catch {
     return new Set();
   }
@@ -232,6 +241,7 @@ export function NavigationPanel({
   pinnedConversationIds = [],
   pinnedPageIds = [],
   onUnpin,
+  onRecoverPage,
   activeConversationId,
   activePageId,
   profile,
@@ -294,17 +304,28 @@ export function NavigationPanel({
     () => conversations.filter((c) => c.type !== "direct"),
     [conversations],
   );
+  const myWorkspaceUserId = profile?.workspaceUserId ?? null;
+  const isOwnerTrashed = (p: NavPage) =>
+    !!p.purgedAt && p.ownerWorkspaceUserId === myWorkspaceUserId;
+  const inLiveSection = (p: NavPage) => !isOwnerTrashed(p);
+
   const privatePages = useMemo(
-    () => pages.filter((p) => p.visibility === "private"),
-    [pages],
+    () => pages.filter((p) => p.visibility === "private" && inLiveSection(p)),
+    [pages, myWorkspaceUserId],
   );
   const conversationPages = useMemo(
-    () => pages.filter((p) => p.visibility === "conversation"),
-    [pages],
+    () =>
+      pages.filter((p) => p.visibility === "conversation" && inLiveSection(p)),
+    [pages, myWorkspaceUserId],
   );
   const workspacePages = useMemo(
-    () => pages.filter((p) => p.visibility === "workspace"),
-    [pages],
+    () =>
+      pages.filter((p) => p.visibility === "workspace" && inLiveSection(p)),
+    [pages, myWorkspaceUserId],
+  );
+  const deletedPages = useMemo(
+    () => pages.filter((p) => isOwnerTrashed(p)),
+    [pages, myWorkspaceUserId],
   );
   const pinnedConversations = useMemo(() => {
     const ids = new Set(pinnedConversationIds);
@@ -439,7 +460,10 @@ export function NavigationPanel({
     );
   };
 
-  const pageItem = (p: NavPage, opts?: { onUnpin?: () => void }) => {
+  const pageItem = (
+    p: NavPage,
+    opts?: { onUnpin?: () => void; onRecover?: () => void },
+  ) => {
     const active = activePageId === p.id;
     const VisibilityIcon =
       p.visibility === "private"
@@ -450,13 +474,15 @@ export function NavigationPanel({
             ? MessageSquareLock
             : null;
     const unpinHint = "Un-pin this page";
+    const recoverHint = "Recover page";
+    const hasTrailingAction = !!(opts?.onUnpin || opts?.onRecover);
     return (
       <li key={p.id} className="relative">
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
           search={(prev) => withPage(prev, p.id)}
-          className={`${rowClass(active)} ${opts?.onUnpin ? "pr-8" : ""}`}
+          className={`${rowClass(active)} ${hasTrailingAction ? "pr-8" : ""}`}
         >
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
@@ -486,6 +512,25 @@ export function NavigationPanel({
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">{unpinHint}</TooltipContent>
+          </Tooltip>
+        ) : null}
+        {opts?.onRecover ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={recoverHint}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  opts.onRecover?.();
+                }}
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-[color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              >
+                <Undo2 className="size-3.5" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{recoverHint}</TooltipContent>
           </Tooltip>
         ) : null}
       </li>
@@ -735,14 +780,24 @@ export function NavigationPanel({
                   <ul className="space-y-px">{workspacePages.map((p) => pageItem(p))}</ul>
                 </Section>
                 <Section
-                  id="archived"
-                  icon={Archive}
-                  label="Archived"
-                  empty
-                  emptyHint="Archived pages will appear here"
-                  isCollapsed={collapsedSections.has("archived")}
+                  id="deleted"
+                  icon={Trash2}
+                  label="Deleted"
+                  empty={deletedPages.length === 0}
+                  emptyHint="Deleted pages will appear here"
+                  isCollapsed={collapsedSections.has("deleted")}
                   onToggle={toggleSectionOpen}
-                />
+                >
+                  <ul className="space-y-px">
+                    {deletedPages.map((p) =>
+                      pageItem(p, {
+                        onRecover: onRecoverPage
+                          ? () => onRecoverPage(p.id)
+                          : undefined,
+                      }),
+                    )}
+                  </ul>
+                </Section>
               </div>
             ) : (
               <p className="px-2 py-2 text-sm text-muted-foreground">
