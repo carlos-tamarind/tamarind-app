@@ -374,6 +374,12 @@
   background-color: var(--accent-subtle);
   transition: background-color var(--motion-fast) var(--ease-out);
 }
+.mention-member,
+.mention-conversation {
+  vertical-align: middle;
+  padding: 0.12em 0.4em 0.12em 0.3em;
+  gap: 0.3em;
+}
 .mention-member:hover,
 .mention-page:hover,
 .mention-conversation:hover {
@@ -386,6 +392,62 @@
   width: 1em;
   height: 1em;
   flex-shrink: 0;
+}
+.mention-avatar,
+.mention-avatar-fallback {
+  width: 1.15em;
+  height: 1.15em;
+  min-width: 1.15em;
+  max-width: 1.15em;
+  flex: 0 0 1.15em;
+  flex-shrink: 0;
+}
+.mention-avatar {
+  border-radius: 9999px;
+  object-fit: cover;
+}
+.mention-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.6em;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  background-color: var(--muted);
+}
+/* TipTap editors break anywhere by default; keep avatar initials on one line. */
+.ProseMirror .mention-member,
+.ProseMirror .mention-conversation {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.ProseMirror .mention-avatar-fallback {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.ProseMirror .mention-avatar,
+.ProseMirror .mention-avatar-fallback {
+  width: 1.15em;
+  height: 1.15em;
+  min-width: 1.15em;
+  max-width: 1.15em;
+  flex: 0 0 1.15em;
+}
+.prose img.mention-avatar,
+.prose-sm img.mention-avatar {
+  margin: 0;
+  display: block;
+  width: 1.15em;
+  height: 1.15em;
+  min-width: 1.15em;
+  max-width: none;
+  object-fit: cover;
+  border-radius: 9999px;
 }
 .ProseMirror a {
   color: var(--primary);

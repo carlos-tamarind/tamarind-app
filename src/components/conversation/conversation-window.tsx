@@ -18,9 +18,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
+import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -63,6 +62,7 @@ import {
   recoverMessage,
   listMentionablePages,
   listWorkspaceMembers,
+  listMyConversations,
   renameConversation,
 } from "@/lib/conversations.functions";
 import { PinToggle } from "@/components/pin-toggle";
@@ -71,8 +71,12 @@ import { AddParticipantsDialog } from "@/components/conversation/add-participant
 import { ConversationSuggestionNudge } from "@/components/conversation/conversation-suggestion-nudge";
 import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
-import { MemberMention, PageMention } from "@/components/editor/custom-mentions";
-import { MentionList, type MentionItem } from "@/components/editor/mention-list";
+import { MemberMention, PageMention, ConversationMention } from "@/components/editor/custom-mentions";
+import {
+  buildEntityMentionSuggestion,
+  buildMentionSuggestion,
+} from "@/components/editor/mention-suggestion";
+import { fetchMentionEntities } from "@/lib/mention-entities";
 import { QuoteBlock } from "@/components/editor/quote-node";
 import { UserLink } from "@/components/user-link";
 import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
@@ -86,7 +90,7 @@ import {
   isTrashed,
 } from "@/lib/delete-entities/config";
 import { computeMessageTrashPurgedAt } from "@/lib/delete-entities/messages/trash";
-import { withPage } from "@/lib/workspace-search";
+import { withPage, withConversation } from "@/lib/workspace-search";
 import {
   getComposerDraft,
   removeComposerDraft,
@@ -226,10 +230,20 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "POLYLINE",
   "POLYGON",
   "G",
+  "IMG",
 ]);
 
-const ALLOWED_MENTION_CLASSES = new Set(["mention-member", "mention-page"]);
-const KEEP_ATTRS_ON_MENTION = new Set(["class", "data-id", "data-label"]);
+const ALLOWED_MENTION_CLASSES = new Set([
+  "mention-member",
+  "mention-page",
+  "mention-conversation",
+]);
+const KEEP_ATTRS_ON_MENTION = new Set([
+  "class",
+  "data-id",
+  "data-label",
+  "data-avatar-url",
+]);
 const KEEP_ATTRS_ON_QUOTE = new Set([
   "class",
   "data-quote-id",
@@ -337,6 +351,11 @@ function sanitizeMessageHtml(
         continue;
       }
       if (tag === "SPAN") {
+        if (el.classList.contains("mention-avatar-fallback")) {
+          el.setAttribute("class", "mention-avatar-fallback");
+          walk(el);
+          continue;
+        }
         const mentionClass = Array.from(el.classList).find((cls) =>
           ALLOWED_MENTION_CLASSES.has(cls),
         );
@@ -360,6 +379,25 @@ function sanitizeMessageHtml(
           }
         }
         walk(el);
+        continue;
+      }
+      if (tag === "IMG") {
+        if (!el.classList.contains("mention-avatar")) {
+          el.remove();
+          continue;
+        }
+        const src = el.getAttribute("src") ?? "";
+        if (!isSafeExternalUrl(src)) {
+          el.remove();
+          continue;
+        }
+        el.setAttribute("class", "mention-avatar");
+        el.setAttribute("alt", "");
+        for (const attr of Array.from(el.attributes)) {
+          if (!["class", "src", "alt"].includes(attr.name)) {
+            el.removeAttribute(attr.name);
+          }
+        }
         continue;
       }
       sanitizeAttrs(el);
@@ -410,62 +448,6 @@ function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[
   return acc;
 }
 
-function buildMentionSuggestion(
-  char: string,
-  getItems: (query: string) => Promise<MentionItem[]>,
-  openCounter?: { current: number },
-) {
-  return {
-    char,
-    items: ({ query }: any) => getItems(query),
-    render: () => {
-      let component: ReactRenderer | null = null;
-      let popup: TippyInstance | null = null;
-      let counted = false;
-      return {
-        onStart: (props: any) => {
-          component = new ReactRenderer(MentionList, {
-            props,
-            editor: props.editor,
-          });
-          popup = tippy(document.body, {
-            getReferenceClientRect: props.clientRect,
-            appendTo: () => document.body,
-            content: component.element,
-            showOnCreate: true,
-            interactive: true,
-            trigger: "manual",
-            placement: "top-start",
-          });
-          if (openCounter) {
-            openCounter.current += 1;
-            counted = true;
-          }
-        },
-        onUpdate: (props: any) => {
-          component?.updateProps(props);
-          popup?.setProps({ getReferenceClientRect: props.clientRect });
-        },
-        onKeyDown: (props: any) => {
-          if (props.event.key === "Escape") {
-            popup?.hide();
-            return true;
-          }
-          return (component?.ref as any)?.onKeyDown(props) ?? false;
-        },
-        onExit: () => {
-          if (openCounter && counted) {
-            openCounter.current = Math.max(0, openCounter.current - 1);
-            counted = false;
-          }
-          popup?.destroy();
-          component?.destroy();
-        },
-      };
-    },
-  };
-}
-
 
 export function ConversationWindow({
   workspaceId,
@@ -486,6 +468,7 @@ export function ConversationWindow({
   const recoverMsg = useServerFn(recoverMessage);
   
   const fetchMembers = useServerFn(listWorkspaceMembers);
+  const fetchConversations = useServerFn(listMyConversations);
   const fetchMentionPages = useServerFn(listMentionablePages);
   const renameConv = useServerFn(renameConversation);
 
@@ -527,6 +510,7 @@ export function ConversationWindow({
   const isMessageSelectionTarget = (target: HTMLElement) =>
     !target.closest("span.mention-page") &&
     !target.closest("span.mention-member") &&
+    !target.closest("span.mention-conversation") &&
     !target.closest("a[href]") &&
     !target.closest(".msg-quote-header[data-author-id]") &&
     !target.closest("div.msg-quote") &&
@@ -682,22 +666,19 @@ export function ConversationWindow({
 
   const mentionOpenRef = useRef(0);
 
-  const memberSuggestion = useMemo(
-
+  const entityMentionSuggestion = useMemo(
     () =>
-      buildMentionSuggestion("@", async (query) => {
-        const members = await fetchMembers({ data: { workspaceId } });
-        return members
-          .filter((m) => m.label.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 8)
-          .map((m) => ({
-            id: m.workspaceUserId,
-            label: m.label,
-          }));
-      }, mentionOpenRef),
-
-
-    [workspaceId, fetchMembers],
+      buildEntityMentionSuggestion(
+        (query) =>
+          fetchMentionEntities({
+            workspaceId,
+            query,
+            fetchMembers,
+            fetchConversations,
+          }),
+        { placement: "top-start", openCounter: mentionOpenRef },
+      ),
+    [workspaceId, fetchMembers, fetchConversations],
   );
 
   const pageSuggestion = useMemo(
@@ -728,11 +709,14 @@ export function ConversationWindow({
       }),
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
-        suggestion: memberSuggestion,
+        suggestion: entityMentionSuggestion,
       }),
       PageMention.configure({
         HTMLAttributes: { class: "mention-page" },
         suggestion: pageSuggestion,
+      }),
+      ConversationMention.configure({
+        HTMLAttributes: { class: "mention-conversation" },
       }),
       QuoteBlock,
     ],
@@ -1084,6 +1068,21 @@ export function ConversationWindow({
           to: "/w/$workspaceId",
           params: { workspaceId },
           search: (prev) => withPage(prev, id),
+        });
+      }
+      return;
+    }
+
+    const convEl = targetEl.closest("span.mention-conversation") as HTMLElement | null;
+    if (convEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = convEl.getAttribute("data-id");
+      if (id) {
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev) => withConversation(prev, id),
         });
       }
       return;

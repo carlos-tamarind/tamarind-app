@@ -1,15 +1,13 @@
 import Mention from "@tiptap/extension-mention";
 import { mergeAttributes } from "@tiptap/core";
 
-// Inline Lucide SVGs (stroke=currentColor) so the DOM is deterministic
-// for SSR/copy-paste and the icon inherits the chip's text color.
+// Inline Lucide SVG for page mentions (stroke=currentColor).
 type SvgChild = [string, Record<string, string>];
 type SvgSpec = [string, Record<string, string | number>, ...SvgChild[]];
 
 const NS = "http://www.w3.org/2000/svg";
 const SVG_TAG = `${NS} svg`;
 const PATH = `${NS} path`;
-const CIRCLE = `${NS} circle`;
 const RECT = `${NS} rect`;
 
 const SVG_BASE: Record<string, string | number> = {
@@ -26,14 +24,6 @@ const SVG_BASE: Record<string, string | number> = {
   class: "mention-icon",
 };
 
-// lucide: user-round
-const USER_ROUND: SvgSpec = [
-  SVG_TAG,
-  SVG_BASE,
-  [CIRCLE, { cx: "12", cy: "8", r: "5" }],
-  [PATH, { d: "M20 21a8 8 0 0 0-16 0" }],
-];
-
 // lucide: notebook-text
 const NOTEBOOK_TEXT: SvgSpec = [
   SVG_TAG,
@@ -48,26 +38,63 @@ const NOTEBOOK_TEXT: SvgSpec = [
   [PATH, { d: "M9.5 16H12" }],
 ];
 
-// lucide: messages-square
-const MESSAGES_SQUARE: SvgSpec = [
-  SVG_TAG,
-  SVG_BASE,
-  [
-    PATH,
-    {
-      d: "M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2z",
-    },
-  ],
-  [
-    PATH,
-    {
-      d: "M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1",
-    },
-  ],
-];
+function memberInitials(label: string): string {
+  return label.slice(0, 2).toUpperCase();
+}
 
+function conversationInitials(label: string): string {
+  return (
+    label
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "C"
+  );
+}
 
-function buildRenderHTML(icon: SvgSpec, defaultClass: string): any {
+function avatarUrlAttribute() {
+  return {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute("data-avatar-url"),
+    renderHTML: (attributes: { avatarUrl?: string | null }) => {
+      if (!attributes.avatarUrl) return {};
+      return { "data-avatar-url": attributes.avatarUrl };
+    },
+  };
+}
+
+function buildAvatarPrefix(
+  avatarUrl: string | null | undefined,
+  label: string,
+  initialsFn: (label: string) => string,
+): any[] {
+  if (avatarUrl) {
+    return [["img", { class: "mention-avatar", src: avatarUrl, alt: "" }]];
+  }
+  return [["span", { class: "mention-avatar-fallback" }, initialsFn(label)]];
+}
+
+function buildAvatarRenderHTML(defaultClass: string, initialsFn: (label: string) => string): any {
+  return function renderHTML(this: any, { node, HTMLAttributes }: any) {
+    const label = node.attrs.label ?? node.attrs.id;
+    const avatarUrl = node.attrs.avatarUrl as string | null | undefined;
+    const attrs: Record<string, string> = {
+      "data-id": node.attrs.id,
+      "data-label": label,
+    };
+    if (avatarUrl) attrs["data-avatar-url"] = avatarUrl;
+    return [
+      "span",
+      mergeAttributes({ class: defaultClass }, this.options.HTMLAttributes, HTMLAttributes, attrs),
+      ...buildAvatarPrefix(avatarUrl, label, initialsFn),
+      ` ${label}`,
+    ] as any;
+  };
+}
+
+function buildPageRenderHTML(icon: SvgSpec, defaultClass: string): any {
   return function renderHTML(this: any, { node, HTMLAttributes }: any) {
     const label = node.attrs.label ?? node.attrs.id;
     return [
@@ -90,18 +117,30 @@ function buildRenderText(): any {
 
 export const MemberMention = Mention.extend({
   name: "mention",
-  renderHTML: buildRenderHTML(USER_ROUND, "mention-member"),
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      avatarUrl: avatarUrlAttribute(),
+    };
+  },
+  renderHTML: buildAvatarRenderHTML("mention-member", memberInitials),
   renderText: buildRenderText(),
 });
 
 export const PageMention = Mention.extend({
   name: "pageMention",
-  renderHTML: buildRenderHTML(NOTEBOOK_TEXT, "mention-page"),
+  renderHTML: buildPageRenderHTML(NOTEBOOK_TEXT, "mention-page"),
   renderText: buildRenderText(),
 });
 
 export const ConversationMention = Mention.extend({
   name: "conversationMention",
-  renderHTML: buildRenderHTML(MESSAGES_SQUARE, "mention-conversation"),
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      avatarUrl: avatarUrlAttribute(),
+    };
+  },
+  renderHTML: buildAvatarRenderHTML("mention-conversation", conversationInitials),
   renderText: buildRenderText(),
 });

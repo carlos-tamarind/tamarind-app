@@ -35,7 +35,7 @@ The main editor ([`page-window.tsx`](../../src/components/page/page-window.tsx))
 
 - **TipTap rich text** — headings, lists, task lists, code blocks, quotes
 - **Slash commands** — `/` palette for inserting blocks ([`slash-command.tsx`](../../src/components/editor/slash-command.tsx))
-- **@mentions** — pages, conversations, and workspace members
+- **@mentions** — `@` for workspace members and group/channel conversations (1:1 DMs deduped against members), `@@` for pages
 - **Autosave** — debounced save via `updatePage`; status reported to the status bar (`SaveStatusProvider`)
 - **Beacon save** — flush on tab close via `POST /api/pages/save`
 - **Title in the header** — condenses on scroll
@@ -103,7 +103,9 @@ Shared TipTap extensions in [`src/components/editor/`](../../src/components/edit
 
 | Extension | File | Purpose |
 |-----------|------|---------|
-| Custom mentions | `custom-mentions.ts` | @page, @conversation, @member nodes |
+| Custom mentions | `custom-mentions.ts` | `@@` page, `@` member/conversation nodes (with avatars) |
+| Mention entities | `mention-entities.ts` | Unified `@` autocomplete fetch/merge |
+| Mention suggestion | `mention-suggestion.ts` | Tippy popup + insert command |
 | Mention list | `mention-list.tsx` | Autocomplete popup |
 | Slash command | `slash-command.tsx` | `/` block insertion palette |
 | Quote node | `quote-node.tsx` | Quote blocks for conversation messages |
