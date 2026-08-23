@@ -14,6 +14,8 @@ Tamarind's primary backend interface is TanStack Start server functions (`create
 | POST | `/api/public/internal/run-cti-worker` | Secret header | Production CTI cron target |
 | POST | `/api/run-page-chunking-worker` | Dev-only | Manual page chunking worker trigger |
 | POST | `/api/public/internal/run-page-chunking-worker` | Secret header | Production page chunking cron target |
+| POST | `/api/run-purge-worker` | Dev-only | Manual purge worker trigger |
+| POST | `/api/public/internal/run-purge-worker` | Secret header | Production purge cron target (hourly) |
 
 ## POST /api/pages/save
 
@@ -248,6 +250,33 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 
 
+
+## POST /api/run-purge-worker
+
+**File:** [`src/routes/api/run-purge-worker.ts`](../../src/routes/api/run-purge-worker.ts)
+
+Manual trigger for the purge worker during local development.
+
+**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
+
+**Response:**
+
+```json
+{
+  "purged": 0,
+  "byType": {}
+}
+```
+
+## POST /api/public/internal/run-purge-worker
+
+**File:** [`src/routes/api/public/internal/run-purge-worker.ts`](../../src/routes/api/public/internal/run-purge-worker.ts)
+
+Production endpoint called by pg_cron via pg_net, hourly. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-purge-worker-secret` header matching `PURGE_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
+
+**Response:** Same shape as the dev endpoint.
 
 ## Server Functions vs REST
 

@@ -1,6 +1,6 @@
 # Cron & Background Jobs
 
-Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, page-embedding, page-semantic, and conversation-suggestion workers.
+Tamarind uses two background processing mechanisms: inline Cloudflare `waitUntil` for message semantics, and external cron schedulers for embedding, CTI, page-chunking, page-embedding, page-semantic, conversation-suggestion, and purge workers.
 
 ## Overview
 
@@ -54,6 +54,13 @@ flowchart TB
     Suggest["LLM → conversation_suggestions"]
   end
 
+  subgraph cronPurge [Scheduled: purge]
+    PGCronPurge["pg_cron (hourly)"]
+    PGNetPurge["pg_net HTTP POST"]
+    WorkerPurge["runPurgeWorker"]
+    Purge["purge_due_entities()"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
@@ -61,6 +68,7 @@ flowchart TB
   PGCronPageEmbed --> PGNetPageEmbed --> WorkerPageEmbed --> PageEmbed
   PGCronPageSemantic --> PGNetPageSemantic --> WorkerPageSemantic --> PageSemantic
   PGCronSug --> PGNetSug --> WorkerSug --> Suggest
+  PGCronPurge --> PGNetPurge --> WorkerPurge --> Purge
 ```
 
 ## Inline Semantics Processing
@@ -282,6 +290,25 @@ All of the above are `service_role`-only.
 
 See [Conversation Suggestions](../semantic/conversation_suggestions.md).
 
+## Purge Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (dedicated secret)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job (`run-purge-worker`) calls the purge endpoint **hourly** (`0 * * * *`) via pg_net HTTP POST with the `x-purge-worker-secret` header (`PURGE_WORKER_SECRET`).
+
+### Worker execution
+
+[`runPurgeWorker`](../../src/lib/delete-entities/worker/runPurgeWorker.ts):
+
+1. Reads `purgeable_entity_types` ordered by `purge_order` (logging/observability only)
+2. Reference-rewrite hook — reserved for rewriting mentions/quotes that point at entities about to disappear (not implemented yet)
+3. Calls the service-role `purge_due_entities()` RPC with no `p_entity_ids` (global sweep); the RPC walks the registry and hard-deletes rows whose `purged_at <= now()`
+4. Returns `{ purged, byType }` aggregated from the deleted rows
+
+The worker never hardcodes table names — adding a deletable entity type is a registry row, not a code change. Today no UI sets `purged_at`, so ticks are no-ops.
+
 ## Dev Manual Triggers
 
 For local testing without pg_cron:
@@ -293,6 +320,7 @@ POST /api/run-page-chunking-worker
 POST /api/run-page-embedding-worker
 POST /api/run-page-semantic-worker
 POST /api/run-conversation-suggestion-worker
+POST /api/run-purge-worker
 ```
 
 
