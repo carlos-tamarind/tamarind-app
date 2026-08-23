@@ -46,7 +46,7 @@ export const listMyPages = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: pages, error } = await supabase
       .from("pages")
-      .select("id, title, visibility, last_modified_at")
+      .select("id, title, visibility, last_modified_at, purged_at, owner_workspace_user_id")
       .eq("workspace_id", data.workspaceId)
       .order("last_modified_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -55,6 +55,8 @@ export const listMyPages = createServerFn({ method: "GET" })
       title: (p.title as string) ?? "Untitled",
       visibility: p.visibility as "private" | "workspace" | "conversation" | "external",
       lastModifiedAt: p.last_modified_at as string,
+      purgedAt: (p.purged_at as string | null) ?? null,
+      ownerWorkspaceUserId: (p.owner_workspace_user_id as string | null) ?? null,
     }));
   });
 
@@ -72,7 +74,7 @@ export const getPage = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: page, error } = await supabase
       .from("pages")
-      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id, conversation_id, last_modified_at")
+      .select("id, title, content, workspace_id, visibility, owner_workspace_user_id, conversation_id, last_modified_at, purged_at")
       .eq("id", data.pageId)
       .single();
     if (error || !page) throw new Error(error?.message ?? "Page not found");
@@ -166,6 +168,7 @@ export const getPage = createServerFn({ method: "GET" })
       ownerLabel,
       isOwner,
       collaborators,
+      purgedAt: (page.purged_at as string | null) ?? null,
     };
   });
 
@@ -279,11 +282,13 @@ export const setPageVisibility = createServerFn({ method: "POST" })
 
     const { data: page, error: readErr } = await supabaseAdmin
       .from("pages")
-      .select("visibility, owner_workspace_user_id, workspace_id")
+      .select("visibility, owner_workspace_user_id, workspace_id, purged_at")
       .eq("id", data.pageId)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
     if (!page) throw new Error("Page not found");
+    const { assertPageNotTrashed } = await import("@/lib/pages.server");
+    assertPageNotTrashed(page.purged_at as string | null);
 
     const meWuId = await getCurrentWorkspaceUser(
       page.workspace_id as string,
@@ -377,11 +382,13 @@ export const sharePage = createServerFn({ method: "POST" })
 
     const { data: page, error: pErr } = await supabaseAdmin
       .from("pages")
-      .select("id, title, workspace_id, visibility, owner_workspace_user_id, conversation_id")
+      .select("id, title, workspace_id, visibility, owner_workspace_user_id, conversation_id, purged_at")
       .eq("id", data.pageId)
       .maybeSingle();
     if (pErr) throw new Error(pErr.message);
     if (!page) throw new Error("Page not found");
+    const { assertPageNotTrashed } = await import("@/lib/pages.server");
+    assertPageNotTrashed(page.purged_at as string | null);
 
     const workspaceId = page.workspace_id as string;
     const visibility = page.visibility as
@@ -460,11 +467,13 @@ export const duplicatePage = createServerFn({ method: "POST" })
 
     const { data: source, error: srcErr } = await supabaseAdmin
       .from("pages")
-      .select("id, content, workspace_id")
+      .select("id, content, workspace_id, purged_at")
       .eq("id", data.pageId)
       .maybeSingle();
     if (srcErr) throw new Error(srcErr.message);
     if (!source) throw new Error("Page not found");
+    const { assertPageNotTrashed } = await import("@/lib/pages.server");
+    assertPageNotTrashed(source.purged_at as string | null);
 
     const workspaceId = source.workspace_id as string;
     const meWuId = await getCurrentWorkspaceUser(workspaceId, context.userId);
@@ -514,6 +523,81 @@ export const duplicatePage = createServerFn({ method: "POST" })
     }
 
     return { pageId: newPageId, conversationIds: targetConvIds };
+  });
+
+async function assertOwnerOfPage(pageId: string, userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { getCurrentWorkspaceUser } = await import("@/lib/pages.server");
+  const { data: page, error } = await supabaseAdmin
+    .from("pages")
+    .select("id, workspace_id, owner_workspace_user_id, purged_at")
+    .eq("id", pageId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!page) throw new Error("Page not found");
+  const meWuId = await getCurrentWorkspaceUser(
+    page.workspace_id as string,
+    userId,
+  );
+  if (page.owner_workspace_user_id !== meWuId) {
+    throw new Error("Only the owner can trash or recover this page");
+  }
+  return {
+    page,
+    workspaceId: page.workspace_id as string,
+    purgedAt: page.purged_at as string | null,
+  };
+}
+
+export const trashPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ pageId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeTrashPurgedAt } = await import(
+      "@/lib/delete-entities/pages/trash"
+    );
+    const { page } = await assertOwnerOfPage(data.pageId, context.userId);
+    if (page.purged_at) return { ok: true as const, skipped: true as const };
+    const { error } = await supabaseAdmin
+      .from("pages")
+      .update({ purged_at: computeTrashPurgedAt() })
+      .eq("id", data.pageId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const recoverPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ pageId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { RECOVERED_PURGED_AT } = await import(
+      "@/lib/delete-entities/pages/recover"
+    );
+    await assertOwnerOfPage(data.pageId, context.userId);
+    const { error } = await supabaseAdmin
+      .from("pages")
+      .update({ purged_at: RECOVERED_PURGED_AT })
+      .eq("id", data.pageId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const purgePageNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ pageId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { purgeDueEntities } = await import("@/lib/delete-entities/purge");
+    await assertOwnerOfPage(data.pageId, context.userId);
+    const { error } = await supabaseAdmin
+      .from("pages")
+      .update({ purged_at: new Date().toISOString() })
+      .eq("id", data.pageId);
+    if (error) throw new Error(error.message);
+    await purgeDueEntities({ entityIds: [data.pageId] });
+    return { ok: true as const };
   });
 
 export const getPageChunk = createServerFn({ method: "GET" })

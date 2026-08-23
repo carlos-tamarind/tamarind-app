@@ -640,8 +640,9 @@ export const listMentionablePages = createServerFn({ method: "GET" })
     await assertParticipant(data.conversationId, context.userId);
     const { data: pages, error } = await supabaseAdmin
       .from("pages")
-      .select("id, title, visibility, conversation_id")
+      .select("id, title, visibility, conversation_id, purged_at")
       .eq("workspace_id", data.workspaceId)
+      .is("purged_at", null)
       .or(
         `visibility.eq.workspace,conversation_id.eq.${data.conversationId}`,
       );

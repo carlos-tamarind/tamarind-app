@@ -33,6 +33,12 @@ export async function getCurrentWorkspaceUser(workspaceId: string, userId: strin
   return data.id as string;
 }
 
+export function assertPageNotTrashed(purgedAt: string | null | undefined) {
+  if (purgedAt) {
+    throw new Error("This page cannot be shared, duplicated, published, or pinned while it is in the trash");
+  }
+}
+
 export async function assertCanEditPage(pageId: string, userId: string) {
   const { data: page, error } = await supabaseAdmin
     .from("pages")

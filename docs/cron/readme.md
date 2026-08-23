@@ -303,11 +303,11 @@ A pg_cron job (`run-purge-worker`) calls the purge endpoint **hourly** (`0 * * *
 [`runPurgeWorker`](../../src/lib/delete-entities/worker/runPurgeWorker.ts):
 
 1. Reads `purgeable_entity_types` ordered by `purge_order` (logging/observability only)
-2. Reference-rewrite hook — reserved for rewriting mentions/quotes that point at entities about to disappear (not implemented yet)
+2. Rewrites mentions/quotes that point at entities about to disappear (page mentions become `[Deleted page]`)
 3. Calls the service-role `purge_due_entities()` RPC with no `p_entity_ids` (global sweep); the RPC walks the registry and hard-deletes rows whose `purged_at <= now()`
 4. Returns `{ purged, byType }` aggregated from the deleted rows
 
-The worker never hardcodes table names — adding a deletable entity type is a registry row, not a code change. Today no UI sets `purged_at`, so ticks are no-ops.
+The worker never hardcodes table names — adding a deletable entity type is a registry row, not a code change. Mention rewrite runs immediately before the RPC so remaining links become plain `[Deleted page]` text.
 
 ## Dev Manual Triggers
 

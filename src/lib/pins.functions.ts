@@ -54,11 +54,12 @@ async function assertCanPin(
 
   const { data: page, error } = await userClient
     .from("pages")
-    .select("id")
+    .select("id, purged_at")
     .eq("id", entityId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!page) throw new Error("You cannot access this page");
+  if (page.purged_at) throw new Error("Trashed pages cannot be pinned");
 }
 
 function isUniqueViolation(error: { code?: string } | null) {

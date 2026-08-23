@@ -14,6 +14,7 @@ Pages are rich-text documents where teams distill and organize knowledge. They s
 | `origin_type` | `user`, `conversation`, `import`, `ai` |
 | `parent_page_id` | Optional parent for hierarchical pages |
 | `conversation_id` | Optional link to a conversation |
+| `purged_at` | Scheduled purge time (`NULL` = live; future = trashed; past = due for hard delete) |
 
 `page_type: template` exists in the schema. The New Page dialog does **not** expose a template picker in the MVP.
 
@@ -26,6 +27,7 @@ Pages are rich-text documents where teams distill and organize knowledge. They s
 | `PageSettingsDialog` | [`page-settings-dialog.tsx`](../../src/components/page/page-settings-dialog.tsx) | Page metadata and settings (`DialogContent` size `detail`, 630px) |
 | `SharePageDialog` | [`share-page-dialog.tsx`](../../src/components/page/share-page-dialog.tsx) | Share to members or conversations |
 | `DuplicatePageDialog` | [`duplicate-page-dialog.tsx`](../../src/components/page/duplicate-page-dialog.tsx) | Copy page to another context (main dialog `md` so the visibility row fits) |
+| `PageDeletionBanner` | [`page-deletion-banner.tsx`](../../src/components/page/page-deletion-banner.tsx) | Grace-period copy with owner Undo / Erase now |
 
 ## Page Editor Features
 
@@ -37,7 +39,8 @@ The main editor ([`page-window.tsx`](../../src/components/page/page-window.tsx))
 - **Autosave** — debounced save via `updatePage`; status reported to the status bar (`SaveStatusProvider`)
 - **Beacon save** — flush on tab close via `POST /api/pages/save`
 - **Title in the header** — condenses on scroll
-- **Visibility chip** — labeled control for who can see the page
+- **Visibility chip** — labeled control for who can see the page (hidden while the page is trashed)
+- **Deletion banner** — while trashed: remaining grace period; owner can Undo or Erase now
 - **Backlinks** — icon rows in a bordered card
 - **Share and duplicate** — copy page to another conversation or workspace member
 - **Presence** — overlapping avatars with tooltips (Supabase Presence)
@@ -62,13 +65,26 @@ All in [`src/lib/pages.functions.ts`](../../src/lib/pages.functions.ts):
 | Function | Method | Purpose |
 |----------|--------|---------|
 | `createBlankPage` | POST | Create empty page in workspace |
-| `listMyPages` | GET | User's accessible pages (`lastModifiedAt` included) |
-| `getPage` | GET | Page content and metadata |
+| `listMyPages` | GET | User's accessible pages (`lastModifiedAt`, `purgedAt`, `ownerWorkspaceUserId`) |
+| `getPage` | GET | Page content and metadata (`purgedAt`, `isOwner`) |
 | `updatePage` | POST | Save title and content |
-| `setPageVisibility` | POST | Change visibility level |
+| `setPageVisibility` | POST | Change visibility level (blocked when trashed) |
 | `getPageBacklinks` | GET | Pages linking to this page |
-| `sharePage` | POST | Share page to members/conversations |
-| `duplicatePage` | POST | Copy page to another context |
+| `sharePage` | POST | Share page to members/conversations (blocked when trashed) |
+| `duplicatePage` | POST | Copy page to another context (blocked when trashed) |
+| `trashPage` | POST | Owner: schedule purge (`purged_at = now() + 30 days`) |
+| `recoverPage` | POST | Owner: clear `purged_at` |
+| `purgePageNow` | POST | Owner: set `purged_at = now()`, rewrite mentions, hard-delete |
+
+## Trash, recover, and purge
+
+Only the owner can trash a page (from page settings). Trashing sets `purged_at` 30 days ahead (`DELETE_GRACE_PERIOD_MS` in [`src/lib/delete-entities/config.ts`](../../src/lib/delete-entities/config.ts)). The page stays readable, editable, searchable, and in the semantic pipeline. Share, publish, duplicate, and pin are blocked; existing pins are removed.
+
+The owner sees the page only under **Deleted** in the nav (recover control on the row). Other users with access still see it in its original section, without pin/visibility actions.
+
+Recover clears `purged_at`. Erase now confirms, then rewrites remaining `pageMention` / `mention-page` references to `[Deleted page]` and calls `purge_due_entities` for that id. The hourly purge worker does the same rewrite hook before the global sweep.
+
+Settings footer CTAs are content-sized and centered, with Publish / Share / Duplicate icons. The trash control is a destructive icon button on the next row, right-aligned.
 
 ## Visibility Levels
 

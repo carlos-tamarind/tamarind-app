@@ -21,6 +21,9 @@ import {
   setPageVisibility,
   getPageBacklinks,
   listMyPages,
+  trashPage,
+  recoverPage,
+  purgePageNow,
 } from "@/lib/pages.functions";
 import {
   listWorkspaceMembers,
@@ -57,6 +60,7 @@ import {
 } from "@/components/ui/dialog";
 import { PinToggle } from "@/components/pin-toggle";
 import { PageSettingsDialog } from "@/components/page/page-settings-dialog";
+import { PageDeletionBanner } from "@/components/page/page-deletion-banner";
 import { SharePageDialog } from "@/components/page/share-page-dialog";
 import { DuplicatePageDialog } from "@/components/page/duplicate-page-dialog";
 import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
@@ -65,6 +69,7 @@ import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
 import { findChunkRangeInDoc } from "@/lib/find-editor-text-range";
 import { withPage } from "@/lib/workspace-search";
+import { DELETED_PAGE_LABEL, isTrashed } from "@/lib/delete-entities/config";
 
 function buildMentionSuggestion(
   char: string,
@@ -146,6 +151,9 @@ export function PageWindow({
   const fetchChunk = useServerFn(getPageChunk);
   const savePage = useServerFn(updatePage);
   const setVis = useServerFn(setPageVisibility);
+  const doTrashPage = useServerFn(trashPage);
+  const doRecoverPage = useServerFn(recoverPage);
+  const doPurgePageNow = useServerFn(purgePageNow);
   const fetchMembers = useServerFn(listWorkspaceMembers);
   const fetchPages = useServerFn(listMyPages);
   const fetchConversations = useServerFn(listMyConversations);
@@ -153,9 +161,10 @@ export function PageWindow({
   const queryClient = useQueryClient();
   const { user, session } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["page", pageId],
     queryFn: () => fetchPage({ data: { pageId } }),
+    retry: false,
   });
 
   const { data: chunk, isFetched: chunkFetched } = useQuery({
@@ -191,6 +200,7 @@ export function PageWindow({
   const [shareOpen, setShareOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [eraseConfirmOpen, setEraseConfirmOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<any>(null);
@@ -282,6 +292,7 @@ export function PageWindow({
       buildMentionSuggestion("@@", async (query) => {
         const pages = await fetchPages({ data: { workspaceId } });
         return pages
+          .filter((p) => !p.purgedAt)
           .filter((p) =>
             (p.title ?? "Untitled").toLowerCase().includes(query.toLowerCase()),
           )
@@ -729,6 +740,74 @@ export function PageWindow({
     void applyVisibility(value);
   };
 
+  const closePagePanel = () => {
+    void navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withPage(prev, undefined),
+    });
+  };
+
+  const handleRecover = async (opts?: { navigateToPage?: boolean; toastId?: string | number }) => {
+    try {
+      await doRecoverPage({ data: { pageId } });
+      if (opts?.toastId != null) toast.dismiss(opts.toastId);
+      await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+      await queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      toast("Page recovered");
+      if (opts?.navigateToPage) {
+        void navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev) => withPage(prev, pageId),
+        });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not recover page");
+    }
+  };
+
+  const handleTrash = async () => {
+    setSettingsOpen(false);
+    closePagePanel();
+    try {
+      await doTrashPage({ data: { pageId } });
+      await queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["pinned-entities", workspaceId] });
+      const toastId = toast(
+        <span>
+          Page sent to the trash.{" "}
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void handleRecover({ navigateToPage: true, toastId });
+            }}
+          >
+            Undo
+          </button>
+        </span>,
+      );
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not delete page");
+    }
+  };
+
+  const handleEraseNow = async () => {
+    setEraseConfirmOpen(false);
+    setSettingsOpen(false);
+    try {
+      await doPurgePageNow({ data: { pageId } });
+      clearLocalDraft();
+      await queryClient.invalidateQueries({ queryKey: ["pages-list", workspaceId] });
+      await queryClient.removeQueries({ queryKey: ["page", pageId] });
+      closePagePanel();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not erase page");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -750,8 +829,18 @@ export function PageWindow({
     );
   }
 
+  if (isError || !data) {
+    return (
+      <div className="flex h-full items-center justify-center px-6 text-sm text-muted-foreground">
+        {DELETED_PAGE_LABEL}
+      </div>
+    );
+  }
+
   const others = presence.filter((p) => p.userId !== user?.id);
   const visibility = data?.visibility ?? "private";
+  const trashed = isTrashed(data?.purgedAt);
+  const isOwner = data?.isOwner ?? false;
   const visibilityLabel =
     visibility === "workspace"
       ? "Workspace"
@@ -808,6 +897,15 @@ export function PageWindow({
           </div>
         )}
 
+        {trashed && data?.purgedAt ? (
+          <PageDeletionBanner
+            purgedAt={data.purgedAt}
+            isOwner={isOwner}
+            onRecover={() => void handleRecover()}
+            onEraseNow={() => setEraseConfirmOpen(true)}
+          />
+        ) : (
+          <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" aria-label="Page visibility">
@@ -850,6 +948,8 @@ export function PageWindow({
           entityId={pageId}
           kind="page"
         />
+          </>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -967,7 +1067,8 @@ export function PageWindow({
         ownerDisplayName={data?.ownerDisplayName ?? null}
         ownerWorkspaceUserId={data?.ownerWorkspaceUserId ?? null}
         visibility={visibility}
-        isOwner={data?.isOwner ?? false}
+        isOwner={isOwner}
+        purgedAt={data?.purgedAt ?? null}
         collaborators={data?.collaborators ?? []}
         onPublish={() => {
           setSettingsOpen(false);
@@ -981,7 +1082,29 @@ export function PageWindow({
           setSettingsOpen(false);
           setDuplicateOpen(true);
         }}
+        onTrash={() => void handleTrash()}
+        onRecover={() => void handleRecover()}
+        onEraseNow={() => setEraseConfirmOpen(true)}
       />
+
+      <Dialog open={eraseConfirmOpen} onOpenChange={setEraseConfirmOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Confirm deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to erase this page? This operation cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between">
+            <Button variant="secondary" onClick={() => setEraseConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void handleEraseNow()}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SharePageDialog
         open={shareOpen}
