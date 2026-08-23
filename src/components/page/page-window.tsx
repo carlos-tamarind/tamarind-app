@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
+import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 
@@ -10,7 +10,6 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { markInputRule } from "@tiptap/core";
-import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { Copy, Building2, FileText, Link2, FileLock, MessageSquareLock, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +31,11 @@ import {
 import { SlashCommand } from "@/components/editor/slash-command";
 import { ChunkFlash, flashChunkRange } from "@/components/editor/chunk-flash";
 import { PageMention, ConversationMention, MemberMention } from "@/components/editor/custom-mentions";
-import { MentionList, type MentionItem } from "@/components/editor/mention-list";
+import {
+  buildEntityMentionSuggestion,
+  buildMentionSuggestion,
+} from "@/components/editor/mention-suggestion";
+import { fetchMentionEntities } from "@/lib/mention-entities";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -70,49 +73,6 @@ import { UserNavigationContext } from "@/lib/user-navigation-context";
 import { findChunkRangeInDoc } from "@/lib/find-editor-text-range";
 import { withPage } from "@/lib/workspace-search";
 import { DELETED_PAGE_LABEL, isTrashed } from "@/lib/delete-entities/config";
-
-function buildMentionSuggestion(
-  char: string,
-  getItems: (query: string) => Promise<MentionItem[]>,
-) {
-  return {
-    char,
-    items: ({ query }: any) => getItems(query),
-    render: () => {
-      let component: ReactRenderer | null = null;
-      let popup: TippyInstance | null = null;
-      return {
-        onStart: (props: any) => {
-          component = new ReactRenderer(MentionList, { props, editor: props.editor });
-          popup = tippy(document.body, {
-            getReferenceClientRect: props.clientRect,
-            appendTo: () => document.body,
-            content: component.element,
-            showOnCreate: true,
-            interactive: true,
-            trigger: "manual",
-            placement: "bottom-start",
-          });
-        },
-        onUpdate: (props: any) => {
-          component?.updateProps(props);
-          popup?.setProps({ getReferenceClientRect: props.clientRect });
-        },
-        onKeyDown: (props: any) => {
-          if (props.event.key === "Escape") {
-            popup?.hide();
-            return true;
-          }
-          return (component?.ref as any)?.onKeyDown(props) ?? false;
-        },
-        onExit: () => {
-          popup?.destroy();
-          component?.destroy();
-        },
-      };
-    },
-  };
-}
 
 const UnderlineMarkdown = Underline.extend({
   addInputRules() {
@@ -271,20 +231,19 @@ export function PageWindow({
   };
 
 
-  const memberSuggestion = useMemo(
+  const entityMentionSuggestion = useMemo(
     () =>
-      buildMentionSuggestion("@", async (query) => {
-        const members = await fetchMembers({ data: { workspaceId } });
-        return members
-          .filter((m) => m.label.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 8)
-          .map((m) => ({
-            id: m.workspaceUserId,
-            label: m.label,
-          }));
-      }),
-
-    [workspaceId, fetchMembers],
+      buildEntityMentionSuggestion(
+        (query) =>
+          fetchMentionEntities({
+            workspaceId,
+            query,
+            fetchMembers,
+            fetchConversations,
+          }),
+        { placement: "bottom-start" },
+      ),
+    [workspaceId, fetchMembers, fetchConversations],
   );
 
   const pageSuggestion = useMemo(
@@ -303,24 +262,12 @@ export function PageWindow({
     [workspaceId, pageId, fetchPages],
   );
 
-  const conversationSuggestion = useMemo(
-    () =>
-      buildMentionSuggestion("\\", async (query) => {
-        const convs = await fetchConversations({ data: { workspaceId } });
-        return convs
-          .filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 8)
-          .map((c) => ({ id: c.id, label: c.title }));
-      }),
-    [workspaceId, fetchConversations],
-  );
-
   const editor = useEditor({
     extensions: [
       StarterKit,
       UnderlineMarkdown,
       Placeholder.configure({
-        placeholder: 'Type "/" for commands, "@" member, "@@" page, "\\" conversation…',
+        placeholder: 'Type "/" for commands, "@" member or conversation, "@@" page…',
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -328,7 +275,7 @@ export function PageWindow({
       ChunkFlash,
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
-        suggestion: memberSuggestion,
+        suggestion: entityMentionSuggestion,
       }),
       PageMention.configure({
         HTMLAttributes: { class: "mention-page" },
@@ -336,7 +283,6 @@ export function PageWindow({
       }),
       ConversationMention.configure({
         HTMLAttributes: { class: "mention-conversation" },
-        suggestion: conversationSuggestion,
       }),
     ],
     content: (data?.content as any) ?? { type: "doc", content: [] },

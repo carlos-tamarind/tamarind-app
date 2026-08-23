@@ -130,7 +130,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
     const { data: parts, error } = await supabaseAdmin
       .from("conversation_participants")
       .select(
-        "conversation_id, conversations!inner(id, title, type, workspace_id, last_modified_at)",
+        "conversation_id, conversations!inner(id, title, type, workspace_id, last_modified_at, image_url)",
       )
       .eq("workspace_user_id", meWuId);
     if (error) throw new Error(error.message);
@@ -141,16 +141,17 @@ export const listMyConversations = createServerFn({ method: "GET" })
 
     const convIds = convs.map((c: any) => c.id as string);
     const labelByConv = new Map<string, string>();
+    const avatarByConv = new Map<string, string | null>();
     if (convIds.length > 0) {
       const { data: allParts } = await supabaseAdmin
         .from("conversation_participants")
         .select(
-          "conversation_id, workspace_users!inner(id, display_name, user_id)",
+          "conversation_id, workspace_users!inner(id, display_name, user_id, avatar_url)",
         )
         .in("conversation_id", convIds);
       const byConv = new Map<
         string,
-        { displayName: string | null; userId: string }[]
+        { displayName: string | null; userId: string; avatarUrl: string | null }[]
       >();
       for (const row of allParts ?? []) {
         const cid = row.conversation_id as string;
@@ -160,6 +161,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
         byConv.get(cid)!.push({
           displayName: (wu.display_name as string | null) ?? null,
           userId: wu.user_id as string,
+          avatarUrl: (wu.avatar_url as string | null) ?? null,
         });
       }
       const emails = await fetchEmailsForUserIds(
@@ -173,19 +175,28 @@ export const listMyConversations = createServerFn({ method: "GET" })
           resolveLabel({ display_name: e.displayName, user_id: e.userId }, emails),
         );
         labelByConv.set(cid, names.slice(0, 3).join(", "));
+        const other = entries[0];
+        if (other) avatarByConv.set(cid, other.avatarUrl);
       }
     }
 
 
-    const results = convs.map((c: any) => ({
-      id: c.id as string,
-      title:
-        (c.title as string | null) ??
-        labelByConv.get(c.id as string) ??
-        "Conversation",
-      type: (c.type as "direct" | "group" | "channel") ?? "direct",
-      lastModifiedAt: c.last_modified_at as string,
-    }));
+    const results = convs.map((c: any) => {
+      const type = (c.type as "direct" | "group" | "channel") ?? "direct";
+      const imageUrl = (c.image_url as string | null) ?? null;
+      const avatarUrl =
+        type === "direct" ? (avatarByConv.get(c.id as string) ?? null) : imageUrl;
+      return {
+        id: c.id as string,
+        title:
+          (c.title as string | null) ??
+          labelByConv.get(c.id as string) ??
+          "Conversation",
+        type,
+        lastModifiedAt: c.last_modified_at as string,
+        avatarUrl,
+      };
+    });
 
     DebugLogger.table({
       scope: "conversations",
@@ -871,11 +882,13 @@ function htmlToInlineParagraphs(html: string): any[] {
       if (mentionType) {
         const idMatch = /data-id="([^"]*)"/i.exec(attrs);
         const labelMatch = /data-label="([^"]*)"/i.exec(attrs);
+        const avatarMatch = /data-avatar-url="([^"]*)"/i.exec(attrs);
         const id = idMatch ? decodeEntities(idMatch[1]) : "";
         const label = labelMatch ? decodeEntities(labelMatch[1]) : id;
+        const avatarUrl = avatarMatch ? decodeEntities(avatarMatch[1]) : null;
         paragraphs[paragraphs.length - 1].push({
           type: mentionType,
-          attrs: { id, label },
+          attrs: { id, label, avatarUrl },
         });
         // Skip content until matching </span>
         const closeIdx = html.toLowerCase().indexOf("</span>", last);

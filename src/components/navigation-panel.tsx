@@ -26,7 +26,6 @@ import {
   Trash2,
   Undo2,
   User as UserIcon,
-  Users,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,6 +58,7 @@ export type NavConversation = {
   title: string;
   type: string;
   lastModifiedAt?: string | null;
+  avatarUrl?: string | null;
 };
 
 export type NavPage = {
@@ -418,11 +418,18 @@ export function NavigationPanel({
 
   const conversationItem = (
     c: NavConversation,
-    Icon: typeof UserIcon,
     opts?: { onUnpin?: () => void },
   ) => {
     const active = activeConversationId === c.id;
     const unpinHint = "Un-pin this conversation";
+    const initials =
+      c.title
+        .split(" ")
+        .map((w) => w[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "C";
     return (
       <li key={c.id} className="relative">
         <Link
@@ -434,7 +441,12 @@ export function NavigationPanel({
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
           ) : null}
-          <Icon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+          <Avatar className="size-3.5 shrink-0">
+            {c.avatarUrl ? <AvatarImage src={c.avatarUrl} /> : null}
+            <AvatarFallback className="text-[7px] font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <span className="truncate">{c.title}</span>
         </Link>
         {opts?.onUnpin ? (
@@ -674,7 +686,7 @@ export function NavigationPanel({
                 >
                   <ul className="space-y-px">
                     {pinnedConversations.map((c) =>
-                      conversationItem(c, c.type === "direct" ? UserIcon : Users, {
+                      conversationItem(c, {
                         onUnpin: onUnpin
                           ? () => onUnpin(c.id, "conversation")
                           : undefined,
@@ -704,7 +716,7 @@ export function NavigationPanel({
                   onToggle={toggleSectionOpen}
                 >
                   <ul className="space-y-px">
-                    {directConversations.map((c) => conversationItem(c, UserIcon))}
+                    {directConversations.map((c) => conversationItem(c))}
                   </ul>
                 </Section>
                 <Section
@@ -719,7 +731,7 @@ export function NavigationPanel({
                   onToggle={toggleSectionOpen}
                 >
                   <ul className="space-y-px">
-                    {groupConversations.map((c) => conversationItem(c, Users))}
+                    {groupConversations.map((c) => conversationItem(c))}
                   </ul>
                 </Section>
               </div>

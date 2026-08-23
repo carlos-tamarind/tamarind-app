@@ -29,7 +29,7 @@ The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/
 - **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar). Deleted messages are not selectable and do not show hover actions
 - **Deleted messages** — stay in the original slot as `[Message deleted]`. The author sees **Undo** for one hour (`purged_at > now()`). After the grace period the placeholder remains; Undo is hidden. Quotes of a deleted message show the same placeholder at display time (stored HTML is not rewritten); clicking the quote still scrolls to `data-message-id`
 - **TipTap composer** — see below
-- **@mentions** — `@user` for workspace members, `@@page` for pages
+- **@mentions** — `@` for workspace members and group/channel conversations, `@@page` for pages
 - **Realtime updates** — INSERT and UPDATE via Supabase Realtime; live rows overlay `listMessages` by id so other participants see the placeholder immediately
 - **Conversation settings** — rename, manage participants, view linked pages
 
@@ -107,7 +107,7 @@ TipTap mention extensions in [`src/components/editor/custom-mentions.ts`](../../
 
 | Trigger | Target | Autocomplete source |
 |---------|--------|-------------------|
-| `@` | Workspace members | `listWorkspaceMembers` |
+| `@` | Workspace members and group/channel conversations | `listWorkspaceMembers` + `listMyConversations` (direct DMs deduped against members) |
 | `@@` | Pages | `listMentionablePages` |
 
 Mention list UI: [`src/components/editor/mention-list.tsx`](../../src/components/editor/mention-list.tsx)
