@@ -32,17 +32,19 @@ export async function findMessageWithPriorContext(
 
   const { data: anchor, error: anchorError } = await supabase
     .from("messages")
-    .select("id, raw_text, author_workspace_user_id, created_at, conversation_id")
+    .select("id, raw_text, author_workspace_user_id, created_at, conversation_id, purged_at")
     .eq("id", messageId)
     .maybeSingle();
 
   if (anchorError) throw anchorError;
   if (!anchor) return null;
+  if (anchor.purged_at) return null;
 
   const { data: priorDesc, error: priorError } = await supabase
     .from("messages")
     .select("id, raw_text, author_workspace_user_id, created_at")
     .eq("conversation_id", anchor.conversation_id)
+    .is("purged_at", null)
     .lt("created_at", anchor.created_at)
     .order("created_at", { ascending: false })
     .limit(priorLimit);

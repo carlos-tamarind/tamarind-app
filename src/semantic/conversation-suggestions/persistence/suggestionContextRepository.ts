@@ -99,6 +99,7 @@ export async function loadSuggestionContext(params: {
     .from("messages")
     .select("id, created_at")
     .eq("conversation_id", conversationId)
+    .is("purged_at", null)
     .order("created_at", { ascending: false })
     .limit(80);
   if (messageError) throw messageError;

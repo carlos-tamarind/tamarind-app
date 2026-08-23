@@ -52,6 +52,7 @@ export const listRecentActivity = createServerFn({ method: "GET" })
           .select("conversation_id, created_at")
           .eq("workspace_id", data.workspaceId)
           .eq("author_workspace_user_id", meWuId)
+          .is("purged_at", null)
           .order("created_at", { ascending: false })
           .limit(MESSAGE_SCAN_LIMIT),
         supabaseAdmin

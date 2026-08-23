@@ -7,6 +7,7 @@ import {
 import { CircleX } from "lucide-react";
 
 import { UserLink } from "@/components/user-link";
+import { DELETED_MESSAGE_LABEL } from "@/lib/delete-entities/config";
 import { useUserNavigation } from "@/lib/user-navigation-context";
 
 export interface QuoteBlockAttrs {
@@ -29,6 +30,9 @@ function QuoteBlockView(props: any) {
   const nav = useUserNavigation();
   const timestamp = formatTimestamp(node.attrs.createdAt);
   const editable = editor?.isEditable ?? false;
+  const purged = Boolean(
+    node.attrs.quoteId && nav?.purgedMessageIds?.has(node.attrs.quoteId),
+  );
 
   return (
     <NodeViewWrapper
@@ -80,7 +84,12 @@ function QuoteBlockView(props: any) {
           <CircleX className="size-4" />
         </button>
       ) : null}
-      <NodeViewContent className="msg-quote-content" />
+      {purged ? (
+        <p className="msg-quote-content text-muted-foreground" contentEditable={false}>
+          {DELETED_MESSAGE_LABEL}
+        </p>
+      ) : null}
+      <NodeViewContent className={purged ? "hidden" : "msg-quote-content"} />
     </NodeViewWrapper>
   );
 }

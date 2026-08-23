@@ -25,11 +25,12 @@ Conversations are the primary communication channel in Tamarind. They support di
 The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx)) provides:
 
 - **Message list** — consecutive messages from the same author on the same day are grouped into elevated "meseta" containers (raised surface with subtle shadow); own-message mesetas use a darker accent tint. Avatars and names appear on the first message of each run. Quoted message blocks (`.msg-quote`) remain visually nested inside message bodies, distinct from the meseta plate. Sticky day separators show **Today** for the current day, otherwise the full date (`Wed, 08 Aug 2026`)
-- **Selection** — click messages to select; a floating bar exposes quote, copy, create page, and related actions. **Esc** clears the selection
-- **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar)
+- **Selection** — click live messages to select; a floating bar exposes quote, copy, create page, and related actions. **Esc** clears the selection. **Delete** appears only when every selected message is authored by you and none is already deleted. One selected message deletes immediately; two or more open a confirm dialog (`Confirm deletion` / `Are you sure you want to remove these messages?`)
+- **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar). Deleted messages are not selectable and do not show hover actions
+- **Deleted messages** — stay in the original slot as `[Message deleted]`. The author sees **Undo** for one hour (`purged_at > now()`). After the grace period the placeholder remains; Undo is hidden. Quotes of a deleted message show the same placeholder at display time (stored HTML is not rewritten); clicking the quote still scrolls to `data-message-id`
 - **TipTap composer** — see below
 - **@mentions** — `@user` for workspace members, `@@page` for pages
-- **Realtime updates** — new messages via Supabase Realtime INSERT
+- **Realtime updates** — INSERT and UPDATE via Supabase Realtime; live rows overlay `listMessages` by id so other participants see the placeholder immediately
 - **Conversation settings** — rename, manage participants, view linked pages
 
 ## Composer
@@ -75,7 +76,7 @@ sequenceDiagram
   CW->>CW: Merge into liveMessages
 ```
 
-Initial history loads via React Query + `listMessages`. Realtime handles subsequent INSERTs.
+Initial history loads via React Query + `listMessages` (including deleted rows, with `purgedAt`). Realtime INSERT/UPDATE events overlay that list by message id.
 
 ## Server Functions
 
@@ -87,8 +88,10 @@ All in [`src/lib/conversations.functions.ts`](../../src/lib/conversations.functi
 | `listMyConversations` | GET | User's conversations in workspace (`lastModifiedAt` included) |
 | `findOrCreateConversation` | POST | Find existing direct or create new |
 | `getConversation` | GET | Conversation details + participants |
-| `listMessages` | GET | Message history for a conversation |
+| `listMessages` | GET | Message history for a conversation (`purgedAt`; deleted rows kept) |
 | `sendMessage` | POST | Insert message, trigger semantics pipeline |
+| `trashMessages` | POST | Author: schedule purge (`purged_at = now() + 1 hour`). Skips ids that are already purged |
+| `recoverMessage` | POST | Author: clear `purged_at` while the undo window is still open |
 | `addParticipants` | POST | Add members to group conversation |
 | `listConversationPages` | GET | Pages linked to conversation |
 | `createConversationPage` | POST | Create page scoped to conversation |

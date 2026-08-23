@@ -409,7 +409,7 @@ export const listMessages = createServerFn({ method: "GET" })
     await assertParticipant(data.conversationId, context.userId);
     const { data: msgs, error } = await supabaseAdmin
       .from("messages")
-      .select("id, raw_text, author_workspace_user_id, created_at")
+      .select("id, raw_text, author_workspace_user_id, created_at, purged_at")
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: true })
       .limit(data.limit ?? 200);
@@ -455,6 +455,7 @@ export const listMessages = createServerFn({ method: "GET" })
         ? labelByWuId.get(m.author_workspace_user_id as string) ?? "Archived user"
         : "Unknown user",
       createdAt: m.created_at as string,
+      purgedAt: (m.purged_at as string | null) ?? null,
     }));
   });
 
@@ -502,6 +503,93 @@ export const sendMessage = createServerFn({ method: "POST" })
       .eq("id", data.conversationId);
 
     return { id: msg.id as string, createdAt: msg.created_at as string };
+  });
+
+export const trashMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        messageIds: z.array(z.string().uuid()).min(1).max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { computeMessageTrashPurgedAt } = await import(
+      "@/lib/delete-entities/messages/trash"
+    );
+    const uniqueIds = Array.from(new Set(data.messageIds));
+    const { data: rows, error } = await supabaseAdmin
+      .from("messages")
+      .select("id, conversation_id, author_workspace_user_id, purged_at")
+      .in("id", uniqueIds);
+    if (error) throw new Error(error.message);
+    if (!rows || rows.length !== uniqueIds.length) {
+      throw new Error("Message not found");
+    }
+
+    const conversationIds = Array.from(
+      new Set(rows.map((r) => r.conversation_id as string)),
+    );
+    const meByConversation = new Map<string, string>();
+    for (const conversationId of conversationIds) {
+      const { meWuId } = await assertParticipant(conversationId, context.userId);
+      meByConversation.set(conversationId, meWuId);
+    }
+
+    for (const row of rows) {
+      const meWuId = meByConversation.get(row.conversation_id as string);
+      if (row.author_workspace_user_id !== meWuId) {
+        throw new Error("Only the author can delete this message");
+      }
+    }
+
+    const toTrash = rows.filter((r) => !r.purged_at).map((r) => r.id as string);
+    if (toTrash.length === 0) return { ok: true as const, skipped: true as const };
+
+    const { error: updateError } = await supabaseAdmin
+      .from("messages")
+      .update({ purged_at: computeMessageTrashPurgedAt() })
+      .in("id", toTrash);
+    if (updateError) throw new Error(updateError.message);
+    return { ok: true as const };
+  });
+
+export const recoverMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ messageId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { RECOVERED_PURGED_AT } = await import(
+      "@/lib/delete-entities/pages/recover"
+    );
+    const { data: row, error } = await supabaseAdmin
+      .from("messages")
+      .select("id, conversation_id, author_workspace_user_id, purged_at")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Message not found");
+
+    const { meWuId } = await assertParticipant(
+      row.conversation_id as string,
+      context.userId,
+    );
+    if (row.author_workspace_user_id !== meWuId) {
+      throw new Error("Only the author can undo this deletion");
+    }
+    if (!row.purged_at) return { ok: true as const, skipped: true as const };
+    if (new Date(row.purged_at as string).getTime() <= Date.now()) {
+      throw new Error("Undo window has expired");
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("messages")
+      .update({ purged_at: RECOVERED_PURGED_AT })
+      .eq("id", data.messageId);
+    if (updateError) throw new Error(updateError.message);
+    return { ok: true as const };
   });
 
 export const addParticipants = createServerFn({ method: "POST" })
@@ -1024,6 +1112,7 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
       .select("id, raw_text, author_workspace_user_id, created_at")
       .eq("conversation_id", data.conversationId)
       .in("id", data.messageIds)
+      .is("purged_at", null)
       .order("created_at", { ascending: true });
     if (mErr) throw new Error(mErr.message);
     if (!msgs || msgs.length === 0) {
