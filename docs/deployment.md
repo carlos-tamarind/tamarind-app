@@ -14,7 +14,7 @@ Supabase Project
   ├── PostgreSQL + RLS       Database
   ├── Auth                   JWT sessions
   ├── Realtime               Live subscriptions
-  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, page-embedding, and page-semantic schedulers
+  ├── pg_cron + pg_net       Embedding, CTI, page-chunking, page-embedding, page-semantic, suggestion, and purge schedulers
   └── Migrations             supabase/migrations/
 ```
 
@@ -59,6 +59,7 @@ Supabase Project
 | `PAGE_EMBEDDING_WORKER_SECRET` | Page embedding cron endpoint authentication |
 | `PAGE_SEMANTIC_WORKER_SECRET` | Page semantic cron endpoint authentication |
 | `CONVERSATION_SUGGESTIONS_WORKER_SECRET` | Conversation suggestion cron endpoint authentication |
+| `PURGE_WORKER_SECRET` | Purge (trash erase) cron endpoint authentication |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
@@ -99,6 +100,7 @@ Required in `.env.local`:
 - `PAGE_EMBEDDING_WORKER_SECRET` (for page embedding cron endpoint testing)
 - `PAGE_SEMANTIC_WORKER_SECRET` (for page semantic cron endpoint testing)
 - `CONVERSATION_SUGGESTIONS_WORKER_SECRET` (for conversation suggestion cron endpoint testing)
+- `PURGE_WORKER_SECRET` (for purge cron endpoint testing)
 
 ## Supabase Setup
 
@@ -246,6 +248,30 @@ Use a dedicated secret (`CONVERSATION_SUGGESTIONS_WORKER_SECRET`). Each tick swe
 
 
 
+
+
+## Purge Worker Cron
+
+Runs hourly (a 30-day trash grace period does not need a 60s tick):
+
+```sql
+SELECT cron.schedule(
+  'run-purge-worker',
+  '0 * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-purge-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-purge-worker-secret', 'your-purge-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret (`PURGE_WORKER_SECRET`) — never reuse another worker secret. Enable the job only after a build containing the production route is live; earlier ticks simply log 404s. Each tick calls the service-role `purge_due_entities()` RPC, which walks `purgeable_entity_types` in `purge_order` — no table names are hardcoded in the worker.
 
 ## Database Migrations
 
