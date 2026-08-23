@@ -415,8 +415,28 @@
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
   color: var(--muted-foreground);
   background-color: var(--muted);
+}
+/* TipTap editors break anywhere by default; keep avatar initials on one line. */
+.ProseMirror .mention-member,
+.ProseMirror .mention-conversation {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.ProseMirror .mention-avatar-fallback {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.ProseMirror .mention-avatar,
+.ProseMirror .mention-avatar-fallback {
+  width: 1.15em;
+  height: 1.15em;
+  min-width: 1.15em;
+  max-width: 1.15em;
+  flex: 0 0 1.15em;
 }
 .prose img.mention-avatar,
 .prose-sm img.mention-avatar {
