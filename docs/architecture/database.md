@@ -83,13 +83,13 @@ erDiagram
 |-------|---------|-------------------|
 | `conversations` | Chat threads (direct, group, channel) | → `workspaces`, → `workspace_users` (created_by) |
 | `conversation_participants` | Membership in a conversation | → `conversations`, → `workspace_users`; PK(conversation_id, workspace_user_id) |
-| `messages` | Chat messages with TipTap/HTML raw text | → `workspaces`, → `conversations`, → `workspace_users` (author), → `entities` (optional) |
+| `messages` | Chat messages with TipTap/HTML raw text; `purged_at` marks trash state | → `workspaces`, → `conversations`, → `workspace_users` (author), → `entities` (optional) |
 
 ### Pages
 
 | Table | Purpose | Key relationships |
 |-------|---------|-------------------|
-| `pages` | Rich-text documents (TipTap JSON) | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
+| `pages` | Rich-text documents (TipTap JSON); `purged_at` marks trash state | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
 | `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
 | `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | → `pages` (PK = page_id, CASCADE) |
@@ -162,9 +162,22 @@ Replaces the earlier unused `pinned_assets` table and its `pinned_asset_type` en
 
 **Access.** Grants are `SELECT, INSERT, DELETE` to `authenticated` and `ALL` to `service_role`; there is no UPDATE path. RLS scopes every statement to `workspace_user_id = current_workspace_user_id(workspace_id)` plus workspace membership, and the INSERT `WITH CHECK` additionally requires the session helpers `is_conversation_participant` / `can_read_page` (the `_as` variants stay `service_role`-only).
 
-**Revocation.** CASCADE from `entities` removes pins when the conversation/page is deleted, and CASCADE from `workspace_users` removes them when the member leaves the workspace. Three further triggers drop pins that access changes would strand: `trg_unpin_on_conversation_participant_delete` (AFTER DELETE on `conversation_participants` — unpins that conversation and any page the user can no longer read), `trg_unpin_on_page_collaborator_delete`, and `trg_unpin_on_page_access_change` (AFTER UPDATE OF `visibility`, `owner_workspace_user_id`, `conversation_id` on `pages`).
+**Revocation.** CASCADE from `entities` removes pins when the conversation/page is deleted, and CASCADE from `workspace_users` removes them when the member leaves the workspace. Four further triggers drop pins that access changes would strand: `trg_unpin_on_conversation_participant_delete` (AFTER DELETE on `conversation_participants` — unpins that conversation and any page the user can no longer read), `trg_unpin_on_page_collaborator_delete`, `trg_unpin_on_page_access_change` (AFTER UPDATE OF `visibility`, `owner_workspace_user_id`, `conversation_id` on `pages`), and `trg_pages_unpin_on_purge` (AFTER UPDATE OF `purged_at` when it goes NULL → non-null — trashing a page unpins it for every user; recovering does **not** restore pins).
 
 Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id, created_at DESC)`.
+
+### Entity Deletion (Trash & Purge)
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `purgeable_entity_types` | Registry of which entity kinds are trashable/purgeable: `entity_type_key` (PK, matches `entity_types.key`), `table_name`, `purge_order` | — (seeded with `message` = 10, `page` = 20) |
+
+**Soft delete.** `pages.purged_at` and `messages.purged_at` (both `timestamptz NULL`) mark trash state: non-null means "in trash, eligible for hard delete at that instant"; recover sets it back to NULL. Partial indexes `idx_pages_purged_at` / `idx_messages_purged_at` on `(purged_at) WHERE purged_at IS NOT NULL` keep trash lookups cheap. `messages.purged_at` is groundwork only — no message trash UI yet.
+
+**Type-agnostic purge.** `purge_due_entities(p_entity_ids uuid[] DEFAULT NULL)` (`SECURITY DEFINER`, `service_role`-only) walks `purgeable_entity_types` in `purge_order` and deletes rows with `purged_at IS NOT NULL AND purged_at <= now()`, optionally intersected with `p_entity_ids`. It returns `TABLE(entity_type text, id uuid)` for everything actually deleted. Existing `ON DELETE CASCADE` chains handle semantics, chunks, embeddings, topics, suggestions, and the `entities` registry row (via the sync triggers). Adding a new deletable kind means adding a `purged_at` column plus one registry row — no change to the RPC.
+
+**Deliberately unchanged.** `list_pages_due_for_chunking` / `list_pages_due_for_topics` still include trashed pages, and RLS is untouched — a trashed page stays readable under existing visibility so recover flows need no special policy. `purgeable_entity_types` has RLS enabled with a `USING (false)` SELECT policy; only `service_role` can read it.
+
 
 
 ## Key Indexes
@@ -182,6 +195,8 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `idx_entities_workspace_type` | entities | `(workspace_id, entity_type_id)` | Registry lookups by workspace/type |
 | `idx_message_embeddings_vector` | message_embeddings | HNSW cosine on `embedding_vector` | Semantic search |
 | `idx_message_semantics_queue` | message_semantics | Partial: `(next_retry_at, created_at) WHERE status = 'QUEUED'` | Embedding worker |
+| `idx_pages_purged_at` | pages | Partial: `(purged_at) WHERE purged_at IS NOT NULL` | Trash listing / purge sweep |
+| `idx_messages_purged_at` | messages | Partial: `(purged_at) WHERE purged_at IS NOT NULL` | Trash listing / purge sweep |
 | `idx_pages_last_modified_at` | pages | `(last_modified_at)` | Page chunking due-list |
 | `idx_page_chunks_page_checksum` | page_chunks | `(page_id, checksum)` (non-unique) | Chunk reconciliation |
 | `idx_page_chunk_embeddings_queue` | page_chunk_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
@@ -221,6 +236,8 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
 | `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page); returns `chunk_id` of the winning chunk for passage deeplinks |
+| `purge_due_entities(p_entity_ids)` | Trash: hard-delete due trashed rows across every kind listed in `purgeable_entity_types` (service_role only) |
+| `unpin_on_page_purge()` | Trigger on `pages`: drops all pins for a page when it is moved to trash |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
 
 ## Row-Level Security
@@ -258,6 +275,7 @@ Write patterns:
 | 2026-08-20 | Entities registry revamp: drop `entity_annotations` + `annotation_type`, drop `entities.source_id` / `title` / `embedding`, shared-id invariant, `conversation` entity type, `idx_entities_workspace_type`, backfill, and lifecycle sync triggers |
 | 2026-08-21 | Page-chunk deeplink groundwork: `page_chunk` entity type, backfill, `trg_sync_entity_from_page_chunk`, and `search_pages_semantic` now returns `chunk_id` |
 | 2026-08-21 | Drop unused `pinned_assets` + `pinned_asset_type`; add `pinned_entities` with insert-guard and access-revocation triggers |
+| 2026-08-23 | Entity deletion groundwork: `pages.purged_at`, `messages.purged_at`, partial indexes, `purgeable_entity_types` registry, `trg_pages_unpin_on_purge`, and `purge_due_entities` RPC |
 | 2026-08-22 | Drop unreachable `NEW` from `embedding_status`; default `message_semantics.embedding_status` to `QUEUED`; recreate status indexes and `cti_is_next_processable` |
 
 
