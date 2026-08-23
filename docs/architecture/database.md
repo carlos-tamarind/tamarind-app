@@ -291,6 +291,7 @@ Write patterns:
 | 2026-08-21 | Drop unused `pinned_assets` + `pinned_asset_type`; add `pinned_entities` with insert-guard and access-revocation triggers |
 | 2026-08-23 | Entity deletion groundwork: `pages.purged_at`, `messages.purged_at`, partial indexes, `purgeable_entity_types` registry, `trg_pages_unpin_on_purge`, and `purge_due_entities` RPC |
 | 2026-08-22 | Drop unreachable `NEW` from `embedding_status`; default `message_semantics.embedding_status` to `QUEUED`; recreate status indexes and `cti_is_next_processable` |
+| 2026-08-23 | Message delete with Undo: `purge_due_entities` scrubs messages instead of deleting them, message search RPCs filter `purged_at IS NULL`, and CTI claim/ordering ignore purged messages |
 
 
 ## Related Docs
