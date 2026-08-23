@@ -692,6 +692,7 @@ export type Database = {
           entity_id: string | null
           id: string
           last_modified_at: string
+          purged_at: string | null
           raw_text: string
           workspace_id: string
         }
@@ -702,6 +703,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           last_modified_at?: string
+          purged_at?: string | null
           raw_text?: string
           workspace_id: string
         }
@@ -712,6 +714,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           last_modified_at?: string
+          purged_at?: string | null
           raw_text?: string
           workspace_id?: string
         }
@@ -1035,6 +1038,7 @@ export type Database = {
           page_type: Database["public"]["Enums"]["page_type"]
           parent_page_id: string | null
           plain_text: string | null
+          purged_at: string | null
           title: string
           visibility: Database["public"]["Enums"]["page_visibility"]
           workspace_id: string
@@ -1053,6 +1057,7 @@ export type Database = {
           page_type?: Database["public"]["Enums"]["page_type"]
           parent_page_id?: string | null
           plain_text?: string | null
+          purged_at?: string | null
           title?: string
           visibility?: Database["public"]["Enums"]["page_visibility"]
           workspace_id: string
@@ -1071,6 +1076,7 @@ export type Database = {
           page_type?: Database["public"]["Enums"]["page_type"]
           parent_page_id?: string | null
           plain_text?: string | null
+          purged_at?: string | null
           title?: string
           visibility?: Database["public"]["Enums"]["page_visibility"]
           workspace_id?: string
@@ -1165,6 +1171,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      purgeable_entity_types: {
+        Row: {
+          entity_type_key: string
+          purge_order: number
+          table_name: string
+        }
+        Insert: {
+          entity_type_key: string
+          purge_order?: number
+          table_name: string
+        }
+        Update: {
+          entity_type_key?: string
+          purge_order?: number
+          table_name?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1617,6 +1641,7 @@ export type Database = {
           page_type: Database["public"]["Enums"]["page_type"]
           parent_page_id: string | null
           plain_text: string | null
+          purged_at: string | null
           title: string
           visibility: Database["public"]["Enums"]["page_visibility"]
           workspace_id: string
@@ -1654,6 +1679,13 @@ export type Database = {
           name: string
           similarity: number
           updated_at: string
+        }[]
+      }
+      purge_due_entities: {
+        Args: { p_entity_ids?: string[] }
+        Returns: {
+          entity_type: string
+          id: string
         }[]
       }
       release_conversation_topic_job: {
