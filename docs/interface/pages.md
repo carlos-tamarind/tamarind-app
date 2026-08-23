@@ -78,7 +78,7 @@ All in [`src/lib/pages.functions.ts`](../../src/lib/pages.functions.ts):
 
 ## Trash, recover, and purge
 
-Only the owner can trash a page (from page settings). Trashing sets `purged_at` 30 days ahead (`DELETE_GRACE_PERIOD_MS` in [`src/lib/delete-entities/config.ts`](../../src/lib/delete-entities/config.ts)). The page stays readable, editable, searchable, and in the semantic pipeline. Share, publish, duplicate, and pin are blocked; existing pins are removed.
+Only the owner can trash a page (from page settings). Trashing sets `purged_at` 30 days ahead (`DELETE_PAGE_GRACE_PERIOD_MS` in [`src/lib/delete-entities/config.ts`](../../src/lib/delete-entities/config.ts)). The page stays readable, editable, searchable, and in the semantic pipeline. Share, publish, duplicate, and pin are blocked; existing pins are removed.
 
 The owner sees the page only under **Deleted** in the nav (recover control on the row). Other users with access still see it in its original section, without pin/visibility actions.
 

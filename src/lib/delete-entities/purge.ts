@@ -37,6 +37,10 @@ export async function purgeDueEntities(
   const pageIds = await listDuePageIds(options.entityIds);
   const messageIds = await listDueMessageIds(options.entityIds);
 
+  const { snapshotEvidencesForMessages, reconcileTopicsAfterMessageScrub } =
+    await import("@/lib/delete-entities/messages/reconcile-topics");
+  const deletedEvidences = await snapshotEvidencesForMessages(messageIds);
+
   await rewritePageMentions(pageIds);
   await rewriteMessageReferences(messageIds);
 
@@ -44,6 +48,8 @@ export async function purgeDueEntities(
     p_entity_ids: options.entityIds ?? undefined,
   });
   if (error) throw new Error(error.message);
+
+  await reconcileTopicsAfterMessageScrub(deletedEvidences);
 
   const rows = data ?? [];
   const byType: Record<string, number> = {};

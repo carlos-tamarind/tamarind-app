@@ -41,6 +41,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   ResizablePanel,
   ResizablePanelGroup,
   ResizableHandle,
@@ -51,6 +59,8 @@ import {
   getConversation,
   listMessages,
   sendMessage,
+  trashMessages,
+  recoverMessage,
   listMentionablePages,
   listWorkspaceMembers,
   renameConversation,
@@ -70,6 +80,12 @@ import { useConversationSuggestion } from "@/hooks/use-conversation-suggestion";
 import { openExternalUrl, isSafeExternalUrl } from "@/lib/open-external-url";
 import { createMentionClickHandler } from "@/lib/tiptap-mention-clicks";
 import { UserNavigationContext } from "@/lib/user-navigation-context";
+import {
+  DELETED_MESSAGE_LABEL,
+  isMessageUndoAvailable,
+  isTrashed,
+} from "@/lib/delete-entities/config";
+import { computeMessageTrashPurgedAt } from "@/lib/delete-entities/messages/trash";
 import { withPage } from "@/lib/workspace-search";
 import {
   getComposerDraft,
@@ -83,7 +99,25 @@ type Message = {
   authorWorkspaceUserId: string | null;
   authorLabel?: string;
   createdAt: string;
+  purgedAt?: string | null;
 };
+
+function mapRealtimeMessage(row: any, prev?: Message): Message {
+  return {
+    id: row.id as string,
+    rawText: (row.raw_text as string | undefined) ?? prev?.rawText ?? "",
+    authorWorkspaceUserId:
+      (row.author_workspace_user_id as string | null | undefined) ??
+      prev?.authorWorkspaceUserId ??
+      null,
+    authorLabel: prev?.authorLabel,
+    createdAt: (row.created_at as string | undefined) ?? prev?.createdAt ?? "",
+    purgedAt:
+      ("purged_at" in (row ?? {})
+        ? ((row.purged_at as string | null) ?? null)
+        : prev?.purgedAt) ?? null,
+  };
+}
 
 type MessageRun = {
   dateKey: string;
@@ -228,6 +262,7 @@ function sanitizeAttrs(el: Element) {
 function sanitizeMessageHtml(
   html: string,
   myWorkspaceUserId?: string | null,
+  purgedQuoteIds?: ReadonlySet<string>,
 ): string {
   if (typeof window === "undefined") return "";
   const tpl = document.createElement("template");
@@ -264,6 +299,17 @@ function sanitizeMessageHtml(
           }
           el.setAttribute("class", "msg-quote");
           walk(el);
+          const quoteId = el.getAttribute("data-quote-id");
+          if (quoteId && purgedQuoteIds?.has(quoteId)) {
+            const header = el.querySelector(".msg-quote-header");
+            for (const child of Array.from(el.childNodes)) {
+              if (child === header) continue;
+              el.removeChild(child);
+            }
+            const body = document.createElement("p");
+            body.textContent = DELETED_MESSAGE_LABEL;
+            el.appendChild(body);
+          }
           continue;
         }
         // Unwrap unknown divs but keep their children.
@@ -436,6 +482,8 @@ export function ConversationWindow({
   const fetchConv = useServerFn(getConversation);
   const fetchMessages = useServerFn(listMessages);
   const sendMsg = useServerFn(sendMessage);
+  const trashMsgs = useServerFn(trashMessages);
+  const recoverMsg = useServerFn(recoverMessage);
   
   const fetchMembers = useServerFn(listWorkspaceMembers);
   const fetchMentionPages = useServerFn(listMentionablePages);
@@ -455,7 +503,10 @@ export function ConversationWindow({
   const sendLockRef = useRef(false);
   const handleSendRef = useRef<() => void>(() => {});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const scrollerRef = useRef<HTMLDivElement>(null);
   const flashedMessageRef = useRef<string | null>(null);
   const sendLabel = useShortcutLabel(HOTKEYS.send);
@@ -518,24 +569,38 @@ export function ConversationWindow({
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const m = payload.new as any;
+          if (payload.eventType === "DELETE") {
+            const id = (payload.old as { id?: string } | null)?.id;
+            if (!id) return;
+            setRemovedIds((prev) => {
+              const next = new Set(prev);
+              next.add(id);
+              return next;
+            });
+            setLiveMessages((prev) => prev.filter((m) => m.id !== id));
+            return;
+          }
+          const row = payload.new as any;
+          if (!row?.id) return;
+          setRemovedIds((prev) => {
+            if (!prev.has(row.id)) return prev;
+            const next = new Set(prev);
+            next.delete(row.id);
+            return next;
+          });
           setLiveMessages((prev) => {
-            if (prev.some((p) => p.id === m.id)) return prev;
-            return [
-              ...prev,
-              {
-                id: m.id,
-                rawText: m.raw_text ?? "",
-                authorWorkspaceUserId: m.author_workspace_user_id,
-                createdAt: m.created_at,
-              },
-            ];
+            const existing = prev.find((m) => m.id === row.id);
+            const mapped = mapRealtimeMessage(row, existing);
+            if (existing) {
+              return prev.map((m) => (m.id === row.id ? { ...m, ...mapped } : m));
+            }
+            return [...prev, mapped];
           });
         },
       )
@@ -545,21 +610,57 @@ export function ConversationWindow({
     };
   }, [conversationId]);
 
+  useEffect(() => {
+    setLiveMessages([]);
+    setRemovedIds(new Set());
+  }, [conversationId]);
+
   const messages = useMemo<Message[]>(() => {
-    const seen = new Set<string>();
-    const out: Message[] = [];
+    const byId = new Map<string, Message>();
     for (const m of initialMessages ?? []) {
-      if (seen.has(m.id)) continue;
-      seen.add(m.id);
-      out.push(m);
+      if (removedIds.has(m.id)) continue;
+      byId.set(m.id, { ...m, purgedAt: m.purgedAt ?? null });
     }
     for (const m of liveMessages) {
-      if (seen.has(m.id)) continue;
-      seen.add(m.id);
-      out.push(m);
+      if (removedIds.has(m.id)) continue;
+      const prev = byId.get(m.id);
+      byId.set(m.id, prev ? { ...prev, ...m } : { ...m, purgedAt: m.purgedAt ?? null });
     }
-    return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  }, [initialMessages, liveMessages]);
+    return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [initialMessages, liveMessages, removedIds]);
+
+  const purgedMessageIds = useMemo(
+    () => new Set(messages.filter((m) => isTrashed(m.purgedAt)).map((m) => m.id)),
+    [messages],
+  );
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (purgedMessageIds.has(id)) {
+          changed = true;
+          continue;
+        }
+        next.add(id);
+      }
+      return changed ? next : prev;
+    });
+  }, [purgedMessageIds]);
+
+  useEffect(() => {
+    const times = messages
+      .map((m) => m.purgedAt)
+      .filter((t): t is string => !!t)
+      .map((t) => new Date(t).getTime())
+      .filter((t) => t > nowMs);
+    if (times.length === 0) return;
+    const delay = Math.max(0, Math.min(...times) - Date.now());
+    const id = window.setTimeout(() => setNowMs(Date.now()), delay + 30);
+    return () => window.clearTimeout(id);
+  }, [messages, nowMs]);
 
   const messageRuns = useMemo(() => {
     if (!conv) return [];
@@ -713,6 +814,7 @@ export function ConversationWindow({
         rawText: html,
         authorWorkspaceUserId: myWorkspaceUserId,
         createdAt: new Date().toISOString(),
+        purgedAt: null,
       },
     ]);
     editor.commands.clearContent();
@@ -780,7 +882,7 @@ export function ConversationWindow({
     const nodes: string[] = [];
     for (const id of ids) {
       const m = byId.get(id);
-      if (!m) continue;
+      if (!m || isTrashed(m.purgedAt)) continue;
       const author = escapeAttr(
         conv?.participants.find((p) => p.workspaceUserId === m.authorWorkspaceUserId)
           ?.label ??
@@ -792,7 +894,7 @@ export function ConversationWindow({
         : "";
       const createdAt = escapeAttr(m.createdAt);
       const inner =
-        sanitizeMessageHtml(m.rawText || "", myWorkspaceUserId) || "<p></p>";
+        sanitizeMessageHtml(m.rawText || "", myWorkspaceUserId, purgedMessageIds) || "<p></p>";
       const headerDate = formatMessageTimestamp(m.createdAt);
       const authorIdAttr = authorId ? ` data-author-id="${authorId}"` : "";
       nodes.push(
@@ -816,7 +918,7 @@ export function ConversationWindow({
     const parts: string[] = [];
     for (const id of ids) {
       const m = byId.get(id);
-      if (!m) continue;
+      if (!m || isTrashed(m.purgedAt)) continue;
       const tmp = document.createElement("div");
       tmp.innerHTML = m.rawText || "";
       const text = (tmp.innerText || tmp.textContent || "").trim();
@@ -832,6 +934,67 @@ export function ConversationWindow({
     }
   };
 
+  const overlayPurgedAt = (ids: string[], purgedAt: string | null) => {
+    setLiveMessages((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const id of ids) {
+        const current = messages.find((m) => m.id === id) ?? byId.get(id);
+        if (!current) continue;
+        byId.set(id, { ...current, purgedAt });
+      }
+      return Array.from(byId.values());
+    });
+  };
+
+  const canDeleteSelection =
+    selectedIds.size > 0 &&
+    !!myWorkspaceUserId &&
+    Array.from(selectedIds).every((id) => {
+      const m = messages.find((row) => row.id === id);
+      return (
+        !!m &&
+        !isTrashed(m.purgedAt) &&
+        m.authorWorkspaceUserId === myWorkspaceUserId
+      );
+    });
+
+  const handleTrashMessages = async (ids: string[]) => {
+    const unique = Array.from(new Set(ids));
+    if (unique.length === 0) return;
+    overlayPurgedAt(unique, computeMessageTrashPurgedAt());
+    clearSelection();
+    setDeleteConfirmOpen(false);
+    try {
+      await trashMsgs({ data: { messageIds: unique } });
+      await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not delete messages.");
+      await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    }
+  };
+
+  const handleRecoverMessage = async (id: string) => {
+    overlayPurgedAt([id], null);
+    try {
+      await recoverMsg({ data: { messageId: id } });
+      await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not undo deletion.");
+      await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (!canDeleteSelection) return;
+    if (selectedIds.size === 1) {
+      void handleTrashMessages(Array.from(selectedIds));
+      return;
+    }
+    setDeleteConfirmOpen(true);
+  };
+
   const handleNewPage = () => {
     setNewPageFromMessages(false);
     setNewPagePresetTitle("");
@@ -840,7 +1003,9 @@ export function ConversationWindow({
   };
 
   const handleCreatePageFromSelection = (targetIds?: string[]) => {
-    const ids = sortByOrder(targetIds ?? Array.from(selectedIds));
+    const ids = sortByOrder(targetIds ?? Array.from(selectedIds)).filter(
+      (id) => !purgedMessageIds.has(id),
+    );
     if (ids.length === 0) return;
     const now = new Date();
     const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
@@ -984,7 +1149,7 @@ export function ConversationWindow({
 
   return (
     <UserNavigationContext.Provider
-      value={{ workspaceId, myWorkspaceUserId }}
+      value={{ workspaceId, myWorkspaceUserId, purgedMessageIds }}
     >
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col">
@@ -1131,6 +1296,11 @@ export function ConversationWindow({
                             const label =
                               author?.label ?? m.authorLabel ?? "Archived user";
                             const isSelected = selectedIds.has(m.id);
+                            const isPurged = isTrashed(m.purgedAt);
+                            const showUndo =
+                              isPurged &&
+                              m.authorWorkspaceUserId === myWorkspaceUserId &&
+                              isMessageUndoAvailable(m.purgedAt, nowMs);
 
                             return (
                               <div
@@ -1138,11 +1308,14 @@ export function ConversationWindow({
                                 data-message-id={m.id}
                                 onMouseDown={(e) => {
                                   if (e.button !== 0) return;
+                                  if (isPurged) return;
                                   const t = e.target as HTMLElement;
                                   if (!isMessageSelectionTarget(t)) return;
                                   toggleSelected(m.id);
                                 }}
-                                className={`group/msg relative flex cursor-pointer gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
+                                className={`group/msg relative flex gap-2.5 rounded-md px-2 transition-colors duration-(--motion-fast) ${
+                                  isPurged ? "cursor-default" : "cursor-pointer"
+                                } ${
                                   startsRun ? "pb-0.5 pt-1.5" : "py-0.5"
                                 } ${isSelected ? "bg-primary/50" : ""}`}
                               >
@@ -1179,15 +1352,38 @@ export function ConversationWindow({
                                       </span>
                                     </div>
                                   )}
-                                  <div
-                                    className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
-                                    dangerouslySetInnerHTML={{
-                                      __html: sanitizeMessageHtml(
-                                        m.rawText,
-                                        myWorkspaceUserId,
-                                      ),
-                                    }}
-                                  />
+                                  {isPurged ? (
+                                    <div className="text-sm text-muted-foreground">
+                                      {DELETED_MESSAGE_LABEL}
+                                      {showUndo ? (
+                                        <>
+                                          {" "}
+                                          <button
+                                            type="button"
+                                            className="underline underline-offset-2 hover:text-foreground"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              void handleRecoverMessage(m.id);
+                                            }}
+                                          >
+                                            Undo
+                                          </button>
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
+                                      dangerouslySetInnerHTML={{
+                                        __html: sanitizeMessageHtml(
+                                          m.rawText,
+                                          myWorkspaceUserId,
+                                          purgedMessageIds,
+                                        ),
+                                      }}
+                                    />
+                                  )}
                                 </div>
 
                                 {isSelected && (
@@ -1197,7 +1393,7 @@ export function ConversationWindow({
                                   />
                                 )}
 
-                                {!anySelected && (
+                                {!anySelected && !isPurged && (
                                   <div
                                     data-quick-actions=""
                                     onClick={(e) => e.stopPropagation()}
@@ -1308,6 +1504,7 @@ export function ConversationWindow({
                       </TooltipTrigger>
                       <TooltipContent side="top">Copy to clipboard</TooltipContent>
                     </Tooltip>
+                    {canDeleteSelection && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -1315,13 +1512,14 @@ export function ConversationWindow({
                           variant="ghost"
                           aria-label="Delete"
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => {}}
+                          onClick={handleDeleteClick}
                         >
                           <Trash2 className="size-3.5" strokeWidth={1.5} />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">Delete</TooltipContent>
                     </Tooltip>
+                    )}
                     <span className="mx-0.5 h-5 w-px bg-border" />
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1510,6 +1708,27 @@ export function ConversationWindow({
           open={addOpen}
           onOpenChange={setAddOpen}
         />
+        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <DialogContent size="sm">
+            <DialogHeader>
+              <DialogTitle>Confirm deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove these messages?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-between">
+              <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => void handleTrashMessages(Array.from(selectedIds))}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
     </UserNavigationContext.Provider>

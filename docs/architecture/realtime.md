@@ -40,7 +40,7 @@ When a conversation is open, the component subscribes to Postgres changes on the
 supabase
   .channel(`messages:${conversationId}`)
   .on("postgres_changes", {
-    event: "INSERT",
+    event: "*",
     schema: "public",
     table: "messages",
     filter: `conversation_id=eq.${conversationId}`,
@@ -48,7 +48,7 @@ supabase
   .subscribe()
 ```
 
-New messages inserted by any participant (via `sendMessage` server function) appear in the UI without a full refetch. Initial message history is loaded via React Query + `listMessages` server function; Realtime handles only subsequent INSERTs.
+`sendMessage` INSERTs and `trashMessages` / `recoverMessage` UPDATEs appear without a full refetch. Initial history comes from React Query + `listMessages`; live events **overlay by id** (a later UPDATE replaces the cached row instead of being ignored because the id was already loaded). DELETE is handled defensively; message rows are no longer removed.
 
 ### Message send flow
 
@@ -96,7 +96,7 @@ Only two tables are published to Supabase Realtime (configured in migrations):
 
 | Table | Client usage |
 |-------|--------------|
-| `messages` | INSERT subscription in conversation window |
+| `messages` | INSERT + UPDATE overlay in conversation window |
 | `pages` | Available for future content sync (presence used today) |
 
 ## What Is Not Realtime
