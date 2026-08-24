@@ -45,6 +45,9 @@ The composer is a collapsible vertical panel in the conversation column.
 - Click or focus expands. Blur with empty content collapses. Blur with text stays expanded.
 - **Enter** inserts a line break. **Send** is the button or **⌘↵** / Ctrl+Enter. Mention popovers still consume Enter while open.
 - Long text wraps (`min-w-0` + ProseMirror `overflow-wrap`).
+- The formatting toolbar supports bold, italic, inline code, bullet lists, numbered lists, and code blocks. Active block controls are highlighted.
+- StarterKit input rules match the page editor: type `- ` or `* ` at the start of a line for a bullet list, `1. ` for a numbered list, or a fenced-code trigger for a code block. Raw Markdown pasted as plain text is not guaranteed to be converted.
+- Messages store TipTap HTML. History rendering preserves and sanitizes `ul`, `ol`, `li`, and `pre` structure so list markers, nesting, code whitespace, and horizontal overflow survive reloads.
 
 ### Session drafts
 
@@ -121,6 +124,7 @@ Users can select one or more messages (or use hover **Create page**) and create 
 3. Posts an announcement message in the conversation
 
 This triggers the semantic pipeline for the announcement message.
+Lists and code blocks are converted to native page nodes; quoted message blocks become page blockquotes.
 
 The New Page dialog has **title** and **visibility** only (no template picker).
 
@@ -131,7 +135,7 @@ Users can select one or more messages (any author) and append them onto an exist
 `appendMessagesToPage`:
 
 1. Verifies the caller is a conversation participant and can edit the chosen page (not trashed; same workspace)
-2. Appends a heading using the create-from-messages title taxonomy (`Messages from {conversation} on {YYYY-MM-DD HH:mm}` UTC), a horizontal rule, then chronological author-batched message content (quotes become blockquotes)
+2. Appends a heading using the create-from-messages title taxonomy (`Messages from {conversation} on {YYYY-MM-DD HH:mm}` UTC), a horizontal rule, then chronological author-batched message content (quotes become blockquotes; lists and code blocks retain their native page structure)
 3. Leaves the page title unchanged and does **not** post a conversation announcement
 
 On success the app navigates to the page and clears the message selection.

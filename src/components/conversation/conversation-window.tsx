@@ -10,10 +10,13 @@ import {
   FilePlus,
   FileText,
   Italic,
+  List,
+  ListOrdered,
   MessageSquareDashed,
   MoreHorizontal,
   Quote,
   Send,
+  SquareCode,
   Trash2,
   Users,
   X,
@@ -219,6 +222,10 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "EM",
   "I",
   "CODE",
+  "PRE",
+  "UL",
+  "OL",
+  "LI",
   "BR",
   "SPAN",
   "DIV",
@@ -289,6 +296,13 @@ function sanitizeMessageHtml(
       const tag = el.tagName.toUpperCase();
       if (!ALLOWED_MESSAGE_TAGS.has(tag)) {
         el.replaceWith(document.createTextNode(el.textContent ?? ""));
+        continue;
+      }
+      if (tag === "CODE" || tag === "PRE" || tag === "UL" || tag === "OL" || tag === "LI") {
+        for (const attr of Array.from(el.attributes)) {
+          el.removeAttribute(attr.name);
+        }
+        walk(el);
         continue;
       }
       if (tag === "DIV") {
@@ -705,8 +719,6 @@ export function ConversationWindow({
     extensions: [
       StarterKit.configure({
         heading: false,
-        bulletList: false,
-        orderedList: false,
         blockquote: false,
         horizontalRule: false,
       }),
@@ -1385,7 +1397,7 @@ export function ConversationWindow({
                                     </div>
                                   ) : (
                                     <div
-                                      className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
+                                      className="message-content prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
                                       dangerouslySetInnerHTML={{
                                         __html: sanitizeMessageHtml(
                                           m.rawText,
@@ -1653,6 +1665,57 @@ export function ConversationWindow({
                           {codeLabel}
                         </Kbd>
                       </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("bulletList") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleBulletList().run()
+                          }
+                          aria-label="Bullet list"
+                          aria-pressed={editor?.isActive("bulletList") ?? false}
+                        >
+                          <List className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Bullet list</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("orderedList") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleOrderedList().run()
+                          }
+                          aria-label="Numbered list"
+                          aria-pressed={editor?.isActive("orderedList") ?? false}
+                        >
+                          <ListOrdered className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Numbered list</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("codeBlock") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleCodeBlock().run()
+                          }
+                          aria-label="Code block"
+                          aria-pressed={editor?.isActive("codeBlock") ?? false}
+                        >
+                          <SquareCode className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Code block</TooltipContent>
                     </Tooltip>
                   </div>
 

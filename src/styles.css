@@ -313,28 +313,38 @@
   margin-top: 1em;
 }
 .ProseMirror ul,
-.ProseMirror ol {
+.ProseMirror ol,
+.message-content ul,
+.message-content ol {
   padding-left: 1.5rem;
 }
-.ProseMirror ul {
+.ProseMirror ul,
+.message-content ul {
   list-style: disc;
 }
-.ProseMirror ol {
+.ProseMirror ol,
+.message-content ol {
   list-style: decimal;
+}
+.message-content li > ul,
+.message-content li > ol {
+  margin-block: 0.25rem;
 }
 .ProseMirror blockquote {
   border-left: 2px solid var(--border-strong);
   padding-left: 1rem;
   color: var(--muted-foreground);
 }
-.ProseMirror code {
+.ProseMirror code,
+.message-content code {
   background-color: color-mix(in oklab, var(--muted) 70%, transparent);
   padding: 0.1em 0.35em;
   border-radius: 4px;
   font-size: 0.9em;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.ProseMirror pre {
+.ProseMirror pre,
+.message-content pre {
   background-color: var(--muted);
   color: var(--foreground);
   padding: 0.75rem 1rem;
@@ -343,7 +353,8 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.875rem;
 }
-.ProseMirror pre code {
+.ProseMirror pre code,
+.message-content pre code {
   background: transparent;
   padding: 0;
   border-radius: 0;

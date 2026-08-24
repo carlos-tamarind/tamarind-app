@@ -343,6 +343,26 @@ const cases: ExampleCase[] = [
     expectNormalizedContains: ["- intro", "- body", "- outro"],
   },
   {
+    label: "v3_plain_list_hyphen",
+    rawMessage: "- first item\n- second item\n- third item",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+  },
+  {
+    label: "v3_plain_list_asterisk",
+    rawMessage: "* first item\n* second item\n* third item",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+    expectNormalizedExcludes: ["* first item"],
+  },
+  {
+    label: "v3_html_ordered_list",
+    rawMessage: "<ol><li>first item</li><li>second item</li><li>third item</li></ol>",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+    expectNormalizedExcludes: ["<ol", "<li"],
+  },
+  {
     label: "v3_html_p_numbered_list",
     rawMessage:
       "<p>1. stripped html tags</p><p>2. optimized rule config weights</p><p>3. enforce msg normalization lifecycle gateways</p>",
@@ -392,6 +412,7 @@ function assertCase(example: ExampleCase): void {
 type ScoringCase = {
   label: string;
   normalized: string;
+  original?: string;
   expectRuleMatches: string[];
   expectRuleMisses?: string[];
 };
@@ -418,13 +439,32 @@ const scoringCases: ScoringCase[] = [
     normalized: "looks good — please add tests before merge.",
     expectRuleMatches: ["HEUR_MSG_COMMANDS"],
   },
+  {
+    label: "structured_bullet_list",
+    original: "<ul><li>first item</li><li>second item</li><li>third item</li></ul>",
+    normalized: "- first item\n- second item\n- third item",
+    expectRuleMatches: ["HEUR_MSG_BULLET_LIST"],
+  },
+  {
+    label: "structured_ordered_list",
+    original: "<ol><li>first item</li><li>second item</li><li>third item</li></ol>",
+    normalized: "- first item\n- second item\n- third item",
+    expectRuleMatches: ["HEUR_MSG_BULLET_LIST"],
+  },
+  {
+    label: "structured_code_block",
+    original: "<pre><code>const x = 1;\nconsole.log(x);</code></pre>",
+    normalized: "[[CODE_BLOCK]]\nconst x = 1;\nconsole.log(x);\n[[/CODE_BLOCK]]",
+    expectRuleMatches: ["HEUR_MSG_CODE_BLOCK"],
+    expectRuleMisses: ["HEUR_MSG_CODE"],
+  },
 ];
 
 function assertScoringCase(example: ScoringCase): void {
   const message: NormalizedMessage = {
     id: example.label,
     authorId: null,
-    original: example.normalized,
+    original: example.original ?? example.normalized,
     normalized: example.normalized,
   };
   const context: ScoringContext = { previousMessages: [] };

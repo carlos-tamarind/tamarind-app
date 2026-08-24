@@ -975,6 +975,158 @@ type HtmlChunk =
   | { kind: "text"; html: string }
   | { kind: "quote"; author: string | null; createdAt: string | null; inner: string };
 
+type StructuredHtmlChunk =
+  | { kind: "text"; html: string }
+  | { kind: "list"; ordered: boolean; inner: string }
+  | { kind: "code"; inner: string };
+
+type ProseMirrorNode = {
+  type: string;
+  text?: string;
+  content?: ProseMirrorNode[];
+};
+
+function splitStructuredBlocks(html: string): StructuredHtmlChunk[] {
+  const chunks: StructuredHtmlChunk[] = [];
+  const openRe = /<(ul|ol|pre)\b[^>]*>/gi;
+  let offset = 0;
+
+  while (offset < html.length) {
+    openRe.lastIndex = offset;
+    const open = openRe.exec(html);
+    if (!open) {
+      const rest = html.slice(offset);
+      if (rest) chunks.push({ kind: "text", html: rest });
+      break;
+    }
+
+    if (open.index > offset) {
+      chunks.push({ kind: "text", html: html.slice(offset, open.index) });
+    }
+
+    const tag = open[1].toLowerCase();
+    const tokenRe = tag === "pre" ? /<\/?pre\b[^>]*>/gi : /<\/?(?:ul|ol)\b[^>]*>/gi;
+    tokenRe.lastIndex = open.index + open[0].length;
+    let depth = 1;
+    let closeStart = -1;
+    let after = html.length;
+    let token: RegExpExecArray | null;
+
+    while ((token = tokenRe.exec(html))) {
+      if (token[0].startsWith("</")) depth--;
+      else depth++;
+      if (depth === 0) {
+        closeStart = token.index;
+        after = token.index + token[0].length;
+        break;
+      }
+    }
+
+    if (closeStart === -1) {
+      chunks.push({ kind: "text", html: html.slice(open.index) });
+      break;
+    }
+
+    const inner = html.slice(open.index + open[0].length, closeStart);
+    chunks.push(tag === "pre" ? { kind: "code", inner } : { kind: "list", ordered: tag === "ol", inner });
+    offset = after;
+  }
+
+  return chunks;
+}
+
+function splitDirectListItems(html: string): string[] {
+  const items: string[] = [];
+  const tokenRe = /<\/?(?:ul|ol|li)\b[^>]*>/gi;
+  let listDepth = 0;
+  let itemDepth = 0;
+  let itemStart = -1;
+  let token: RegExpExecArray | null;
+
+  while ((token = tokenRe.exec(html))) {
+    const full = token[0];
+    const tagMatch = /^<\/?([a-z]+)/i.exec(full);
+    const tag = tagMatch?.[1].toLowerCase();
+    const isClose = full.startsWith("</");
+
+    if (tag === "ul" || tag === "ol") {
+      listDepth += isClose ? -1 : 1;
+      continue;
+    }
+    if (tag !== "li" || listDepth !== 0) continue;
+
+    if (!isClose) {
+      if (itemDepth === 0) itemStart = token.index + full.length;
+      itemDepth++;
+    } else if (itemDepth > 0) {
+      itemDepth--;
+      if (itemDepth === 0 && itemStart !== -1) {
+        items.push(html.slice(itemStart, token.index));
+        itemStart = -1;
+      }
+    }
+  }
+
+  return items;
+}
+
+function codeBlockFromHtml(inner: string): ProseMirrorNode {
+  const withoutWrapper = inner
+    .replace(/^\s*<code\b[^>]*>/i, "")
+    .replace(/<\/code>\s*$/i, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "");
+  const text = decodeEntities(withoutWrapper);
+  return text ? { type: "codeBlock", content: [{ type: "text", text }] } : { type: "codeBlock" };
+}
+
+function listItemFromHtml(html: string): ProseMirrorNode {
+  const content: ProseMirrorNode[] = [];
+  for (const chunk of splitStructuredBlocks(html)) {
+    if (chunk.kind === "text") {
+      const paragraphs = htmlToInlineParagraphs(chunk.html) as ProseMirrorNode[];
+      while (
+        paragraphs.length > 0 &&
+        paragraphs[paragraphs.length - 1].type === "paragraph" &&
+        !paragraphs[paragraphs.length - 1].content
+      ) {
+        paragraphs.pop();
+      }
+      content.push(...paragraphs);
+    } else if (chunk.kind === "code") {
+      content.push(codeBlockFromHtml(chunk.inner));
+    } else {
+      content.push(listFromHtml(chunk.inner, chunk.ordered));
+    }
+  }
+  if (content.length === 0 || content[0].type !== "paragraph") {
+    content.unshift({ type: "paragraph" });
+  }
+  return { type: "listItem", content };
+}
+
+function listFromHtml(inner: string, ordered: boolean): ProseMirrorNode {
+  const items = splitDirectListItems(inner).map(listItemFromHtml);
+  return {
+    type: ordered ? "orderedList" : "bulletList",
+    content: items.length > 0 ? items : [{ type: "listItem", content: [{ type: "paragraph" }] }],
+  };
+}
+
+function structuredHtmlToBlocks(html: string): ProseMirrorNode[] {
+  const nodes: ProseMirrorNode[] = [];
+  for (const chunk of splitStructuredBlocks(html)) {
+    if (chunk.kind === "text") {
+      nodes.push(...htmlToInlineParagraphs(chunk.html));
+    } else if (chunk.kind === "code") {
+      nodes.push(codeBlockFromHtml(chunk.inner));
+    } else {
+      nodes.push(listFromHtml(chunk.inner, chunk.ordered));
+    }
+  }
+  return nodes;
+}
+
 // Split HTML into top-level text chunks and msg-quote blocks. Handles nested
 // <div> tags inside quotes by tracking depth.
 function splitQuotes(html: string): HtmlChunk[] {
@@ -1031,7 +1183,7 @@ function htmlToBlocks(html: string): any[] {
   const nodes: any[] = [];
   for (const c of chunks) {
     if (c.kind === "text") {
-      for (const p of htmlToInlineParagraphs(c.html)) nodes.push(p);
+      nodes.push(...structuredHtmlToBlocks(c.html));
     } else {
       const dateShort = c.createdAt
         ? fmtDateOnly(new Date(c.createdAt))
