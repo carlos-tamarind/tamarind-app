@@ -188,10 +188,16 @@ const SlashMenu = forwardRef<
   if (props.items.length === 0) return null;
 
   return (
-    <div className="z-50 max-h-72 w-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
+    <div
+      ref={listRef}
+      className="relative z-50 max-h-72 w-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+    >
       {props.items.map((item, i) => (
         <button
           key={item.title}
+          ref={(el) => {
+            itemRefs.current[i] = el;
+          }}
           onClick={() => props.command(item)}
           className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
             i === index ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
