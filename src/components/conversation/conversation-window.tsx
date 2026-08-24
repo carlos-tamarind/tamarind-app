@@ -10,11 +10,15 @@ import {
   FilePlus,
   FileText,
   Italic,
+  List,
+  ListOrdered,
   MessageSquareDashed,
   MoreHorizontal,
   Quote,
   Send,
+  SquareCode,
   Trash2,
+  Underline,
   Users,
   X,
 } from "lucide-react";
@@ -79,6 +83,7 @@ import {
 } from "@/components/editor/mention-suggestion";
 import { fetchMentionEntities } from "@/lib/mention-entities";
 import { QuoteBlock } from "@/components/editor/quote-node";
+import { CodeBlockHotkey, UnderlineMarkdown } from "@/components/editor/formatting-extensions";
 import { UserLink } from "@/components/user-link";
 import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
 import { useConversationSuggestion } from "@/hooks/use-conversation-suggestion";
@@ -218,7 +223,12 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "B",
   "EM",
   "I",
+  "U",
   "CODE",
+  "PRE",
+  "UL",
+  "OL",
+  "LI",
   "BR",
   "SPAN",
   "DIV",
@@ -289,6 +299,20 @@ function sanitizeMessageHtml(
       const tag = el.tagName.toUpperCase();
       if (!ALLOWED_MESSAGE_TAGS.has(tag)) {
         el.replaceWith(document.createTextNode(el.textContent ?? ""));
+        continue;
+      }
+      if (
+        tag === "U" ||
+        tag === "CODE" ||
+        tag === "PRE" ||
+        tag === "UL" ||
+        tag === "OL" ||
+        tag === "LI"
+      ) {
+        for (const attr of Array.from(el.attributes)) {
+          el.removeAttribute(attr.name);
+        }
+        walk(el);
         continue;
       }
       if (tag === "DIV") {
@@ -498,7 +522,9 @@ export function ConversationWindow({
   const sendLabel = useShortcutLabel(HOTKEYS.send);
   const boldLabel = useShortcutLabel(HOTKEYS.bold);
   const italicLabel = useShortcutLabel(HOTKEYS.italic);
+  const underlineLabel = useShortcutLabel(HOTKEYS.underline);
   const codeLabel = useShortcutLabel(HOTKEYS.code);
+  const codeBlockLabel = useShortcutLabel(HOTKEYS.codeBlock);
 
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -705,11 +731,11 @@ export function ConversationWindow({
     extensions: [
       StarterKit.configure({
         heading: false,
-        bulletList: false,
-        orderedList: false,
         blockquote: false,
         horizontalRule: false,
       }),
+      UnderlineMarkdown,
+      CodeBlockHotkey,
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: entityMentionSuggestion,
@@ -1385,7 +1411,7 @@ export function ConversationWindow({
                                     </div>
                                   ) : (
                                     <div
-                                      className="prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
+                                      className="message-content prose prose-sm max-w-none break-words text-sm text-foreground [&>p]:my-0.5"
                                       dangerouslySetInnerHTML={{
                                         __html: sanitizeMessageHtml(
                                           m.rawText,
@@ -1639,6 +1665,28 @@ export function ConversationWindow({
                       <TooltipTrigger asChild>
                         <Button
                           size="icon"
+                          variant={editor?.isActive("underline") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleUnderline().run()
+                          }
+                          aria-label="Underline"
+                          aria-pressed={editor?.isActive("underline") ?? false}
+                        >
+                          <Underline className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Underline text
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {underlineLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
                           variant="ghost"
                           className="size-7"
                           onClick={() => editor?.chain().focus().toggleCode().run()}
@@ -1653,6 +1701,62 @@ export function ConversationWindow({
                           {codeLabel}
                         </Kbd>
                       </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("codeBlock") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleCodeBlock().run()
+                          }
+                          aria-label="Code block"
+                          aria-pressed={editor?.isActive("codeBlock") ?? false}
+                        >
+                          <SquareCode className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Code block
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {codeBlockLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("bulletList") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleBulletList().run()
+                          }
+                          aria-label="Bullet list"
+                          aria-pressed={editor?.isActive("bulletList") ?? false}
+                        >
+                          <List className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Bullet list</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("orderedList") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleOrderedList().run()
+                          }
+                          aria-label="Numbered list"
+                          aria-pressed={editor?.isActive("orderedList") ?? false}
+                        >
+                          <ListOrdered className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Numbered list</TooltipContent>
                     </Tooltip>
                   </div>
 

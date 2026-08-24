@@ -193,5 +193,7 @@ export const HOTKEYS = {
   send: "mod+enter",
   bold: "mod+b",
   italic: "mod+i",
+  underline: "mod+u",
   code: "mod+e",
+  codeBlock: "mod+shift+e",
 } as const;

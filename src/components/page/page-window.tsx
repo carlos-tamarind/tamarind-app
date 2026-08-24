@@ -6,10 +6,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 
-import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { markInputRule } from "@tiptap/core";
 import { Copy, Building2, FileText, Link2, FileLock, MessageSquareLock, MessageSquareShare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +28,7 @@ import {
 } from "@/lib/conversations.functions";
 import { SlashCommand } from "@/components/editor/slash-command";
 import { ChunkFlash, flashChunkRange } from "@/components/editor/chunk-flash";
+import { CodeBlockHotkey, UnderlineMarkdown } from "@/components/editor/formatting-extensions";
 import { PageMention, ConversationMention, MemberMention } from "@/components/editor/custom-mentions";
 import {
   buildEntityMentionSuggestion,
@@ -73,17 +72,6 @@ import { UserNavigationContext } from "@/lib/user-navigation-context";
 import { findChunkRangeInDoc } from "@/lib/find-editor-text-range";
 import { withPage } from "@/lib/workspace-search";
 import { DELETED_PAGE_LABEL, isTrashed } from "@/lib/delete-entities/config";
-
-const UnderlineMarkdown = Underline.extend({
-  addInputRules() {
-    return [
-      markInputRule({
-        find: /(?:^|\s)(__([^_]+)__)$/,
-        type: this.type,
-      }),
-    ];
-  },
-});
 
 function VisibilityIcon({
   visibility,
@@ -267,6 +255,7 @@ export function PageWindow({
     extensions: [
       StarterKit,
       UnderlineMarkdown,
+      CodeBlockHotkey,
       Placeholder.configure({
         placeholder: 'Type "/" for commands, "@" member or conversation, "@@" page…',
       }),

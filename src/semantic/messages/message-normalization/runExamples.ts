@@ -8,6 +8,7 @@ type ExampleCase = {
   messageType?: string;
   expectPersist: boolean;
   expectSkipReason?: string;
+  expectNormalizedEquals?: string;
   expectNormalizedContains?: string[];
   expectNormalizedExcludes?: string[];
 };
@@ -276,6 +277,13 @@ const cases: ExampleCase[] = [
     expectNormalizedExcludes: ["<code"],
   },
   {
+    label: "html_underline",
+    rawMessage: "<p><u>Important text</u> remains searchable</p>",
+    expectPersist: true,
+    expectNormalizedEquals: "important text remains searchable",
+    expectNormalizedExcludes: ["<u>", "</u>"],
+  },
+  {
     label: "html_code_block",
     rawMessage: "<pre><code>const x = 1;\nconsole.log(x);</code></pre>",
     expectPersist: true,
@@ -325,6 +333,13 @@ const cases: ExampleCase[] = [
     expectNormalizedExcludes: ["1. first"],
   },
   {
+    label: "v3_markdown_underline",
+    rawMessage: "__Important text__ remains searchable",
+    expectPersist: true,
+    expectNormalizedEquals: "important text remains searchable",
+    expectNormalizedExcludes: ["__"],
+  },
+  {
     label: "v3_plain_list_numbered_paren",
     rawMessage: "1) alpha\n2) beta\n3) gamma",
     expectPersist: true,
@@ -341,6 +356,26 @@ const cases: ExampleCase[] = [
     rawMessage: "I. intro\nII. body\nIII. outro",
     expectPersist: true,
     expectNormalizedContains: ["- intro", "- body", "- outro"],
+  },
+  {
+    label: "v3_plain_list_hyphen",
+    rawMessage: "- first item\n- second item\n- third item",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+  },
+  {
+    label: "v3_plain_list_asterisk",
+    rawMessage: "* first item\n* second item\n* third item",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+    expectNormalizedExcludes: ["* first item"],
+  },
+  {
+    label: "v3_html_ordered_list",
+    rawMessage: "<ol><li>first item</li><li>second item</li><li>third item</li></ol>",
+    expectPersist: true,
+    expectNormalizedContains: ["- first item", "- second item", "- third item"],
+    expectNormalizedExcludes: ["<ol", "<li"],
   },
   {
     label: "v3_html_p_numbered_list",
@@ -372,6 +407,15 @@ function assertCase(example: ExampleCase): void {
 
   const normalized = result.normalizedText ?? "";
 
+  if (
+    example.expectNormalizedEquals !== undefined &&
+    normalized !== example.expectNormalizedEquals
+  ) {
+    throw new Error(
+      `[${example.label}] expected normalizedText to equal "${example.expectNormalizedEquals}", got "${normalized}"`,
+    );
+  }
+
   for (const fragment of example.expectNormalizedContains ?? []) {
     if (!normalized.includes(fragment)) {
       throw new Error(
@@ -392,6 +436,7 @@ function assertCase(example: ExampleCase): void {
 type ScoringCase = {
   label: string;
   normalized: string;
+  original?: string;
   expectRuleMatches: string[];
   expectRuleMisses?: string[];
 };
@@ -418,13 +463,32 @@ const scoringCases: ScoringCase[] = [
     normalized: "looks good — please add tests before merge.",
     expectRuleMatches: ["HEUR_MSG_COMMANDS"],
   },
+  {
+    label: "structured_bullet_list",
+    original: "<ul><li>first item</li><li>second item</li><li>third item</li></ul>",
+    normalized: "- first item\n- second item\n- third item",
+    expectRuleMatches: ["HEUR_MSG_BULLET_LIST"],
+  },
+  {
+    label: "structured_ordered_list",
+    original: "<ol><li>first item</li><li>second item</li><li>third item</li></ol>",
+    normalized: "- first item\n- second item\n- third item",
+    expectRuleMatches: ["HEUR_MSG_BULLET_LIST"],
+  },
+  {
+    label: "structured_code_block",
+    original: "<pre><code>const x = 1;\nconsole.log(x);</code></pre>",
+    normalized: "[[CODE_BLOCK]]\nconst x = 1;\nconsole.log(x);\n[[/CODE_BLOCK]]",
+    expectRuleMatches: ["HEUR_MSG_CODE_BLOCK"],
+    expectRuleMisses: ["HEUR_MSG_CODE"],
+  },
 ];
 
 function assertScoringCase(example: ScoringCase): void {
   const message: NormalizedMessage = {
     id: example.label,
     authorId: null,
-    original: example.normalized,
+    original: example.original ?? example.normalized,
     normalized: example.normalized,
   };
   const context: ScoringContext = { previousMessages: [] };
