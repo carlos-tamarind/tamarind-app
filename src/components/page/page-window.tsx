@@ -458,14 +458,34 @@ export function PageWindow({
       ) {
         return;
       }
-      isHydratingRef.current = true;
       const nextTitle = data.title ?? "Untitled";
       const nextContent = (data.content as any) ?? { type: "doc", content: [] };
+      // A refetch triggered by our own save returns content identical to what
+      // is already on screen. Re-applying it would rebuild the ProseMirror doc
+      // and reset the selection, kicking the caret to the end of the page.
+      const sameContent =
+        JSON.stringify(nextContent) === JSON.stringify(editor.getJSON());
+      const sameTitle = nextTitle === latestTitleValueRef.current;
+      if (sameContent && sameTitle) {
+        hydratedLastModifiedAtRef.current = data.lastModifiedAt;
+        return;
+      }
+      isHydratingRef.current = true;
       setTitle(nextTitle);
       latestTitleValueRef.current = nextTitle;
       latestTitleRef.current = null;
       latestContentRef.current = nextContent;
+      // Genuine remote change: keep the caret where the user left it.
+      const prevFrom = editor.state.selection.from;
+      const prevTo = editor.state.selection.to;
+      const wasFocused = editor.isFocused;
       editor.commands.setContent(nextContent, { emitUpdate: false });
+      const max = editor.state.doc.content.size;
+      editor.commands.setTextSelection({
+        from: Math.min(prevFrom, max),
+        to: Math.min(prevTo, max),
+      });
+      if (wasFocused) editor.commands.focus();
       contentSavedVersion.current = contentPendingVersion.current;
       titleSavedVersion.current = titlePendingVersion.current;
       hydratedLastModifiedAtRef.current = data.lastModifiedAt;

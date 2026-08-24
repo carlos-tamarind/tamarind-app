@@ -82,12 +82,13 @@ export function buildEntityMentionSuggestion(
     command: ({
       editor,
       range,
-      props,
+      props: rawProps,
     }: {
       editor: Editor;
       range: Range;
-      props: MentionEntityItem;
+      props: Record<string, any>;
     }) => {
+      const props = rawProps as MentionEntityItem;
       const type = props.kind === "conversation" ? "conversationMention" : "mention";
       editor
         .chain()
