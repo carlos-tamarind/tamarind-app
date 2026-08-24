@@ -45,9 +45,10 @@ The composer is a collapsible vertical panel in the conversation column.
 - Click or focus expands. Blur with empty content collapses. Blur with text stays expanded.
 - **Enter** inserts a line break. **Send** is the button or **⌘↵** / Ctrl+Enter. Mention popovers still consume Enter while open.
 - Long text wraps (`min-w-0` + ProseMirror `overflow-wrap`).
-- The formatting toolbar supports bold, italic, inline code, bullet lists, numbered lists, and code blocks. Active block controls are highlighted.
-- StarterKit input rules match the page editor: type `- ` or `* ` at the start of a line for a bullet list, `1. ` for a numbered list, or a fenced-code trigger for a code block. Raw Markdown pasted as plain text is not guaranteed to be converted.
-- Messages store TipTap HTML. History rendering preserves and sanitizes `ul`, `ol`, `li`, and `pre` structure so list markers, nesting, code whitespace, and horizontal overflow survive reloads.
+- The formatting toolbar order is bold, italic, underline, inline code, code block, bullet list, and numbered list. Active formatting controls are highlighted.
+- StarterKit input rules match the page editor: type `__text__` for underline, `- ` or `* ` at the start of a line for a bullet list, `1. ` for a numbered list, or a fenced-code trigger for a code block. Raw Markdown pasted as plain text is not guaranteed to be converted.
+- **Code block** toggles with **⌘⇧E** on macOS or **Ctrl+Shift+E** on Windows/Linux. Inline code remains **⌘E** / **Ctrl+E**.
+- Messages store TipTap HTML. History rendering preserves and sanitizes `u`, `ul`, `ol`, `li`, and `pre` structure so underline, list markers, nesting, code whitespace, and horizontal overflow survive reloads.
 
 ### Session drafts
 

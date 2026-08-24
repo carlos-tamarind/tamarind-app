@@ -366,7 +366,8 @@
 }
 .ProseMirror strong { font-weight: 650; }
 .ProseMirror em { font-style: italic; }
-.ProseMirror u { text-decoration: underline; }
+.ProseMirror u,
+.message-content u { text-decoration: underline; }
 .ProseMirror s { text-decoration: line-through; }
 
 /* Mention chips. Colors come from tokens so both themes work; the inline

@@ -33,7 +33,8 @@ Pages are rich-text documents where teams distill and organize knowledge. They s
 
 The main editor ([`page-window.tsx`](../../src/components/page/page-window.tsx)) provides:
 
-- **TipTap rich text** — headings, lists, task lists, code blocks, quotes
+- **TipTap rich text** — headings, underline (`__text__`), lists, task lists, code blocks, quotes
+- **Code-block shortcut** — **⌘⇧E** on macOS or **Ctrl+Shift+E** on Windows/Linux
 - **Slash commands** — `/` palette for inserting blocks ([`slash-command.tsx`](../../src/components/editor/slash-command.tsx))
 - **@mentions** — `@` for workspace members and group/channel conversations (1:1 DMs deduped against members), `@@` for pages
 - **Autosave** — debounced save via `updatePage`; status reported to the status bar (`SaveStatusProvider`)
@@ -107,6 +108,7 @@ Shared TipTap extensions in [`src/components/editor/`](../../src/components/edit
 | Mention entities | `mention-entities.ts` | Unified `@` autocomplete fetch/merge |
 | Mention suggestion | `mention-suggestion.ts` | Tippy popup + insert command |
 | Mention list | `mention-list.tsx` | Autocomplete popup |
+| Formatting extensions | `formatting-extensions.ts` | Shared underline input rule and code-block shortcut |
 | Slash command | `slash-command.tsx` | `/` block insertion palette |
 | Quote node | `quote-node.tsx` | Quote blocks for conversation messages |
 

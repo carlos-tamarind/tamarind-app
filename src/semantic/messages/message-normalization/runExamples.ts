@@ -8,6 +8,7 @@ type ExampleCase = {
   messageType?: string;
   expectPersist: boolean;
   expectSkipReason?: string;
+  expectNormalizedEquals?: string;
   expectNormalizedContains?: string[];
   expectNormalizedExcludes?: string[];
 };
@@ -276,6 +277,13 @@ const cases: ExampleCase[] = [
     expectNormalizedExcludes: ["<code"],
   },
   {
+    label: "html_underline",
+    rawMessage: "<p><u>Important text</u> remains searchable</p>",
+    expectPersist: true,
+    expectNormalizedEquals: "important text remains searchable",
+    expectNormalizedExcludes: ["<u>", "</u>"],
+  },
+  {
     label: "html_code_block",
     rawMessage: "<pre><code>const x = 1;\nconsole.log(x);</code></pre>",
     expectPersist: true,
@@ -323,6 +331,13 @@ const cases: ExampleCase[] = [
     expectPersist: true,
     expectNormalizedContains: ["- first item", "- second item", "- third item"],
     expectNormalizedExcludes: ["1. first"],
+  },
+  {
+    label: "v3_markdown_underline",
+    rawMessage: "__Important text__ remains searchable",
+    expectPersist: true,
+    expectNormalizedEquals: "important text remains searchable",
+    expectNormalizedExcludes: ["__"],
   },
   {
     label: "v3_plain_list_numbered_paren",
@@ -391,6 +406,15 @@ function assertCase(example: ExampleCase): void {
   }
 
   const normalized = result.normalizedText ?? "";
+
+  if (
+    example.expectNormalizedEquals !== undefined &&
+    normalized !== example.expectNormalizedEquals
+  ) {
+    throw new Error(
+      `[${example.label}] expected normalizedText to equal "${example.expectNormalizedEquals}", got "${normalized}"`,
+    );
+  }
 
   for (const fragment of example.expectNormalizedContains ?? []) {
     if (!normalized.includes(fragment)) {

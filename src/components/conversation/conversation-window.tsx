@@ -18,6 +18,7 @@ import {
   Send,
   SquareCode,
   Trash2,
+  Underline,
   Users,
   X,
 } from "lucide-react";
@@ -82,6 +83,7 @@ import {
 } from "@/components/editor/mention-suggestion";
 import { fetchMentionEntities } from "@/lib/mention-entities";
 import { QuoteBlock } from "@/components/editor/quote-node";
+import { CodeBlockHotkey, UnderlineMarkdown } from "@/components/editor/formatting-extensions";
 import { UserLink } from "@/components/user-link";
 import { useNavigateToUserConversation } from "@/hooks/use-navigate-to-user-conversation";
 import { useConversationSuggestion } from "@/hooks/use-conversation-suggestion";
@@ -221,6 +223,7 @@ const ALLOWED_MESSAGE_TAGS = new Set([
   "B",
   "EM",
   "I",
+  "U",
   "CODE",
   "PRE",
   "UL",
@@ -298,7 +301,14 @@ function sanitizeMessageHtml(
         el.replaceWith(document.createTextNode(el.textContent ?? ""));
         continue;
       }
-      if (tag === "CODE" || tag === "PRE" || tag === "UL" || tag === "OL" || tag === "LI") {
+      if (
+        tag === "U" ||
+        tag === "CODE" ||
+        tag === "PRE" ||
+        tag === "UL" ||
+        tag === "OL" ||
+        tag === "LI"
+      ) {
         for (const attr of Array.from(el.attributes)) {
           el.removeAttribute(attr.name);
         }
@@ -512,7 +522,9 @@ export function ConversationWindow({
   const sendLabel = useShortcutLabel(HOTKEYS.send);
   const boldLabel = useShortcutLabel(HOTKEYS.bold);
   const italicLabel = useShortcutLabel(HOTKEYS.italic);
+  const underlineLabel = useShortcutLabel(HOTKEYS.underline);
   const codeLabel = useShortcutLabel(HOTKEYS.code);
+  const codeBlockLabel = useShortcutLabel(HOTKEYS.codeBlock);
 
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -722,6 +734,8 @@ export function ConversationWindow({
         blockquote: false,
         horizontalRule: false,
       }),
+      UnderlineMarkdown,
+      CodeBlockHotkey,
       MemberMention.configure({
         HTMLAttributes: { class: "mention-member" },
         suggestion: entityMentionSuggestion,
@@ -1651,6 +1665,28 @@ export function ConversationWindow({
                       <TooltipTrigger asChild>
                         <Button
                           size="icon"
+                          variant={editor?.isActive("underline") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleUnderline().run()
+                          }
+                          aria-label="Underline"
+                          aria-pressed={editor?.isActive("underline") ?? false}
+                        >
+                          <Underline className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Underline text
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {underlineLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
                           variant="ghost"
                           className="size-7"
                           onClick={() => editor?.chain().focus().toggleCode().run()}
@@ -1663,6 +1699,28 @@ export function ConversationWindow({
                         Inline code
                         <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
                           {codeLabel}
+                        </Kbd>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={editor?.isActive("codeBlock") ? "secondary" : "ghost"}
+                          className="size-7"
+                          onClick={() =>
+                            editor?.chain().focus().toggleCodeBlock().run()
+                          }
+                          aria-label="Code block"
+                          aria-pressed={editor?.isActive("codeBlock") ?? false}
+                        >
+                          <SquareCode className="size-3.5" strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="gap-2">
+                        Code block
+                        <Kbd className="h-4 border-background/25 bg-background/15 text-background/80">
+                          {codeBlockLabel}
                         </Kbd>
                       </TooltipContent>
                     </Tooltip>
@@ -1699,23 +1757,6 @@ export function ConversationWindow({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">Numbered list</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant={editor?.isActive("codeBlock") ? "secondary" : "ghost"}
-                          className="size-7"
-                          onClick={() =>
-                            editor?.chain().focus().toggleCodeBlock().run()
-                          }
-                          aria-label="Code block"
-                          aria-pressed={editor?.isActive("codeBlock") ?? false}
-                        >
-                          <SquareCode className="size-3.5" strokeWidth={2} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Code block</TooltipContent>
                     </Tooltip>
                   </div>
 
