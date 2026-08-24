@@ -24,3 +24,11 @@ Three changes in the page editor (`src/components/page/page-window.tsx`), all pr
 ## Version
 
 Bump `src/lib/version.ts` to `0.3.144`.
+
+## Also: unblock the current type-check failures
+
+The build currently fails on mention typings, unrelated to the caret bug but blocking any change:
+
+- `@tiptap/suggestion` was pinned to `^3.23.6` and pulled its own nested `@tiptap/core` 3.23.6, producing "two different Editor types" errors. Already realigned to `^3.30.1` (resolves to 3.30.2, deduped).
+- `src/components/conversation/conversation-window.tsx` (~line 725) passes `mentionOpenRef` directly as the options argument to `buildMentionSuggestion`; it must be `{ openCounter: mentionOpenRef }`.
+- `buildEntityMentionSuggestion` in `src/components/editor/mention-suggestion.ts` types its `command` props as `MentionEntityItem`, which is not assignable to Tiptap's `MentionNodeAttrs`. Widen the parameter to Tiptap's attrs type and narrow to `MentionEntityItem` inside the handler.
