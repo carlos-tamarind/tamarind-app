@@ -151,14 +151,14 @@ export function AddMessagesToPageDialog({
                         type="button"
                         onClick={() => setSelectedPageId(page.id)}
                         className={cn(
-                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+                          "flex w-full min-w-0 items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm",
                           selected
                             ? "bg-accent text-accent-foreground"
                             : "hover:bg-accent/60",
                         )}
                       >
                         <VisibilityIcon visibility={page.visibility} />
-                        <span className="min-w-0 truncate">
+                        <span className="min-w-0 flex-1 whitespace-normal break-words">
                           {page.title || "Untitled"}
                         </span>
                       </button>
