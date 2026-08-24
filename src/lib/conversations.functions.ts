@@ -1055,6 +1055,183 @@ function htmlToBlocks(html: string): any[] {
   return nodes;
 }
 
+type SelectedMessage = {
+  id: string;
+  raw_text: string | null;
+  author_workspace_user_id: string | null;
+  created_at: string;
+};
+
+async function loadSelectedMessages(
+  conversationId: string,
+  messageIds: string[],
+): Promise<SelectedMessage[]> {
+  const { data: msgs, error: mErr } = await supabaseAdmin
+    .from("messages")
+    .select("id, raw_text, author_workspace_user_id, created_at")
+    .eq("conversation_id", conversationId)
+    .in("id", messageIds)
+    .is("purged_at", null)
+    .order("created_at", { ascending: true });
+  if (mErr) throw new Error(mErr.message);
+  if (!msgs || msgs.length === 0) {
+    throw new Error("No messages found for selection");
+  }
+  return msgs as SelectedMessage[];
+}
+
+async function loadAuthorLabels(
+  msgs: SelectedMessage[],
+): Promise<Map<string, string>> {
+  const authorIds = Array.from(
+    new Set(
+      msgs
+        .map((m) => m.author_workspace_user_id)
+        .filter((v): v is string => !!v),
+    ),
+  );
+  const authorLabels = new Map<string, string>();
+  if (authorIds.length === 0) return authorLabels;
+  const { data: wus } = await supabaseAdmin
+    .from("workspace_users")
+    .select("id, user_id, display_name")
+    .in("id", authorIds);
+  const rows = wus ?? [];
+  const emails = await fetchEmailsForUserIds(
+    rows
+      .filter((r) => !((r.display_name ?? "") as string).trim())
+      .map((r) => r.user_id as string),
+  );
+  for (const r of rows) {
+    authorLabels.set(
+      r.id as string,
+      resolveLabel(
+        { display_name: r.display_name as any, user_id: r.user_id as any },
+        emails,
+      ),
+    );
+  }
+  return authorLabels;
+}
+
+async function resolveConversationTitle(
+  conversationId: string,
+  meWuId: string,
+): Promise<string> {
+  const { data: convRow, error: cErr } = await supabaseAdmin
+    .from("conversations")
+    .select("id, title")
+    .eq("id", conversationId)
+    .single();
+  if (cErr || !convRow) throw new Error(cErr?.message ?? "Conversation not found");
+
+  const { data: partsRaw } = await supabaseAdmin
+    .from("conversation_participants")
+    .select("workspace_users!inner(id, display_name, user_id)")
+    .eq("conversation_id", conversationId);
+  const partRows = (partsRaw ?? []).map((p: any) => p.workspace_users);
+  const partEmails = await fetchEmailsForUserIds(
+    partRows
+      .filter((wu: any) => !((wu.display_name ?? "") as string).trim())
+      .map((wu: any) => wu.user_id as string),
+  );
+  const participants = partRows.map((wu: any) => ({
+    workspaceUserId: wu.id as string,
+    label: resolveLabel(
+      { display_name: wu.display_name, user_id: wu.user_id },
+      partEmails,
+    ),
+  }));
+
+  return (
+    (convRow.title as string | null) ||
+    (participants
+      .filter((p) => p.workspaceUserId !== meWuId)
+      .slice(0, 3)
+      .map((p) => p.label)
+      .join(", ") ||
+      "Conversation")
+  );
+}
+
+function buildAuthorRunNodes(
+  msgs: SelectedMessage[],
+  authorLabels: Map<string, string>,
+): any[] {
+  type Run = {
+    authorWuId: string | null;
+    authorLabel: string;
+    dateKey: string;
+    messages: SelectedMessage[];
+  };
+  const runs: Run[] = [];
+  for (const m of msgs) {
+    const authorWuId = m.author_workspace_user_id ?? null;
+    const authorLabel = authorWuId
+      ? authorLabels.get(authorWuId) ?? "Archived user"
+      : "Unknown user";
+    const dateKey = fmtDateOnly(new Date(m.created_at));
+    const last = runs[runs.length - 1];
+    if (last && last.authorWuId === authorWuId && last.dateKey === dateKey) {
+      last.messages.push(m);
+    } else {
+      runs.push({ authorWuId, authorLabel, dateKey, messages: [m] });
+    }
+  }
+
+  const contentNodes: any[] = [];
+  runs.forEach((run, i) => {
+    if (i > 0) contentNodes.push({ type: "paragraph" });
+    contentNodes.push({
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          marks: [{ type: "bold" }],
+          text: `${run.authorLabel} on ${run.dateKey}`,
+        },
+      ],
+    });
+    for (const msg of run.messages) {
+      const blocks = htmlToBlocks(msg.raw_text ?? "");
+      if (blocks.length === 0) {
+        contentNodes.push(paragraph(""));
+      } else {
+        for (const b of blocks) contentNodes.push(b);
+      }
+    }
+  });
+  return contentNodes;
+}
+
+function buildAppendSectionNodes(
+  headingText: string,
+  msgs: SelectedMessage[],
+  authorLabels: Map<string, string>,
+): any[] {
+  return [
+    {
+      type: "heading",
+      attrs: { level: 1 },
+      content: [{ type: "text", text: headingText }],
+    },
+    { type: "horizontalRule" },
+    ...buildAuthorRunNodes(msgs, authorLabels),
+  ];
+}
+
+function existingDocContent(content: unknown): any[] {
+  if (
+    content &&
+    typeof content === "object" &&
+    (content as any).type === "doc" &&
+    Array.isArray((content as any).content)
+  ) {
+    return (content as any).content;
+  }
+  return [];
+}
+
 export const createPageFromMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -1119,49 +1296,8 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
         .join(", ") ||
         "Conversation");
 
-    // Messages (chronological, restricted to given ids AND this conversation)
-    const { data: msgs, error: mErr } = await supabaseAdmin
-      .from("messages")
-      .select("id, raw_text, author_workspace_user_id, created_at")
-      .eq("conversation_id", data.conversationId)
-      .in("id", data.messageIds)
-      .is("purged_at", null)
-      .order("created_at", { ascending: true });
-    if (mErr) throw new Error(mErr.message);
-    if (!msgs || msgs.length === 0) {
-      throw new Error("No messages found for selection");
-    }
-
-    // Author labels
-    const authorIds = Array.from(
-      new Set(
-        msgs
-          .map((m) => m.author_workspace_user_id as string | null)
-          .filter((v): v is string => !!v),
-      ),
-    );
-    const authorLabels = new Map<string, string>();
-    if (authorIds.length > 0) {
-      const { data: wus } = await supabaseAdmin
-        .from("workspace_users")
-        .select("id, user_id, display_name")
-        .in("id", authorIds);
-      const rows = wus ?? [];
-      const emails = await fetchEmailsForUserIds(
-        rows
-          .filter((r) => !((r.display_name ?? "") as string).trim())
-          .map((r) => r.user_id as string),
-      );
-      for (const r of rows) {
-        authorLabels.set(
-          r.id as string,
-          resolveLabel(
-            { display_name: r.display_name as any, user_id: r.user_id as any },
-            emails,
-          ),
-        );
-      }
-    }
+    const msgs = await loadSelectedMessages(data.conversationId, data.messageIds);
+    const authorLabels = await loadAuthorLabels(msgs);
 
     const now = new Date();
     const canonicalTitle = `Messages from ${convTitle} on ${fmtDateTimeMinute(now)}`;
@@ -1242,28 +1378,6 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
       ],
     };
 
-    // Group messages into contiguous runs by author.
-    type Run = {
-      authorWuId: string | null;
-      authorLabel: string;
-      dateKey: string;
-      messages: typeof msgs;
-    };
-    const runs: Run[] = [];
-    for (const m of msgs) {
-      const authorWuId = (m.author_workspace_user_id as string | null) ?? null;
-      const authorLabel = authorWuId
-        ? authorLabels.get(authorWuId) ?? "Archived user"
-        : "Unknown user";
-      const dateKey = fmtDateOnly(new Date(m.created_at as string));
-      const last = runs[runs.length - 1];
-      if (last && last.authorWuId === authorWuId && last.dateKey === dateKey) {
-        last.messages.push(m);
-      } else {
-        runs.push({ authorWuId, authorLabel, dateKey, messages: [m] });
-      }
-    }
-
     const contentNodes: any[] = [
       {
         type: "heading",
@@ -1279,29 +1393,8 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
         content: [{ type: "text", text: "Contents" }],
       },
       { type: "horizontalRule" },
+      ...buildAuthorRunNodes(msgs, authorLabels),
     ];
-
-    runs.forEach((run, i) => {
-      if (i > 0) contentNodes.push({ type: "paragraph" });
-      contentNodes.push({
-        type: "paragraph",
-        content: [
-          {
-            type: "text",
-            marks: [{ type: "bold" }],
-            text: `${run.authorLabel} on ${run.dateKey}`,
-          },
-        ],
-      });
-      for (const msg of run.messages) {
-        const blocks = htmlToBlocks((msg.raw_text as string) ?? "");
-        if (blocks.length === 0) {
-          contentNodes.push(paragraph(""));
-        } else {
-          for (const b of blocks) contentNodes.push(b);
-        }
-      }
-    });
 
     const doc = { type: "doc", content: contentNodes };
 
@@ -1335,4 +1428,66 @@ export const createPageFromMessages = createServerFn({ method: "POST" })
     });
 
     return { pageId: page.id as string };
+  });
+
+export const appendMessagesToPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        pageId: z.string().uuid(),
+        messageIds: z.array(z.string().uuid()).min(1).max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId, workspaceId } = await assertParticipant(
+      data.conversationId,
+      context.userId,
+    );
+
+    const { assertCanEditPage, assertPageNotTrashed, recordPageCollaborator } =
+      await import("@/lib/pages.server");
+
+    const access = await assertCanEditPage(data.pageId, context.userId);
+
+    const { data: page, error: pageErr } = await supabaseAdmin
+      .from("pages")
+      .select("id, workspace_id, content, purged_at")
+      .eq("id", data.pageId)
+      .maybeSingle();
+    if (pageErr) throw new Error(pageErr.message);
+    if (!page) throw new Error("Page not found");
+    assertPageNotTrashed(page.purged_at as string | null);
+    if ((page.workspace_id as string) !== workspaceId) {
+      throw new Error("Page is not in this workspace");
+    }
+
+    const msgs = await loadSelectedMessages(data.conversationId, data.messageIds);
+    const authorLabels = await loadAuthorLabels(msgs);
+    const convTitle = await resolveConversationTitle(data.conversationId, meWuId);
+    const headingText = `Messages from ${convTitle} on ${fmtDateTimeMinute(new Date())}`;
+    const appendNodes = buildAppendSectionNodes(headingText, msgs, authorLabels);
+    const doc = {
+      type: "doc",
+      content: [...existingDocContent(page.content), ...appendNodes],
+    };
+
+    const { error: updErr } = await supabaseAdmin
+      .from("pages")
+      .update({
+        content: doc,
+        last_modified_at: new Date().toISOString(),
+      })
+      .eq("id", data.pageId);
+    if (updErr) throw new Error(updErr.message);
+
+    try {
+      await recordPageCollaborator(data.pageId, access.workspaceUserId);
+    } catch {
+      // ignore
+    }
+
+    return { pageId: data.pageId };
   });

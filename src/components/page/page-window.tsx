@@ -177,6 +177,7 @@ export function PageWindow({
   const draftKey = useMemo(() => `tamarind:page-draft:${pageId}`, [pageId]);
   const legacyDraftKey = useMemo(() => `mento:page-draft:${pageId}`, [pageId]);
   const hydratedForPageRef = useRef<string | null>(null);
+  const hydratedLastModifiedAtRef = useRef<string | null>(null);
   const flashedChunkRef = useRef<string | null>(null);
   const [editorReadyAt, setEditorReadyAt] = useState(0);
   const { status: saveStatus, setStatus: setSaveStatus } = useSaveStatus();
@@ -455,8 +456,36 @@ export function PageWindow({
   // hydratedForPageRef declared earlier (near the top of the component).
   useEffect(() => {
     if (!data || !editor) return;
-    if (hydratedForPageRef.current === pageId) return;
+    const alreadyHydrated = hydratedForPageRef.current === pageId;
+    if (alreadyHydrated) {
+      const contentDirty =
+        contentPendingVersion.current > contentSavedVersion.current;
+      const titleDirty =
+        titlePendingVersion.current > titleSavedVersion.current;
+      if (contentDirty || titleDirty) return;
+      if (
+        !data.lastModifiedAt ||
+        hydratedLastModifiedAtRef.current === data.lastModifiedAt
+      ) {
+        return;
+      }
+      isHydratingRef.current = true;
+      const nextTitle = data.title ?? "Untitled";
+      const nextContent = (data.content as any) ?? { type: "doc", content: [] };
+      setTitle(nextTitle);
+      latestTitleValueRef.current = nextTitle;
+      latestTitleRef.current = null;
+      latestContentRef.current = nextContent;
+      editor.commands.setContent(nextContent, { emitUpdate: false });
+      contentSavedVersion.current = contentPendingVersion.current;
+      titleSavedVersion.current = titlePendingVersion.current;
+      hydratedLastModifiedAtRef.current = data.lastModifiedAt;
+      isHydratingRef.current = false;
+      setEditorReadyAt((n) => n + 1);
+      return;
+    }
     hydratedForPageRef.current = pageId;
+    hydratedLastModifiedAtRef.current = data.lastModifiedAt ?? null;
     isHydratingRef.current = true;
     let nextTitle = data.title ?? "Untitled";
     let nextContent = (data.content as any) ?? { type: "doc", content: [] };

@@ -124,6 +124,18 @@ This triggers the semantic pipeline for the announcement message.
 
 The New Page dialog has **title** and **visibility** only (no template picker).
 
+## Add messages to page
+
+Users can select one or more messages (any author) and append them onto an existing page they can edit. Selection toolbar **Add to page** opens a page picker (`AddMessagesToPageDialog`) that lists live workspace pages (`listMyPages`), with an instant title filter and single-select rows.
+
+`appendMessagesToPage`:
+
+1. Verifies the caller is a conversation participant and can edit the chosen page (not trashed; same workspace)
+2. Appends a heading using the create-from-messages title taxonomy (`Messages from {conversation} on {YYYY-MM-DD HH:mm}` UTC), a horizontal rule, then chronological author-batched message content (quotes become blockquotes)
+3. Leaves the page title unchanged and does **not** post a conversation announcement
+
+On success the app navigates to the page and clears the message selection.
+
 ## Participants
 
 - Direct conversations: exactly 2 participants, auto-created
