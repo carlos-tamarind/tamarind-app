@@ -722,7 +722,7 @@ export function ConversationWindow({
           )
           .slice(0, 8)
           .map((p) => ({ id: p.id, label: p.title || "Untitled" }));
-      }, mentionOpenRef),
+      }, { openCounter: mentionOpenRef }),
 
     [workspaceId, conversationId, fetchMentionPages],
   );
