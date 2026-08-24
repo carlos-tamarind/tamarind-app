@@ -71,6 +71,7 @@ import { AddParticipantsDialog } from "@/components/conversation/add-participant
 import { ConversationSuggestionNudge } from "@/components/conversation/conversation-suggestion-nudge";
 import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
+import { AddMessagesToPageDialog } from "@/components/page/add-messages-to-page-dialog";
 import { MemberMention, PageMention, ConversationMention } from "@/components/editor/custom-mentions";
 import {
   buildEntityMentionSuggestion,
@@ -478,6 +479,8 @@ export function ConversationWindow({
   const [newPageFromMessages, setNewPageFromMessages] = useState(false);
   const [newPagePresetTitle, setNewPagePresetTitle] = useState<string>("");
   const [newPageMessageIds, setNewPageMessageIds] = useState<string[]>([]);
+  const [addToPageOpen, setAddToPageOpen] = useState(false);
+  const [addToPageMessageIds, setAddToPageMessageIds] = useState<string[]>([]);
   const [isEmpty, setIsEmpty] = useState(true);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const composerPanelRef = useRef<PanelImperativeHandle>(null);
@@ -1000,6 +1003,15 @@ export function ConversationWindow({
     setNewPageOpen(true);
   };
 
+  const handleAddToPageFromSelection = () => {
+    const ids = sortByOrder(Array.from(selectedIds)).filter(
+      (id) => !purgedMessageIds.has(id),
+    );
+    if (ids.length === 0) return;
+    setAddToPageMessageIds(ids);
+    setAddToPageOpen(true);
+  };
+
   const flashMessage = (id: string) => {
     const el = scrollerRef.current?.querySelector(
       `[data-message-id="${CSS.escape(id)}"]`,
@@ -1466,7 +1478,11 @@ export function ConversationWindow({
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="sm" variant="ghost" onClick={() => {}}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleAddToPageFromSelection()}
+                        >
                           <FileText className="size-3.5" strokeWidth={1.5} />
                           Add to page
                         </Button>
@@ -1692,6 +1708,21 @@ export function ConversationWindow({
           presetTitle={newPageFromMessages ? newPagePresetTitle : undefined}
           messageIds={newPageFromMessages ? newPageMessageIds : undefined}
           onCreated={(pageId) => {
+            clearSelection();
+            navigate({
+              to: "/w/$workspaceId",
+              params: { workspaceId },
+              search: (prev) => withPage(prev, pageId),
+            });
+          }}
+        />
+        <AddMessagesToPageDialog
+          open={addToPageOpen}
+          onOpenChange={setAddToPageOpen}
+          workspaceId={workspaceId}
+          conversationId={conversationId}
+          messageIds={addToPageMessageIds}
+          onAppended={(pageId) => {
             clearSelection();
             navigate({
               to: "/w/$workspaceId",
