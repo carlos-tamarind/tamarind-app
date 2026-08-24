@@ -147,8 +147,24 @@ const SlashMenu = forwardRef<
   { items: Cmd[]; command: (item: Cmd) => void }
 >((props, ref) => {
   const [index, setIndex] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => setIndex(0), [props.items]);
+
+  // Keep the highlighted command visible while navigating with the keyboard.
+  useEffect(() => {
+    const el = itemRefs.current[index];
+    const list = listRef.current;
+    if (!el || !list) return;
+    const elTop = el.offsetTop;
+    const elBottom = elTop + el.offsetHeight;
+    if (elTop < list.scrollTop) {
+      list.scrollTop = elTop;
+    } else if (elBottom > list.scrollTop + list.clientHeight) {
+      list.scrollTop = elBottom - list.clientHeight;
+    }
+  }, [index, props.items]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
