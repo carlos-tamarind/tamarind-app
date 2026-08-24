@@ -5,6 +5,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from "react";
 import {
@@ -146,8 +147,24 @@ const SlashMenu = forwardRef<
   { items: Cmd[]; command: (item: Cmd) => void }
 >((props, ref) => {
   const [index, setIndex] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => setIndex(0), [props.items]);
+
+  // Keep the highlighted command visible while navigating with the keyboard.
+  useEffect(() => {
+    const el = itemRefs.current[index];
+    const list = listRef.current;
+    if (!el || !list) return;
+    const elTop = el.offsetTop;
+    const elBottom = elTop + el.offsetHeight;
+    if (elTop < list.scrollTop) {
+      list.scrollTop = elTop;
+    } else if (elBottom > list.scrollTop + list.clientHeight) {
+      list.scrollTop = elBottom - list.clientHeight;
+    }
+  }, [index, props.items]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
@@ -171,10 +188,16 @@ const SlashMenu = forwardRef<
   if (props.items.length === 0) return null;
 
   return (
-    <div className="z-50 max-h-72 w-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
+    <div
+      ref={listRef}
+      className="relative z-50 max-h-72 w-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+    >
       {props.items.map((item, i) => (
         <button
           key={item.title}
+          ref={(el) => {
+            itemRefs.current[i] = el;
+          }}
           onClick={() => props.command(item)}
           className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
             i === index ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
