@@ -19,6 +19,7 @@ Conversations are the primary communication channel in Tamarind. They support di
 | `ConversationSettingsDialog` | [`conversation-settings-dialog.tsx`](../../src/components/conversation/conversation-settings-dialog.tsx) | Title, participants, linked pages (`DialogContent` size `detail`, 630px) |
 | `AddParticipantsDialog` | [`add-participants-dialog.tsx`](../../src/components/conversation/add-participants-dialog.tsx) | Add members to group |
 | `EditableTitle` | [`editable-title.tsx`](../../src/components/conversation/editable-title.tsx) | Inline title editing |
+| `ConversationTopicMinimap` | [`conversation-topic-minimap.tsx`](../../src/components/conversation/conversation-topic-minimap.tsx) | Semantic map overlay (established topics + evidence deep links) |
 
 ## Conversation Window Features
 
@@ -31,6 +32,7 @@ The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/
 - **TipTap composer** — see below
 - **@mentions** — `@` for workspace members and group/channel conversations, `@@page` for pages
 - **Realtime updates** — INSERT and UPDATE via Supabase Realtime; live rows overlay `listMessages` by id so other participants see the placeholder immediately. While viewing an around-window, new INSERTs are not appended (use **Jump to latest** or send a message to return)
+- **Semantic map** — header **Map** button (tooltip **Semantic map**) toggles a floating overlay on the message panel listing established conversation topics. Topics can be sorted by relevance (time-decayed score) or recency (`last_seen_at`), filtered by name/description, and expanded to show evidence message snapshots. Evidence clicks set `?m=` deep links (including `listMessagesAround` for messages outside the newest 200). Click outside the overlay, switch conversations, or navigate to a message to close the minimap
 - **Conversation settings** — rename, manage participants, view linked pages
 
 ## Composer
@@ -103,6 +105,8 @@ All in [`src/lib/conversations.functions.ts`](../../src/lib/conversations.functi
 | `listMentionablePages` | GET | Pages available for @@mention |
 | `renameConversation` | POST | Update group conversation title |
 | `createPageFromMessages` | POST | Create page from selected messages |
+
+Topic minimap data: [`listConversationTopics`](../../src/lib/conversation-topics.functions.ts) (`GET`, established topics + evidence snapshots for the semantic map overlay).
 
 Recent-activity empty state uses [`listRecentActivity`](../../src/lib/activity.functions.ts) (authorship-based, not `last_modified_at`).
 

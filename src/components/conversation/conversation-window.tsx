@@ -13,6 +13,7 @@ import {
   Italic,
   List,
   ListOrdered,
+  Map as MapIcon,
   MessageSquareDashed,
   MoreHorizontal,
   Quote,
@@ -75,6 +76,7 @@ import { PinToggle } from "@/components/pin-toggle";
 import { ConversationSettingsDialog } from "@/components/conversation/conversation-settings-dialog";
 import { AddParticipantsDialog } from "@/components/conversation/add-participants-dialog";
 import { ConversationSuggestionNudge } from "@/components/conversation/conversation-suggestion-nudge";
+import { ConversationTopicMinimap } from "@/components/conversation/conversation-topic-minimap";
 import { EditableTitle } from "@/components/conversation/editable-title";
 import { NewPageDialog } from "@/components/page/new-page-dialog";
 import { AddMessagesToPageDialog } from "@/components/page/add-messages-to-page-dialog";
@@ -104,6 +106,7 @@ import {
   removeComposerDraft,
   setComposerDraft,
 } from "@/lib/composer-drafts";
+import { DebugLogger } from "@/lib/debugLogger";
 
 type Message = {
   id: string;
@@ -501,6 +504,7 @@ export function ConversationWindow({
   const renameConv = useServerFn(renameConversation);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [minimapOpen, setMinimapOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [newPageOpen, setNewPageOpen] = useState(false);
   const [newPageFromMessages, setNewPageFromMessages] = useState(false);
@@ -522,6 +526,9 @@ export function ConversationWindow({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const scrollerRef = useRef<HTMLDivElement>(null);
   const flashedMessageRef = useRef<string | null>(null);
+  const minimapNavRef = useRef<string | null>(null);
+  const minimapPanelRef = useRef<HTMLDivElement>(null);
+  const minimapToggleRef = useRef<HTMLButtonElement>(null);
   const aroundModeRef = useRef(false);
   const displayedIdsRef = useRef<Set<string>>(new Set());
   const sendLabel = useShortcutLabel(HOTKEYS.send);
@@ -678,7 +685,49 @@ export function ConversationWindow({
   useEffect(() => {
     setLiveMessages([]);
     setRemovedIds(new Set());
+    setMinimapOpen(false);
   }, [conversationId]);
+
+  useEffect(() => {
+    if (!minimapOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (minimapPanelRef.current?.contains(target)) return;
+      if (minimapToggleRef.current?.contains(target)) return;
+      setMinimapOpen(false);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [minimapOpen]);
+
+  const navigateFromMinimap = (messageId: string) => {
+    minimapNavRef.current = messageId;
+    setMinimapOpen(false);
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withConversation(prev, conversationId, messageId),
+    });
+  };
+
+  const logMinimapNavigation = (messageId: string, error?: string) => {
+    if (minimapNavRef.current !== messageId) return;
+    minimapNavRef.current = null;
+    if (error) {
+      DebugLogger.log({
+        scope: "conversation-minimap",
+        event: "navigation",
+        message: `failed navigating to message ${messageId}. Error: ${error}`,
+        level: "error",
+      });
+    } else {
+      DebugLogger.log({
+        scope: "conversation-minimap",
+        event: "navigation",
+        message: `navigated to message ${messageId}`,
+      });
+    }
+  };
 
   const messages = useMemo<Message[]>(() => {
     const history = aroundMode ? (aroundMessages ?? []) : (initialMessages ?? []);
@@ -1118,6 +1167,7 @@ export function ConversationWindow({
       if (aroundPending) return;
       if (aroundError || !aroundMessages?.some((m) => m.id === targetMessageId)) {
         flashedMessageRef.current = targetMessageId;
+        logMinimapNavigation(targetMessageId, "Message not found");
         toast.error("Message not found");
         return;
       }
@@ -1132,10 +1182,12 @@ export function ConversationWindow({
       );
       flashedMessageRef.current = targetMessageId;
       if (!el) {
+        logMinimapNavigation(targetMessageId, "Message not found");
         toast.error("Message not found");
         return;
       }
       flashMessage(targetMessageId);
+      logMinimapNavigation(targetMessageId);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [
@@ -1340,6 +1392,21 @@ export function ConversationWindow({
                 <TooltipContent side="bottom">Participants</TooltipContent>
               </Tooltip>
             )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  ref={minimapToggleRef}
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Semantic map"
+                  aria-pressed={minimapOpen}
+                  onClick={() => setMinimapOpen((open) => !open)}
+                >
+                  <MapIcon className="size-4" strokeWidth={1.5} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Semantic map</TooltipContent>
+            </Tooltip>
             <PinToggle
               workspaceId={workspaceId}
               entityId={conversationId}
@@ -1385,6 +1452,12 @@ export function ConversationWindow({
                 </Button>
               </div>
             )}
+            <ConversationTopicMinimap
+              ref={minimapPanelRef}
+              open={minimapOpen}
+              conversationId={conversationId}
+              onNavigateToMessage={navigateFromMinimap}
+            />
             <div
               ref={scrollerRef}
               className="h-full overflow-y-auto overflow-x-hidden"
