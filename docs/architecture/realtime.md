@@ -48,7 +48,9 @@ supabase
   .subscribe()
 ```
 
-`sendMessage` INSERTs and `trashMessages` / `recoverMessage` UPDATEs appear without a full refetch. Initial history comes from React Query + `listMessages`; live events **overlay by id** (a later UPDATE replaces the cached row instead of being ignored because the id was already loaded). DELETE is handled defensively; message rows are no longer removed.
+`sendMessage` INSERTs and `trashMessages` / `recoverMessage` UPDATEs appear without a full refetch. Initial history comes from React Query + `listMessages` (newest 200); live events **overlay by id** (a later UPDATE replaces the cached row instead of being ignored because the id was already loaded). DELETE is handled defensively; message rows are no longer removed.
+
+When the conversation is showing a `listMessagesAround` slice (deep link outside the latest 200), realtime **INSERT**s for messages not already in that slice are ignored so new traffic does not appear as a hole at the bottom of the old window. **UPDATE**s still overlay ids already on screen. Sending a message or **Jump to latest** clears `?m=`, refetches `listMessages`, and resumes live INSERT overlay.
 
 ### Message send flow
 

@@ -406,13 +406,40 @@ export const getConversation = createServerFn({ method: "GET" })
   });
 
 
+const LIST_MESSAGES_LIMIT = 200;
+const MESSAGE_AROUND_RADIUS = 25;
+const MESSAGE_LIST_COLUMNS =
+  "id, raw_text, author_workspace_user_id, created_at, purged_at";
+
+type MessageListRow = {
+  id: string;
+  raw_text: string | null;
+  author_workspace_user_id: string | null;
+  created_at: string;
+  purged_at: string | null;
+};
+
+async function mapMessageRows(rows: MessageListRow[]) {
+  const labelByWuId = await loadAuthorLabels(rows);
+  return rows.map((m) => ({
+    id: m.id,
+    rawText: m.raw_text ?? "",
+    authorWorkspaceUserId: m.author_workspace_user_id,
+    authorLabel: m.author_workspace_user_id
+      ? labelByWuId.get(m.author_workspace_user_id) ?? "Archived user"
+      : "Unknown user",
+    createdAt: m.created_at,
+    purgedAt: m.purged_at ?? null,
+  }));
+}
+
 export const listMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
         conversationId: z.string().uuid(),
-        limit: z.number().int().min(1).max(200).optional(),
+        limit: z.number().int().min(1).max(LIST_MESSAGES_LIMIT).optional(),
       })
       .parse(input),
   )
@@ -420,54 +447,62 @@ export const listMessages = createServerFn({ method: "GET" })
     await assertParticipant(data.conversationId, context.userId);
     const { data: msgs, error } = await supabaseAdmin
       .from("messages")
-      .select("id, raw_text, author_workspace_user_id, created_at, purged_at")
+      .select(MESSAGE_LIST_COLUMNS)
       .eq("conversation_id", data.conversationId)
-      .order("created_at", { ascending: true })
-      .limit(data.limit ?? 200);
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? LIST_MESSAGES_LIMIT);
     if (error) throw new Error(error.message);
 
-    const authorIds = Array.from(
-      new Set(
-        (msgs ?? [])
-          .map((m) => m.author_workspace_user_id as string | null)
-          .filter((v): v is string => !!v),
-      ),
-    );
-    const labelByWuId = new Map<string, string>();
-    if (authorIds.length > 0) {
-      const { data: wus } = await supabaseAdmin
-        .from("workspace_users")
-        .select("id, user_id, display_name")
-        .in("id", authorIds);
-      const rows = wus ?? [];
-      const emails = await fetchEmailsForUserIds(
-        rows
-          .filter((r) => !((r.display_name ?? "") as string).trim())
-          .map((r) => r.user_id as string),
-      );
-      const byId = new Map(rows.map((r) => [r.id as string, r]));
-      for (const wuId of authorIds) {
-        const row = byId.get(wuId);
-        labelByWuId.set(
-          wuId,
-          resolveLabel(
-            row ? { display_name: row.display_name as any, user_id: row.user_id as any } : null,
-            emails,
-          ),
-        );
-      }
-    }
+    const newestFirst = (msgs ?? []) as MessageListRow[];
+    return mapMessageRows(newestFirst.slice().reverse());
+  });
 
-    return (msgs ?? []).map((m) => ({
-      id: m.id as string,
-      rawText: m.raw_text as string,
-      authorWorkspaceUserId: m.author_workspace_user_id as string | null,
-      authorLabel: m.author_workspace_user_id
-        ? labelByWuId.get(m.author_workspace_user_id as string) ?? "Archived user"
-        : "Unknown user",
-      createdAt: m.created_at as string,
-      purgedAt: (m.purged_at as string | null) ?? null,
-    }));
+export const listMessagesAround = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        messageId: z.string().uuid(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertParticipant(data.conversationId, context.userId);
+
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from("messages")
+      .select(MESSAGE_LIST_COLUMNS)
+      .eq("id", data.messageId)
+      .eq("conversation_id", data.conversationId)
+      .maybeSingle();
+    if (targetError) throw new Error(targetError.message);
+    if (!target) throw new Error("Message not found");
+
+    const targetRow = target as MessageListRow;
+
+    const [olderResult, newerResult] = await Promise.all([
+      supabaseAdmin
+        .from("messages")
+        .select(MESSAGE_LIST_COLUMNS)
+        .eq("conversation_id", data.conversationId)
+        .lt("created_at", targetRow.created_at)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_AROUND_RADIUS),
+      supabaseAdmin
+        .from("messages")
+        .select(MESSAGE_LIST_COLUMNS)
+        .eq("conversation_id", data.conversationId)
+        .gt("created_at", targetRow.created_at)
+        .order("created_at", { ascending: true })
+        .limit(MESSAGE_AROUND_RADIUS),
+    ]);
+    if (olderResult.error) throw new Error(olderResult.error.message);
+    if (newerResult.error) throw new Error(newerResult.error.message);
+
+    const older = ((olderResult.data ?? []) as MessageListRow[]).slice().reverse();
+    const newer = (newerResult.data ?? []) as MessageListRow[];
+    return mapMessageRows([...older, targetRow, ...newer]);
   });
 
 
@@ -1233,7 +1268,7 @@ async function loadSelectedMessages(
 }
 
 async function loadAuthorLabels(
-  msgs: SelectedMessage[],
+  msgs: { author_workspace_user_id: string | null }[],
 ): Promise<Map<string, string>> {
   const authorIds = Array.from(
     new Set(
