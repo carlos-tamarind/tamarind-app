@@ -8,8 +8,18 @@ export type MatchRoute =
       strongEstablished: MatchedConversationTopic[];
       strongCandidates: MatchedConversationTopic[];
     }
-  | { tier: 2; topic: MatchedConversationTopic }
+  | {
+      tier: 2;
+      mediumEstablished: MatchedConversationTopic | null;
+      mediumCandidates: MatchedConversationTopic[];
+    }
   | { tier: 3 };
+
+function sortBySimilarity(matches: MatchedConversationTopic[]) {
+  return [...matches].sort(
+    (a, b) => b.similarity - a.similarity || a.id.localeCompare(b.id),
+  );
+}
 
 export function classifyMatches(matches: MatchedConversationTopic[]): MatchRoute {
   if (matches.length === 0) return { tier: 4 };
@@ -26,15 +36,22 @@ export function classifyMatches(matches: MatchedConversationTopic[]): MatchRoute
     };
   }
 
-  const mediumEstablished = matches
-    .filter(
-      (match) =>
-        !match.is_candidate && match.similarity >= lower && match.similarity < upper,
-    )
-    .sort((a, b) => b.similarity - a.similarity || a.id.localeCompare(b.id));
+  const medium = matches.filter(
+    (match) => match.similarity >= lower && match.similarity < upper,
+  );
+  const mediumEstablished = sortBySimilarity(
+    medium.filter((match) => !match.is_candidate),
+  );
+  const mediumCandidates = sortBySimilarity(
+    medium.filter((match) => match.is_candidate),
+  );
 
-  if (mediumEstablished[0]) {
-    return { tier: 2, topic: mediumEstablished[0] };
+  if (mediumEstablished[0] || mediumCandidates.length > 0) {
+    return {
+      tier: 2,
+      mediumEstablished: mediumEstablished[0] ?? null,
+      mediumCandidates,
+    };
   }
 
   return { tier: 3 };

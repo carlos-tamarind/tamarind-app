@@ -270,4 +270,5 @@ Detailed breakdown in [`docs/semantic/`](../docs/semantic/readme.md):
 - [Embedding](../docs/semantic/msg_embedding.md)
 - [Page Embedding](../docs/semantic/page_embedding.md)
 - [Page Semantics](../docs/semantic/page_semantic.md)
+- [Conversation Topics](../docs/semantic/conversation_topics.md)
 - [Conversation Suggestions](../docs/semantic/conversation_suggestions.md)
