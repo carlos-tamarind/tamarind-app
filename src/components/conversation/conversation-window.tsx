@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Bold,
   Check,
+  ChevronDown,
   Code,
   Copy,
   FilePlus,
@@ -61,6 +62,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   getConversation,
   listMessages,
+  listMessagesAround,
   sendMessage,
   trashMessages,
   recoverMessage,
@@ -488,6 +490,7 @@ export function ConversationWindow({
 
   const fetchConv = useServerFn(getConversation);
   const fetchMessages = useServerFn(listMessages);
+  const fetchMessagesAround = useServerFn(listMessagesAround);
   const sendMsg = useServerFn(sendMessage);
   const trashMsgs = useServerFn(trashMessages);
   const recoverMsg = useServerFn(recoverMessage);
@@ -519,6 +522,8 @@ export function ConversationWindow({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const scrollerRef = useRef<HTMLDivElement>(null);
   const flashedMessageRef = useRef<string | null>(null);
+  const aroundModeRef = useRef(false);
+  const displayedIdsRef = useRef<Set<string>>(new Set());
   const sendLabel = useShortcutLabel(HOTKEYS.send);
   const boldLabel = useShortcutLabel(HOTKEYS.bold);
   const italicLabel = useShortcutLabel(HOTKEYS.italic);
@@ -570,6 +575,46 @@ export function ConversationWindow({
     queryFn: () => fetchMessages({ data: { conversationId } }),
   });
 
+  const latestHasTarget = Boolean(
+    targetMessageId && initialMessages?.some((m) => m.id === targetMessageId),
+  );
+  const aroundEnabled = Boolean(
+    targetMessageId && initialMessages !== undefined && !latestHasTarget,
+  );
+
+  const {
+    data: aroundMessages,
+    isPending: aroundPending,
+    isError: aroundError,
+  } = useQuery({
+    queryKey: ["messages-around", conversationId, targetMessageId],
+    queryFn: () =>
+      fetchMessagesAround({
+        data: { conversationId, messageId: targetMessageId! },
+      }),
+    enabled: aroundEnabled,
+    retry: false,
+  });
+
+  const aroundMode = Boolean(
+    aroundEnabled && aroundMessages?.some((m) => m.id === targetMessageId),
+  );
+  aroundModeRef.current = aroundMode;
+  displayedIdsRef.current = new Set(
+    (aroundMode ? aroundMessages : initialMessages)?.map((m) => m.id) ?? [],
+  );
+
+  const jumpToLatest = () => {
+    const latestIds = new Set((initialMessages ?? []).map((m) => m.id));
+    setLiveMessages((prev) => prev.filter((m) => latestIds.has(m.id)));
+    void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withConversation(prev, conversationId),
+    });
+  };
+
   useEffect(() => {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
@@ -609,6 +654,13 @@ export function ConversationWindow({
           });
           setLiveMessages((prev) => {
             const existing = prev.find((m) => m.id === row.id);
+            if (
+              aroundModeRef.current &&
+              !existing &&
+              !displayedIdsRef.current.has(row.id)
+            ) {
+              return prev;
+            }
             const mapped = mapRealtimeMessage(row, existing);
             if (existing) {
               return prev.map((m) => (m.id === row.id ? { ...m, ...mapped } : m));
@@ -629,18 +681,21 @@ export function ConversationWindow({
   }, [conversationId]);
 
   const messages = useMemo<Message[]>(() => {
+    const history = aroundMode ? (aroundMessages ?? []) : (initialMessages ?? []);
+    const historyIds = new Set(history.map((m) => m.id));
     const byId = new Map<string, Message>();
-    for (const m of initialMessages ?? []) {
+    for (const m of history) {
       if (removedIds.has(m.id)) continue;
       byId.set(m.id, { ...m, purgedAt: m.purgedAt ?? null });
     }
     for (const m of liveMessages) {
       if (removedIds.has(m.id)) continue;
+      if (aroundMode && !historyIds.has(m.id) && !byId.has(m.id)) continue;
       const prev = byId.get(m.id);
       byId.set(m.id, prev ? { ...prev, ...m } : { ...m, purgedAt: m.purgedAt ?? null });
     }
     return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  }, [initialMessages, liveMessages, removedIds]);
+  }, [aroundMode, aroundMessages, initialMessages, liveMessages, removedIds]);
 
   const purgedMessageIds = useMemo(
     () => new Set(messages.filter((m) => isTrashed(m.purgedAt)).map((m) => m.id)),
@@ -818,6 +873,7 @@ export function ConversationWindow({
     if (!editor || sendLockRef.current) return;
     if (!hasSendableContent(editor) || !myWorkspaceUserId) return;
     sendLockRef.current = true;
+    if (aroundMode) jumpToLatest();
     const html = editor.getHTML();
     const id = crypto.randomUUID();
     setLiveMessages((prev) => [
@@ -1038,6 +1094,10 @@ export function ConversationWindow({
     setAddToPageOpen(true);
   };
 
+  useEffect(() => {
+    flashedMessageRef.current = null;
+  }, [targetMessageId]);
+
   const flashMessage = (id: string) => {
     const el = scrollerRef.current?.querySelector(
       `[data-message-id="${CSS.escape(id)}"]`,
@@ -1053,12 +1113,18 @@ export function ConversationWindow({
     if (initialMessages === undefined) return;
     if (flashedMessageRef.current === targetMessageId) return;
 
-    const exists = messages.some((m) => m.id === targetMessageId);
-    if (!exists) {
-      flashedMessageRef.current = targetMessageId;
-      toast.error("Message not found");
-      return;
+    const inLatest = initialMessages.some((m) => m.id === targetMessageId);
+    if (!inLatest) {
+      if (aroundPending) return;
+      if (aroundError || !aroundMessages?.some((m) => m.id === targetMessageId)) {
+        flashedMessageRef.current = targetMessageId;
+        toast.error("Message not found");
+        return;
+      }
     }
+
+    const exists = messages.some((m) => m.id === targetMessageId);
+    if (!exists) return;
 
     const frame = window.requestAnimationFrame(() => {
       const el = scrollerRef.current?.querySelector(
@@ -1072,7 +1138,14 @@ export function ConversationWindow({
       flashMessage(targetMessageId);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [targetMessageId, messages, initialMessages]);
+  }, [
+    targetMessageId,
+    messages,
+    initialMessages,
+    aroundPending,
+    aroundError,
+    aroundMessages,
+  ]);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const targetEl = e.target as HTMLElement;
@@ -1143,7 +1216,15 @@ export function ConversationWindow({
       if (qid) {
         e.preventDefault();
         e.stopPropagation();
-        flashMessage(qid);
+        if (qid === targetMessageId) {
+          flashMessage(qid);
+        } else {
+          navigate({
+            to: "/w/$workspaceId",
+            params: { workspaceId },
+            search: (prev) => withConversation(prev, conversationId, qid),
+          });
+        }
         return;
       }
     }
@@ -1289,6 +1370,20 @@ export function ConversationWindow({
                 onDismiss={() => void suggestion.onDismiss()}
                 onFeedback={(type) => void suggestion.onFeedback(type)}
               />
+            )}
+            {aroundMode && (
+              <div className="pointer-events-none absolute bottom-3 right-3 z-20">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="pointer-events-auto shadow-md"
+                  onClick={jumpToLatest}
+                >
+                  Jump to latest
+                  <ChevronDown className="size-3.5" strokeWidth={1.5} />
+                </Button>
+              </div>
             )}
             <div
               ref={scrollerRef}
