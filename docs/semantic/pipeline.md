@@ -81,7 +81,7 @@ Triggered by external cron. Processes up to 8 jobs per tick, **one job at a time
 
 Steps:
 1. `claimConversationTopicJob()` — RPC claims one next-in-order `QUEUED` or due `RETRY_WAIT` job
-2. `conversationTopicEngine.planTransition()` — match topics, route T1–T4, optional LLM/embedding, build mutation plan
+2. `conversationTopicEngine.planTransition()` — match topics, route T1–T4, optional LLM/embedding, build mutation plan (see [Conversation Topics](conversation_topics.md))
 3. `applyCtiPlanAndCommit()` — advisory lock + apply topic/evidence/`current_topic_id` writes + COMPLETED in one transaction
 4. On failure: `handleCtiJobError()` — permanent → `QUARANTINED`; transient → `RETRY_WAIT` (5× backoff, then 24h halt)
 
@@ -89,14 +89,14 @@ Steps:
 
 `conversation_topics.historical_weight` is a monotonic accumulator in the database (no decay on write). Recency decay is scoring-only (`topicScore`, 72h half-life) when choosing `conversations.current_topic_id`.
 
-How weight is accumulated:
+How weight is accumulated (thresholds: strong ≥ **0.60**, medium ≥ **0.40**):
 
-- **Candidate evidence (tier 1):** each attached message adds its cosine similarity.
-- **Unnamed candidate (tier 3/4):** starts at `0`; later evidence adds similarity as above.
-- **Named candidate (tier 2 `new`):** starts at the classification LLM confidence (clamped `[0, 1]`).
+- **Candidate evidence (tier 1 and tier 2):** each attached message adds its cosine similarity.
+- **Unnamed candidate (tier 3/4):** starts at `0`; later tier-1/2 evidence adds similarity as above.
+- **Named candidate (tier 2 LLM `new`):** starts at the classification LLM confidence (clamped `[0, 1]`).
 - **First-time promotion** (candidate becomes its own established topic): add the promotion LLM confidence.
 - **Merge into an existing established topic:** the target receives the candidate's accumulated weight plus the promotion LLM confidence.
-- **Established reinforce:** tier 1 adds message similarity; tier 2 adds classification LLM confidence.
+- **Established reinforce:** tier 1 adds message similarity; tier 2 LLM path adds classification LLM confidence.
 
 ## Page Chunking Worker
 

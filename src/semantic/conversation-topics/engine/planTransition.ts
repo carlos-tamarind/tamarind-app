@@ -2,12 +2,33 @@ import { DebugLogger } from "@/lib/debugLogger";
 
 import type { ConversationTopicJob } from "../types/job";
 import type { CtiTransitionPlan } from "../types/plan";
+import type { MatchedConversationTopic } from "../types/match";
 import { classifyMatches } from "./classifyMatches";
 import { CTI_ENGINE_CONFIG } from "./config";
 import { CtiPlanBuilder } from "./ctiPlanBuilder";
 import { loadCtiJobContext } from "./persistence/loadCtiContext";
 
 const LOG_SCOPE = "cti-engine";
+
+async function evaluateReadyCandidatePromotions(
+  builder: CtiPlanBuilder,
+  candidates: MatchedConversationTopic[],
+) {
+  const ready = candidates
+    .filter((candidate) => {
+      const topic = builder.getTopic(candidate.id);
+      return (
+        topic?.isCandidate === true &&
+        topic.evidenceCount >= CTI_ENGINE_CONFIG.CONVERSATION_TOPIC_MINIMUM_EVIDENCE_THRESHOLD
+      );
+    })
+    .sort((a, b) => b.similarity - a.similarity || a.id.localeCompare(b.id));
+
+  for (const candidate of ready) {
+    if (!builder.getTopic(candidate.id)?.isCandidate) continue;
+    await builder.evaluatePromotion(candidate.id);
+  }
+}
 
 export async function planTransition(input: {
   job: ConversationTopicJob;
@@ -35,27 +56,17 @@ export async function planTransition(input: {
       for (const candidate of route.strongCandidates) {
         await builder.addCandidateEvidence(candidate.id, candidate.similarity);
       }
-      {
-        const ready = route.strongCandidates
-          .filter((candidate) => {
-            const topic = builder.getTopic(candidate.id);
-            return (
-              topic?.isCandidate === true &&
-              topic.evidenceCount >=
-                CTI_ENGINE_CONFIG.CONVERSATION_TOPIC_MINIMUM_EVIDENCE_THRESHOLD
-            );
-          })
-          .sort((a, b) => b.similarity - a.similarity || a.id.localeCompare(b.id));
-
-        for (const candidate of ready) {
-          if (!builder.getTopic(candidate.id)?.isCandidate) continue;
-          await builder.evaluatePromotion(candidate.id);
-        }
-      }
+      await evaluateReadyCandidatePromotions(builder, route.strongCandidates);
       break;
 
     case 2:
-      await builder.applyTier2Decision();
+      if (route.mediumEstablished) {
+        await builder.applyTier2Decision();
+      }
+      for (const candidate of route.mediumCandidates) {
+        await builder.addCandidateEvidence(candidate.id, candidate.similarity);
+      }
+      await evaluateReadyCandidatePromotions(builder, route.mediumCandidates);
       break;
   }
 
