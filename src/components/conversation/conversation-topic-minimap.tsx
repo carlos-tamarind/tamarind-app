@@ -52,6 +52,7 @@ export const ConversationTopicMinimap = forwardRef<
 ) {
   const fetchTopics = useServerFn(listConversationTopics);
 
+  const [panelElement, setPanelElement] = useState<HTMLDivElement | null>(null);
   const [filterQuery, setFilterQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("relevance");
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
@@ -84,6 +85,7 @@ export const ConversationTopicMinimap = forwardRef<
   return (
     <div
       ref={(node) => {
+        setPanelElement(node);
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
@@ -124,7 +126,11 @@ export const ConversationTopicMinimap = forwardRef<
                 <ListFilter className="size-4" strokeWidth={1.5} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent
+              align="end"
+              className="w-56"
+              container={panelElement}
+            >
               <DropdownMenuItem
                 onSelect={() => setSortMode("relevance")}
                 className={sortMode === "relevance" ? "bg-accent" : ""}
