@@ -763,7 +763,7 @@ export function PageWindow({
           Page sent to the trash.{" "}
           <button
             type="button"
-            className="underline underline-offset-2"
+            className="cursor-pointer underline underline-offset-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

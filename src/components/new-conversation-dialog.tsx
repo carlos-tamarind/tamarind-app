@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
@@ -13,12 +13,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MemberPickerRow } from "@/components/member-picker-row";
+import { MemberPickerList } from "@/components/member-picker-list";
 import { useAuth } from "@/lib/auth-context";
-import {
-  listWorkspaceMembers,
-  findOrCreateConversation,
-} from "@/lib/conversations.functions";
+import { listWorkspaceMembers, findOrCreateConversation } from "@/lib/conversations.functions";
 import { withConversation } from "@/lib/workspace-search";
 
 export function NewConversationDialog({
@@ -60,6 +57,18 @@ export function NewConversationDialog({
       return next;
     });
 
+  const pickerItems = useMemo(
+    () =>
+      others.map((m) => ({
+        id: m.workspaceUserId,
+        label: m.label,
+        avatarUrl: m.avatarUrl,
+        checked: selected.has(m.workspaceUserId),
+        onToggle: () => toggle(m.workspaceUserId),
+      })),
+    [others, selected],
+  );
+
   const handleCreate = async () => {
     if (selected.size === 0 || busy) return;
     setBusy(true);
@@ -94,26 +103,13 @@ export function NewConversationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-1 max-h-72 overflow-y-auto px-1">
-          {others.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No other members in this workspace yet.
-            </p>
-          ) : (
-            <ul>
-              {others.map((m) => (
-                <li key={m.workspaceUserId}>
-                  <MemberPickerRow
-                    label={m.label}
-                    avatarUrl={m.avatarUrl}
-                    checked={selected.has(m.workspaceUserId)}
-                    onToggle={() => toggle(m.workspaceUserId)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <MemberPickerList
+          key={open ? "open" : "closed"}
+          items={pickerItems}
+          emptyMessage="No other members available."
+          noMatchMessage="No matching members."
+          maxHeightClass="max-h-72"
+        />
 
         <DialogFooter>
           <Button variant="ghost" onClick={close} disabled={busy}>

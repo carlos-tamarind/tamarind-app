@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, Building2, Loader2, FileLock, MessageSquareLock } from "lucide-react";
+import { Building2, Loader2, FileLock, MessageSquareLock } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -14,22 +14,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { MemberPickerList } from "@/components/member-picker-list";
 import { useAuth } from "@/lib/auth-context";
-import {
-  listWorkspaceMembers,
-  listMyConversations,
-} from "@/lib/conversations.functions";
+import { listWorkspaceMembers, listMyConversations } from "@/lib/conversations.functions";
 import { duplicatePage } from "@/lib/pages.functions";
 import { withPage } from "@/lib/workspace-search";
 
 type Visibility = "private" | "workspace" | "conversation";
+
+function participantLabel(n: number) {
+  return `${n} participant${n === 1 ? "" : "s"}`;
+}
 
 export function DuplicatePageDialog({
   open,
@@ -95,9 +91,7 @@ export function DuplicatePageDialog({
 
   const totalSelected = selectedUsers.size + selectedConvs.size;
 
-  const canContinue =
-    visibility !== null &&
-    (visibility !== "conversation" || totalSelected > 0);
+  const canContinue = visibility !== null && (visibility !== "conversation" || totalSelected > 0);
 
   const resetAndClose = () => {
     setTitleInput("");
@@ -127,9 +121,29 @@ export function DuplicatePageDialog({
   const selectedUserLabels = otherMembers
     .filter((m) => selectedUsers.has(m.workspaceUserId))
     .map((m) => m.label);
-  const selectedConvLabels = groupConvs
-    .filter((c) => selectedConvs.has(c.id))
-    .map((c) => c.title);
+  const selectedConvLabels = groupConvs.filter((c) => selectedConvs.has(c.id)).map((c) => c.title);
+
+  const pickerItems = useMemo(
+    () =>
+      [
+        ...otherMembers.map((m) => ({
+          id: `user:${m.workspaceUserId}`,
+          label: m.label,
+          avatarUrl: m.avatarUrl,
+          checked: selectedUsers.has(m.workspaceUserId),
+          onToggle: () => toggleUser(m.workspaceUserId),
+        })),
+        ...groupConvs.map((c) => ({
+          id: `conv:${c.id}`,
+          label: c.title,
+          avatarUrl: c.avatarUrl,
+          sublabel: participantLabel(c.participantCount ?? 0),
+          checked: selectedConvs.has(c.id),
+          onToggle: () => toggleConv(c.id),
+        })),
+      ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })),
+    [otherMembers, groupConvs, selectedUsers, selectedConvs],
+  );
 
   const finalTitle = titleInput.trim() || placeholder;
 
@@ -142,10 +156,8 @@ export function DuplicatePageDialog({
           pageId,
           title: finalTitle,
           visibility,
-          workspaceUserIds:
-            visibility === "conversation" ? Array.from(selectedUsers) : [],
-          conversationIds:
-            visibility === "conversation" ? Array.from(selectedConvs) : [],
+          workspaceUserIds: visibility === "conversation" ? Array.from(selectedUsers) : [],
+          conversationIds: visibility === "conversation" ? Array.from(selectedConvs) : [],
         },
       });
       toast.success("Page duplicated");
@@ -207,9 +219,7 @@ export function DuplicatePageDialog({
         <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>Duplicate page</DialogTitle>
-            <DialogDescription>
-              Create an independent copy of this page.
-            </DialogDescription>
+            <DialogDescription>Create an independent copy of this page.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -237,63 +247,13 @@ export function DuplicatePageDialog({
             </div>
 
             {visibility === "conversation" && (
-              <div className="space-y-3">
-                <Collapsible defaultOpen>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent/40">
-                    Share with specific users:
-                    <ChevronDown className="size-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border">
-                    {otherMembers.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No other members in this workspace.
-                      </p>
-                    ) : (
-                      <ul className="divide-y">
-                        {otherMembers.map((m) => (
-                          <li key={m.workspaceUserId}>
-                            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-accent/40">
-                              <Checkbox
-                                checked={selectedUsers.has(m.workspaceUserId)}
-                                onCheckedChange={() => toggleUser(m.workspaceUserId)}
-                              />
-                              <span className="text-sm">{m.label}</span>
-                            </label>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Collapsible>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent/40">
-                    Share with entire group conversations:
-                    <ChevronDown className="size-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border">
-                    {groupConvs.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        You have no group conversations.
-                      </p>
-                    ) : (
-                      <ul className="divide-y">
-                        {groupConvs.map((c) => (
-                          <li key={c.id}>
-                            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-accent/40">
-                              <Checkbox
-                                checked={selectedConvs.has(c.id)}
-                                onCheckedChange={() => toggleConv(c.id)}
-                              />
-                              <span className="text-sm">{c.title}</span>
-                            </label>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
+              <MemberPickerList
+                key={open ? "open" : "closed"}
+                items={pickerItems}
+                emptyMessage="No other members available."
+                noMatchMessage="No matching conversations."
+                maxHeightClass="max-h-56"
+              />
             )}
           </div>
 
@@ -308,10 +268,7 @@ export function DuplicatePageDialog({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={confirmOpen}
-        onOpenChange={(o) => setConfirmOpen(o)}
-      >
+      <Dialog open={confirmOpen} onOpenChange={(o) => setConfirmOpen(o)}>
         <DialogContent size="sm">
           <DialogHeader>
             <DialogTitle>Duplicate page</DialogTitle>
@@ -323,28 +280,20 @@ export function DuplicatePageDialog({
               {selectedUserLabels.length > 0 && (
                 <div>
                   <span className="font-medium">Users: </span>
-                  <span className="text-muted-foreground">
-                    {selectedUserLabels.join(", ")}
-                  </span>
+                  <span className="text-muted-foreground">{selectedUserLabels.join(", ")}</span>
                 </div>
               )}
               {selectedConvLabels.length > 0 && (
                 <div>
                   <span className="font-medium">Conversations: </span>
-                  <span className="text-muted-foreground">
-                    {selectedConvLabels.join(", ")}
-                  </span>
+                  <span className="text-muted-foreground">{selectedConvLabels.join(", ")}</span>
                 </div>
               )}
             </div>
           )}
 
           <DialogFooter className="sm:justify-between">
-            <Button
-              variant="secondary"
-              onClick={() => setConfirmOpen(false)}
-              disabled={busy}
-            >
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={busy}>
               Cancel
             </Button>
             <Button onClick={handleConfirm} disabled={busy}>

@@ -187,8 +187,10 @@ function Section({
   const open = !isCollapsed;
   return (
     <Collapsible open={open} onOpenChange={(next) => onToggle(id, next)}>
-      <div className="group/section flex items-center gap-1 pr-1.5">
-        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors duration-(--motion-fast) hover:text-foreground">
+      <div
+        className={`group/section flex items-center gap-1 pr-1.5 ${open ? "border-b" : ""}`}
+      >
+        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-1 text-xs font-bold uppercase tracking-[0.08em] text-foreground transition-colors duration-(--motion-fast) hover:text-foreground">
           <ChevronRight
             className={`size-3 shrink-0 opacity-0 transition-[transform,opacity] duration-(--motion-fast) group-hover/section:opacity-100 ${
               open ? "rotate-90" : ""
@@ -379,7 +381,9 @@ export function NavigationPanel({
 
   const rail = (
     <TooltipProvider delayDuration={500}>
-      <div className="flex w-[var(--nav-rail)] shrink-0 flex-col items-center border-r">
+      <div
+        className={`flex w-[var(--nav-rail)] shrink-0 flex-col items-center ${folded ? "" : "border-r"}`}
+      >
         <RailButton
           icon={MessageSquareMore}
           label="Conversations"
@@ -474,11 +478,16 @@ export function NavigationPanel({
 
   const pageItem = (
     p: NavPage,
-    opts?: { onUnpin?: () => void; onRecover?: () => void },
+    opts?: {
+      onUnpin?: () => void;
+      onRecover?: () => void;
+      showVisibility?: boolean;
+    },
   ) => {
     const active = activePageId === p.id;
-    const VisibilityIcon =
-      p.visibility === "private"
+    const VisibilityIcon = !opts?.showVisibility
+      ? null
+      : p.visibility === "private"
         ? FileLock
         : p.visibility === "workspace"
           ? Building2
@@ -488,6 +497,9 @@ export function NavigationPanel({
     const unpinHint = "Un-pin this page";
     const recoverHint = "Recover page";
     const hasTrailingAction = !!(opts?.onUnpin || opts?.onRecover);
+    const isOwner =
+      !!myWorkspaceUserId && p.ownerWorkspaceUserId === myWorkspaceUserId;
+    const ownerHint = "You are the owner of this page";
     return (
       <li key={p.id} className="relative">
         <Link
@@ -499,12 +511,25 @@ export function NavigationPanel({
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
           ) : null}
-          <span className="truncate">{p.title || "Untitled"}</span>
           {VisibilityIcon ? (
             <VisibilityIcon
-              className="ml-auto size-3.5 shrink-0 text-muted-foreground/70"
+              className="size-3.5 shrink-0 text-muted-foreground/70"
               strokeWidth={1.5}
             />
+          ) : null}
+          <span className="min-w-0 truncate">{p.title || "Untitled"}</span>
+          {isOwner ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="ml-auto flex shrink-0 items-center text-muted-foreground/70"
+                  aria-label={ownerHint}
+                >
+                  <UserIcon className="size-3.5" strokeWidth={1.5} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right">{ownerHint}</TooltipContent>
+            </Tooltip>
           ) : null}
         </Link>
         {opts?.onUnpin ? (
@@ -551,7 +576,7 @@ export function NavigationPanel({
 
   if (folded) {
     return (
-      <aside className="flex h-full w-full flex-col items-center border-r bg-surface">
+      <aside className="flex h-full w-full flex-col border-r bg-surface">
         <div className="flex h-12 w-full shrink-0 items-center justify-evenly border-b">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -591,7 +616,7 @@ export function NavigationPanel({
             </Tooltip>
         </div>
 
-        <div className="flex w-full flex-1 flex-col items-center overflow-y-auto py-2">
+        <div className="flex w-full flex-1 flex-col overflow-y-auto">
           {rail}
         </div>
 
@@ -750,6 +775,7 @@ export function NavigationPanel({
                     {pinnedPages.map((p) =>
                       pageItem(p, {
                         onUnpin: onUnpin ? () => onUnpin(p.id, "page") : undefined,
+                        showVisibility: true,
                       }),
                     )}
                   </ul>
@@ -806,6 +832,7 @@ export function NavigationPanel({
                         onRecover: onRecoverPage
                           ? () => onRecoverPage(p.id)
                           : undefined,
+                        showVisibility: true,
                       }),
                     )}
                   </ul>

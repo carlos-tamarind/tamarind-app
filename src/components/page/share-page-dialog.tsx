@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -13,18 +13,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MemberPickerRow } from "@/components/member-picker-row";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { MemberPickerList } from "@/components/member-picker-list";
 import { useAuth } from "@/lib/auth-context";
-import {
-  listWorkspaceMembers,
-  listMyConversations,
-} from "@/lib/conversations.functions";
+import { listWorkspaceMembers, listMyConversations } from "@/lib/conversations.functions";
 import { sharePage } from "@/lib/pages.functions";
+
+function participantLabel(n: number) {
+  return `${n} participant${n === 1 ? "" : "s"}`;
+}
 
 export function SharePageDialog({
   open,
@@ -94,12 +90,32 @@ export function SharePageDialog({
       return next;
     });
 
+  const pickerItems = useMemo(
+    () =>
+      [
+        ...otherMembers.map((m) => ({
+          id: `user:${m.workspaceUserId}`,
+          label: m.label,
+          avatarUrl: m.avatarUrl,
+          checked: selectedUsers.has(m.workspaceUserId),
+          onToggle: () => toggleUser(m.workspaceUserId),
+        })),
+        ...groupConvs.map((c) => ({
+          id: `conv:${c.id}`,
+          label: c.title,
+          avatarUrl: c.avatarUrl,
+          sublabel: participantLabel(c.participantCount ?? 0),
+          checked: selectedConvs.has(c.id),
+          onToggle: () => toggleConv(c.id),
+        })),
+      ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })),
+    [otherMembers, groupConvs, selectedUsers, selectedConvs],
+  );
+
   const selectedUserLabels = otherMembers
     .filter((m) => selectedUsers.has(m.workspaceUserId))
     .map((m) => m.label);
-  const selectedConvLabels = groupConvs
-    .filter((c) => selectedConvs.has(c.id))
-    .map((c) => c.title);
+  const selectedConvLabels = groupConvs.filter((c) => selectedConvs.has(c.id)).map((c) => c.title);
 
   const handleConfirm = async () => {
     if (busy) return;
@@ -145,69 +161,19 @@ export function SharePageDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <Collapsible defaultOpen>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-(--motion-fast) hover:bg-accent">
-                Share with specific users:
-                <ChevronDown className="size-4 text-muted-foreground" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border p-1">
-                {otherMembers.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    No other members in this workspace.
-                  </p>
-                ) : (
-                  <ul>
-                    {otherMembers.map((m) => (
-                      <li key={m.workspaceUserId}>
-                        <MemberPickerRow
-                          label={m.label}
-                          avatarUrl={m.avatarUrl}
-                          checked={selectedUsers.has(m.workspaceUserId)}
-                          onToggle={() => toggleUser(m.workspaceUserId)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-(--motion-fast) hover:bg-accent">
-                Share with entire group conversations:
-                <ChevronDown className="size-4 text-muted-foreground" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 max-h-56 overflow-y-auto rounded-md border p-1">
-                {groupConvs.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    You have no group conversations.
-                  </p>
-                ) : (
-                  <ul>
-                    {groupConvs.map((c) => (
-                      <li key={c.id}>
-                        <MemberPickerRow
-                          label={c.title}
-                          checked={selectedConvs.has(c.id)}
-                          onToggle={() => toggleConv(c.id)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+          <MemberPickerList
+            key={open ? "open" : "closed"}
+            items={pickerItems}
+            emptyMessage="No other members available."
+            noMatchMessage="No matching conversations."
+            maxHeightClass="max-h-56"
+          />
 
           <DialogFooter className="sm:justify-between">
             <Button variant="secondary" onClick={resetAndClose}>
               Cancel
             </Button>
-            <Button
-              onClick={() => setConfirmOpen(true)}
-              disabled={totalSelected === 0}
-            >
+            <Button onClick={() => setConfirmOpen(true)} disabled={totalSelected === 0}>
               Continue
             </Button>
           </DialogFooter>
@@ -233,27 +199,19 @@ export function SharePageDialog({
             {selectedUserLabels.length > 0 && (
               <div>
                 <span className="font-medium">Users: </span>
-                <span className="text-muted-foreground">
-                  {selectedUserLabels.join(", ")}
-                </span>
+                <span className="text-muted-foreground">{selectedUserLabels.join(", ")}</span>
               </div>
             )}
             {selectedConvLabels.length > 0 && (
               <div>
                 <span className="font-medium">Conversations: </span>
-                <span className="text-muted-foreground">
-                  {selectedConvLabels.join(", ")}
-                </span>
+                <span className="text-muted-foreground">{selectedConvLabels.join(", ")}</span>
               </div>
             )}
           </div>
 
           <DialogFooter className="sm:justify-between">
-            <Button
-              variant="secondary"
-              onClick={() => setConfirmOpen(false)}
-              disabled={busy}
-            >
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={busy}>
               Cancel
             </Button>
             <Button onClick={handleConfirm} disabled={busy}>

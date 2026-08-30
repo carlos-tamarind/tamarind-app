@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, forwardRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CircleX, ListFilter } from "lucide-react";
+import { ListFilter } from "lucide-react";
 
+import { FilterInput } from "@/components/filter-input";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -95,24 +96,12 @@ export const ConversationTopicMinimap = forwardRef<
     >
       <div className="shrink-0 space-y-2 border-b p-2">
         <div className="flex items-center gap-1">
-          <input
-            type="text"
+          <FilterInput
             value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
+            onChange={setFilterQuery}
             placeholder="Filter topics…"
-            className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="min-w-0 flex-1"
           />
-          {filterQuery.length > 0 ? (
-            <button
-              type="button"
-              title="Clear filter"
-              aria-label="Clear filter"
-              onClick={() => setFilterQuery("")}
-              className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors duration-(--motion-fast) hover:text-foreground"
-            >
-              <CircleX className="size-4" strokeWidth={1.5} />
-            </button>
-          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
