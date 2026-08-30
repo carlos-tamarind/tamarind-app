@@ -8,11 +8,13 @@ export function FilterInput({
   onChange,
   placeholder,
   className,
+  inputClassName,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  inputClassName?: string;
 }) {
   return (
     <div className={cn("relative", className)}>
@@ -21,7 +23,7 @@ export function FilterInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="pr-8"
+        className={cn("pr-8", inputClassName)}
       />
       {value.length > 0 ? (
         <button

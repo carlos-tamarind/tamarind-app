@@ -28,6 +28,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 
+import { FilterInput } from "@/components/filter-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -100,6 +101,20 @@ type Props = {
 
 const SECTION_STORAGE_KEY = "tamarind:nav-section";
 const COLLAPSED_STORAGE_KEY = "tamarind:nav-collapsed-sections";
+
+function applyNavFilter<T>(
+  items: T[],
+  getTitle: (item: T) => string,
+  query: string,
+) {
+  const q = query.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((item) => getTitle(item).toLowerCase().includes(q));
+}
+
+function pageTitle(p: NavPage) {
+  return p.title || "Untitled";
+}
 
 function readCollapsedSections(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -254,6 +269,7 @@ export function NavigationPanel({
   onLogout,
 }: Props) {
   const [section, setSection] = useState<NavSection>("conversations");
+  const [filterQuery, setFilterQuery] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(),
   );
@@ -274,6 +290,10 @@ export function NavigationPanel({
       // Storage unavailable — defaults are fine.
     }
   }, []);
+
+  useEffect(() => {
+    setFilterQuery("");
+  }, [section]);
 
   const selectSection = useCallback((next: NavSection) => {
     setSection(next);
@@ -337,6 +357,53 @@ export function NavigationPanel({
     const ids = new Set(pinnedPageIds);
     return pages.filter((p) => ids.has(p.id));
   }, [pages, pinnedPageIds]);
+
+  const isFiltering = filterQuery.trim().length > 0;
+
+  const filteredPinnedConversations = useMemo(
+    () => applyNavFilter(pinnedConversations, (c) => c.title, filterQuery),
+    [pinnedConversations, filterQuery],
+  );
+  const filteredDirectConversations = useMemo(
+    () => applyNavFilter(directConversations, (c) => c.title, filterQuery),
+    [directConversations, filterQuery],
+  );
+  const filteredGroupConversations = useMemo(
+    () => applyNavFilter(groupConversations, (c) => c.title, filterQuery),
+    [groupConversations, filterQuery],
+  );
+  const filteredPinnedPages = useMemo(
+    () => applyNavFilter(pinnedPages, pageTitle, filterQuery),
+    [pinnedPages, filterQuery],
+  );
+  const filteredPrivatePages = useMemo(
+    () => applyNavFilter(privatePages, pageTitle, filterQuery),
+    [privatePages, filterQuery],
+  );
+  const filteredConversationPages = useMemo(
+    () => applyNavFilter(conversationPages, pageTitle, filterQuery),
+    [conversationPages, filterQuery],
+  );
+  const filteredWorkspacePages = useMemo(
+    () => applyNavFilter(workspacePages, pageTitle, filterQuery),
+    [workspacePages, filterQuery],
+  );
+  const filteredDeletedPages = useMemo(
+    () => applyNavFilter(deletedPages, pageTitle, filterQuery),
+    [deletedPages, filterQuery],
+  );
+
+  const hasConversationMatches =
+    filteredPinnedConversations.length > 0 ||
+    filteredDirectConversations.length > 0 ||
+    filteredGroupConversations.length > 0;
+
+  const hasPageMatches =
+    filteredPinnedPages.length > 0 ||
+    filteredPrivatePages.length > 0 ||
+    filteredConversationPages.length > 0 ||
+    filteredWorkspacePages.length > 0 ||
+    filteredDeletedPages.length > 0;
 
   const handleRailSelect = (next: NavSection) => {
     if (folded) {
@@ -697,146 +764,216 @@ export function NavigationPanel({
         {rail}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2 text-sm">
+          {section === "conversations" || section === "pages" ? (
+            <div className="shrink-0 px-1.5 pt-2">
+              <FilterInput
+                value={filterQuery}
+                onChange={setFilterQuery}
+                placeholder={
+                  section === "conversations"
+                    ? "Filter conversations…"
+                    : "Filter pages…"
+                }
+                inputClassName="h-7 px-2 text-sm"
+              />
+            </div>
+          ) : null}
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2 pt-1 text-sm">
             {section === "conversations" ? (
               <div className="space-y-2">
-                <Section
-                  id="pinned-conversations"
-                  icon={Bookmark}
-                  label="Pinned"
-                  empty={pinnedConversations.length === 0}
-                  emptyHint="Pinned conversations will appear here"
-                  isCollapsed={collapsedSections.has("pinned-conversations")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">
-                    {pinnedConversations.map((c) =>
-                      conversationItem(c, {
-                        onUnpin: onUnpin
-                          ? () => onUnpin(c.id, "conversation")
-                          : undefined,
-                      }),
-                    )}
-                  </ul>
-                </Section>
-                <Section
-                  id="unread"
-                  icon={MessageSquareDot}
-                  label="Unread"
-                  count={0}
-                  empty
-                  emptyHint="You're all caught up"
-                  isCollapsed={collapsedSections.has("unread")}
-                  onToggle={toggleSectionOpen}
-                />
-                <Section
-                  id="direct"
-                  icon={MessageSquare}
-                  label="Private"
-                  empty={directConversations.length === 0}
-                  emptyHint="No direct conversations yet"
-                  onAdd={onNewConversation}
-                  addLabel="New conversation"
-                  isCollapsed={collapsedSections.has("direct")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">
-                    {directConversations.map((c) => conversationItem(c))}
-                  </ul>
-                </Section>
-                <Section
-                  id="groups"
-                  icon={MessagesSquare}
-                  label="Groups"
-                  empty={groupConversations.length === 0}
-                  emptyHint="No group conversations yet"
-                  onAdd={onNewConversation}
-                  addLabel="New conversation"
-                  isCollapsed={collapsedSections.has("groups")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">
-                    {groupConversations.map((c) => conversationItem(c))}
-                  </ul>
-                </Section>
+                {isFiltering && !hasConversationMatches ? (
+                  <p className="px-2 py-2 text-sm text-muted-foreground">
+                    No matching conversations.
+                  </p>
+                ) : null}
+                {(!isFiltering || filteredPinnedConversations.length > 0) && (
+                  <Section
+                    id="pinned-conversations"
+                    icon={Bookmark}
+                    label="Pinned"
+                    empty={!isFiltering && pinnedConversations.length === 0}
+                    emptyHint="Pinned conversations will appear here"
+                    isCollapsed={collapsedSections.has("pinned-conversations")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredPinnedConversations
+                        : pinnedConversations
+                      ).map((c) =>
+                        conversationItem(c, {
+                          onUnpin: onUnpin
+                            ? () => onUnpin(c.id, "conversation")
+                            : undefined,
+                        }),
+                      )}
+                    </ul>
+                  </Section>
+                )}
+                {!isFiltering && (
+                  <Section
+                    id="unread"
+                    icon={MessageSquareDot}
+                    label="Unread"
+                    count={0}
+                    empty
+                    emptyHint="You're all caught up"
+                    isCollapsed={collapsedSections.has("unread")}
+                    onToggle={toggleSectionOpen}
+                  />
+                )}
+                {(!isFiltering || filteredDirectConversations.length > 0) && (
+                  <Section
+                    id="direct"
+                    icon={MessageSquare}
+                    label="Private"
+                    empty={!isFiltering && directConversations.length === 0}
+                    emptyHint="No direct conversations yet"
+                    onAdd={onNewConversation}
+                    addLabel="New conversation"
+                    isCollapsed={collapsedSections.has("direct")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredDirectConversations
+                        : directConversations
+                      ).map((c) => conversationItem(c))}
+                    </ul>
+                  </Section>
+                )}
+                {(!isFiltering || filteredGroupConversations.length > 0) && (
+                  <Section
+                    id="groups"
+                    icon={MessagesSquare}
+                    label="Groups"
+                    empty={!isFiltering && groupConversations.length === 0}
+                    emptyHint="No group conversations yet"
+                    onAdd={onNewConversation}
+                    addLabel="New conversation"
+                    isCollapsed={collapsedSections.has("groups")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredGroupConversations
+                        : groupConversations
+                      ).map((c) => conversationItem(c))}
+                    </ul>
+                  </Section>
+                )}
               </div>
             ) : section === "pages" ? (
               <div className="space-y-2">
-                <Section
-                  id="pinned-pages"
-                  icon={Bookmark}
-                  label="Pinned"
-                  empty={pinnedPages.length === 0}
-                  emptyHint="Pinned pages will appear here"
-                  isCollapsed={collapsedSections.has("pinned-pages")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">
-                    {pinnedPages.map((p) =>
-                      pageItem(p, {
-                        onUnpin: onUnpin ? () => onUnpin(p.id, "page") : undefined,
-                        showVisibility: true,
-                      }),
-                    )}
-                  </ul>
-                </Section>
-                <Section
-                  id="private-pages"
-                  icon={FileLock}
-                  label="Private library"
-                  empty={privatePages.length === 0}
-                  emptyHint="No private pages yet"
-                  onAdd={onNewPage}
-                  addLabel="New page"
-                  isCollapsed={collapsedSections.has("private-pages")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">{privatePages.map((p) => pageItem(p))}</ul>
-                </Section>
-                <Section
-                  id="conversation-pages"
-                  icon={MessageSquareLock}
-                  label="From conversations"
-                  empty={conversationPages.length === 0}
-                  emptyHint="Pages made from messages land here"
-                  isCollapsed={collapsedSections.has("conversation-pages")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">{conversationPages.map((p) => pageItem(p))}</ul>
-                </Section>
-                <Section
-                  id="workspace-pages"
-                  icon={Building2}
-                  label="Public pages"
-                  empty={workspacePages.length === 0}
-                  emptyHint="Nothing published to the workspace yet"
-                  onAdd={onNewPage}
-                  addLabel="New page"
-                  isCollapsed={collapsedSections.has("workspace-pages")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">{workspacePages.map((p) => pageItem(p))}</ul>
-                </Section>
-                <Section
-                  id="deleted"
-                  icon={Trash2}
-                  label="Deleted"
-                  empty={deletedPages.length === 0}
-                  emptyHint="Deleted pages will appear here"
-                  isCollapsed={collapsedSections.has("deleted")}
-                  onToggle={toggleSectionOpen}
-                >
-                  <ul className="space-y-px">
-                    {deletedPages.map((p) =>
-                      pageItem(p, {
-                        onRecover: onRecoverPage
-                          ? () => onRecoverPage(p.id)
-                          : undefined,
-                        showVisibility: true,
-                      }),
-                    )}
-                  </ul>
-                </Section>
+                {isFiltering && !hasPageMatches ? (
+                  <p className="px-2 py-2 text-sm text-muted-foreground">
+                    No matching pages.
+                  </p>
+                ) : null}
+                {(!isFiltering || filteredPinnedPages.length > 0) && (
+                  <Section
+                    id="pinned-pages"
+                    icon={Bookmark}
+                    label="Pinned"
+                    empty={!isFiltering && pinnedPages.length === 0}
+                    emptyHint="Pinned pages will appear here"
+                    isCollapsed={collapsedSections.has("pinned-pages")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering ? filteredPinnedPages : pinnedPages).map(
+                        (p) =>
+                          pageItem(p, {
+                            onUnpin: onUnpin
+                              ? () => onUnpin(p.id, "page")
+                              : undefined,
+                            showVisibility: true,
+                          }),
+                      )}
+                    </ul>
+                  </Section>
+                )}
+                {(!isFiltering || filteredPrivatePages.length > 0) && (
+                  <Section
+                    id="private-pages"
+                    icon={FileLock}
+                    label="Private library"
+                    empty={!isFiltering && privatePages.length === 0}
+                    emptyHint="No private pages yet"
+                    onAdd={onNewPage}
+                    addLabel="New page"
+                    isCollapsed={collapsedSections.has("private-pages")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering ? filteredPrivatePages : privatePages).map(
+                        (p) => pageItem(p),
+                      )}
+                    </ul>
+                  </Section>
+                )}
+                {(!isFiltering || filteredConversationPages.length > 0) && (
+                  <Section
+                    id="conversation-pages"
+                    icon={MessageSquareLock}
+                    label="From conversations"
+                    empty={!isFiltering && conversationPages.length === 0}
+                    emptyHint="Pages made from messages land here"
+                    isCollapsed={collapsedSections.has("conversation-pages")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredConversationPages
+                        : conversationPages
+                      ).map((p) => pageItem(p))}
+                    </ul>
+                  </Section>
+                )}
+                {(!isFiltering || filteredWorkspacePages.length > 0) && (
+                  <Section
+                    id="workspace-pages"
+                    icon={Building2}
+                    label="Public pages"
+                    empty={!isFiltering && workspacePages.length === 0}
+                    emptyHint="Nothing published to the workspace yet"
+                    onAdd={onNewPage}
+                    addLabel="New page"
+                    isCollapsed={collapsedSections.has("workspace-pages")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredWorkspacePages
+                        : workspacePages
+                      ).map((p) => pageItem(p))}
+                    </ul>
+                  </Section>
+                )}
+                {(!isFiltering || filteredDeletedPages.length > 0) && (
+                  <Section
+                    id="deleted"
+                    icon={Trash2}
+                    label="Deleted"
+                    empty={!isFiltering && deletedPages.length === 0}
+                    emptyHint="Deleted pages will appear here"
+                    isCollapsed={collapsedSections.has("deleted")}
+                    onToggle={toggleSectionOpen}
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering ? filteredDeletedPages : deletedPages).map(
+                        (p) =>
+                          pageItem(p, {
+                            onRecover: onRecoverPage
+                              ? () => onRecoverPage(p.id)
+                              : undefined,
+                            showVisibility: true,
+                          }),
+                      )}
+                    </ul>
+                  </Section>
+                )}
               </div>
             ) : (
               <p className="px-2 py-2 text-sm text-muted-foreground">
