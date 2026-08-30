@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
@@ -12,11 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MemberPickerRow } from "@/components/member-picker-row";
-import {
-  listWorkspaceMembers,
-  addParticipants,
-} from "@/lib/conversations.functions";
+import { MemberPickerList } from "@/components/member-picker-list";
+import { listWorkspaceMembers, addParticipants } from "@/lib/conversations.functions";
 
 export function AddParticipantsDialog({
   workspaceId,
@@ -60,6 +57,18 @@ export function AddParticipantsDialog({
       return next;
     });
 
+  const pickerItems = useMemo(
+    () =>
+      candidates.map((m) => ({
+        id: m.workspaceUserId,
+        label: m.label,
+        avatarUrl: m.avatarUrl,
+        checked: selected.has(m.workspaceUserId),
+        onToggle: () => toggle(m.workspaceUserId),
+      })),
+    [candidates, selected],
+  );
+
   const handleAdd = async () => {
     if (selected.size === 0 || busy) return;
     setBusy(true);
@@ -87,26 +96,13 @@ export function AddParticipantsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-1 max-h-72 overflow-y-auto px-1">
-          {candidates.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No other members available.
-            </p>
-          ) : (
-            <ul>
-              {candidates.map((m) => (
-                <li key={m.workspaceUserId}>
-                  <MemberPickerRow
-                    label={m.label}
-                    avatarUrl={m.avatarUrl}
-                    checked={selected.has(m.workspaceUserId)}
-                    onToggle={() => toggle(m.workspaceUserId)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <MemberPickerList
+          key={open ? "open" : "closed"}
+          items={pickerItems}
+          emptyMessage="No other members available."
+          noMatchMessage="No matching members."
+          maxHeightClass="max-h-72"
+        />
 
         <DialogFooter>
           <Button variant="ghost" onClick={close} disabled={busy}>

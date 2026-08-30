@@ -29,7 +29,7 @@ export function PageDeletionBanner({
       This page will be erased {whenPhrase}.{" "}
       <button
         type="button"
-        className="underline underline-offset-2 hover:text-foreground"
+        className="cursor-pointer underline underline-offset-2 hover:text-foreground"
         onClick={onRecover}
       >
         Undo
@@ -37,7 +37,7 @@ export function PageDeletionBanner({
       {" or "}
       <button
         type="button"
-        className="underline underline-offset-2 hover:text-foreground"
+        className="cursor-pointer underline underline-offset-2 hover:text-foreground"
         onClick={onEraseNow}
       >
         Erase now

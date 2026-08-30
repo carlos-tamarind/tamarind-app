@@ -142,6 +142,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
     const convIds = convs.map((c: any) => c.id as string);
     const labelByConv = new Map<string, string>();
     const avatarByConv = new Map<string, string | null>();
+    const countByConv = new Map<string, number>();
     if (convIds.length > 0) {
       const { data: allParts } = await supabaseAdmin
         .from("conversation_participants")
@@ -155,6 +156,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
       >();
       for (const row of allParts ?? []) {
         const cid = row.conversation_id as string;
+        countByConv.set(cid, (countByConv.get(cid) ?? 0) + 1);
         const wu: any = (row as any).workspace_users;
         if (wu.id === meWuId) continue;
         if (!byConv.has(cid)) byConv.set(cid, []);
@@ -195,6 +197,7 @@ export const listMyConversations = createServerFn({ method: "GET" })
         type,
         lastModifiedAt: c.last_modified_at as string,
         avatarUrl,
+        participantCount: countByConv.get(c.id as string) ?? 0,
       };
     });
 

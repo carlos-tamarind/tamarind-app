@@ -1565,7 +1565,7 @@ export function ConversationWindow({
                                           {" "}
                                           <button
                                             type="button"
-                                            className="underline underline-offset-2 hover:text-foreground"
+                                            className="cursor-pointer underline underline-offset-2 hover:text-foreground"
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onClick={(e) => {
                                               e.stopPropagation();

@@ -5,21 +5,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { User as UserIcon, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  getMyWorkspaceProfile,
-  updateMyDisplayName,
-} from "@/lib/profile.functions";
+import { getMyWorkspaceProfile, updateMyDisplayName } from "@/lib/profile.functions";
 
 export function ProfileDialog({
   workspaceId,
@@ -51,8 +43,7 @@ export function ProfileDialog({
   const dirty = name.trim().length > 0 && name.trim() !== fullName;
 
   const renameMut = useMutation({
-    mutationFn: (displayName: string) =>
-      renameFn({ data: { workspaceId, displayName } }),
+    mutationFn: (displayName: string) => renameFn({ data: { workspaceId, displayName } }),
     onSuccess: () => {
       toast.success("Profile updated");
       qc.invalidateQueries({ queryKey: ["my-profile", workspaceId] });
@@ -124,16 +115,13 @@ export function ProfileDialog({
               onClick={() => renameMut.mutate(name.trim())}
               disabled={!dirty || renameMut.isPending || name.trim().length < 3}
             >
-              {renameMut.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : null}
+              {renameMut.isPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
               Confirm
             </Button>
           </div>
         </div>
 
-
-        <div className="mt-4 flex justify-center border-t pt-4">
+        <div className="flex justify-center">
           <Button onClick={handleLogout} className="min-w-32">
             <LogOut className="size-4" />
             Logout
