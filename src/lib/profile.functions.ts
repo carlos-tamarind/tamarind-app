@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { WorkspaceRoleKey } from "@/lib/workspace-roles";
 
 export const getMyWorkspaceProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -12,18 +13,20 @@ export const getMyWorkspaceProfile = createServerFn({ method: "GET" })
     const { supabase, userId, claims } = context;
     const { data: row, error } = await supabase
       .from("workspace_users")
-      .select("id, display_name, avatar_url")
+      .select("id, display_name, avatar_url, user_roles!inner(key)")
       .eq("workspace_id", data.workspaceId)
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
 
     const email = (claims as any)?.email ?? null;
+    const roleKey = ((row as any)?.user_roles?.key ?? null) as WorkspaceRoleKey | null;
     return {
       workspaceUserId: row?.id ?? null,
       displayName: row?.display_name ?? null,
       avatarUrl: row?.avatar_url ?? null,
       email: email as string | null,
+      roleKey,
     };
   });
 

@@ -59,6 +59,7 @@ export function CommandPalette({
   workspaces,
   conversations,
   pages,
+  canManageWorkspace = false,
   onNewConversation,
   onNewPage,
   onOpenProfile,
@@ -73,6 +74,7 @@ export function CommandPalette({
   workspaces: Workspace[];
   conversations: NavConversation[];
   pages: NavPage[];
+  canManageWorkspace?: boolean;
   onNewConversation: () => void;
   onNewPage: () => void;
   onOpenProfile: () => void;
@@ -249,24 +251,26 @@ export function CommandPalette({
               <Kbd>{workspacesLabel}</Kbd>
             </CommandShortcut>
           </CommandItem>
-          <CommandItem
-            onSelect={() =>
-              run(() =>
-                navigate({
-                  to: "/w/$workspaceId/settings",
-                  params: { workspaceId },
-                  search: (prev) => prev,
-                }),
-              )
-            }
-            keywords={["invites", "members", "admin"]}
-          >
-            <Settings />
-            Workspace settings
-            <CommandShortcut>
-              <Kbd>{settingsLabel}</Kbd>
-            </CommandShortcut>
-          </CommandItem>
+          {canManageWorkspace ? (
+            <CommandItem
+              onSelect={() =>
+                run(() =>
+                  navigate({
+                    to: "/w/$workspaceId/settings",
+                    params: { workspaceId },
+                    search: (prev) => prev,
+                  }),
+                )
+              }
+              keywords={["invites", "members", "admin"]}
+            >
+              <Settings />
+              Workspace settings
+              <CommandShortcut>
+                <Kbd>{settingsLabel}</Kbd>
+              </CommandShortcut>
+            </CommandItem>
+          ) : null}
           <CommandItem onSelect={() => run(onOpenProfile)} keywords={["account", "me"]}>
             <UserIcon />
             Profile

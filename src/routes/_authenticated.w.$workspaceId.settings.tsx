@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2 } from "lucide-react";
 
@@ -22,6 +22,7 @@ import {
   listInvites,
   revokeInvite,
 } from "@/lib/invites.functions";
+import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { workspaceSearchSchema } from "@/lib/workspace-search";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId/settings")({
@@ -32,6 +33,28 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId/settings")(
 function SettingsModal() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId/settings" });
   const navigate = useNavigate();
+  const fetchProfile = useServerFn(getMyWorkspaceProfile);
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["my-profile", workspaceId],
+    queryFn: () => fetchProfile({ data: { workspaceId } }),
+  });
+
+  const isAdmin = profile?.roleKey === "admin";
+
+  useEffect(() => {
+    if (isLoading || !profile) return;
+    if (isAdmin) return;
+    void navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => prev,
+      replace: true,
+    });
+  }, [isAdmin, isLoading, navigate, profile, workspaceId]);
+
+  if (isLoading || !isAdmin) return null;
+
   return (
     <Dialog
       open

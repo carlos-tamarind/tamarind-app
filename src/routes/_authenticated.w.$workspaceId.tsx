@@ -129,6 +129,7 @@ function WorkspaceShell() {
   );
 
   const current = workspaces?.find((w) => w.workspaceId === workspaceId);
+  const isAdmin = profile?.roleKey === "admin";
 
   const handleNewPage = useCallback(() => setNewPageOpen(true), []);
   const handleNewConversation = useCallback(() => setConvDialogOpen(true), []);
@@ -148,13 +149,17 @@ function WorkspaceShell() {
   useHotkey(HOTKEYS.search, () => setSearchOpen(true), { allowInInput: true });
   useHotkey(HOTKEYS.toggleNav, toggleNavPanel);
   useHotkey(HOTKEYS.toggleWorkspaces, toggleRail);
-  useHotkey(HOTKEYS.workspaceSettings, () => {
-    void navigate({
-      to: "/w/$workspaceId/settings",
-      params: { workspaceId },
-      search: (prev) => prev,
-    });
-  });
+  useHotkey(
+    HOTKEYS.workspaceSettings,
+    () => {
+      void navigate({
+        to: "/w/$workspaceId/settings",
+        params: { workspaceId },
+        search: (prev) => prev,
+      });
+    },
+    { enabled: isAdmin },
+  );
   useHotkey(HOTKEYS.profile, () => handleOpenProfile(), { allowInInput: true });
 
   const conversationId = search.c;
@@ -282,22 +287,24 @@ function WorkspaceShell() {
                     );
                   })}
                 </div>
-                <div className="flex h-12 shrink-0 items-center justify-center border-t">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to="/w/$workspaceId/settings"
-                        params={{ workspaceId }}
-                        search={(prev) => prev}
-                        className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
-                        aria-label="Workspace settings"
-                      >
-                        <Settings className="size-4" strokeWidth={1.5} />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Workspace settings</TooltipContent>
-                  </Tooltip>
-                </div>
+                {isAdmin ? (
+                  <div className="flex h-12 shrink-0 items-center justify-center border-t">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to="/w/$workspaceId/settings"
+                          params={{ workspaceId }}
+                          search={(prev) => prev}
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+                          aria-label="Workspace settings"
+                        >
+                          <Settings className="size-4" strokeWidth={1.5} />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Workspace settings</TooltipContent>
+                    </Tooltip>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -322,6 +329,7 @@ function WorkspaceShell() {
                 <NavigationPanel
                   workspaceId={workspaceId}
                   workspaceName={current?.name}
+                  canManageWorkspace={isAdmin}
                   folded={folded}
                   railOpen={railOpen}
                   onToggleRail={toggleRail}
@@ -459,6 +467,7 @@ function WorkspaceShell() {
             workspaces={workspaces ?? []}
             conversations={sortedConversations}
             pages={sortedPages}
+            canManageWorkspace={isAdmin}
             onNewConversation={handleNewConversation}
             onNewPage={handleNewPage}
             onOpenProfile={handleOpenProfile}

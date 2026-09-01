@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyWorkspaceProfile, updateMyDisplayName } from "@/lib/profile.functions";
+import { formatWorkspaceRoleLabel } from "@/lib/workspace-roles";
 
 export function ProfileDialog({
   workspaceId,
@@ -34,6 +35,7 @@ export function ProfileDialog({
   });
 
   const fullName = profile?.displayName ?? profile?.email ?? "";
+  const roleLabel = formatWorkspaceRoleLabel(profile?.roleKey);
   const [name, setName] = useState(fullName);
 
   useEffect(() => {
@@ -75,6 +77,11 @@ export function ProfileDialog({
             <div className="text-base font-medium">{fullName || "—"}</div>
             {profile?.email && profile.displayName ? (
               <div className="text-xs text-muted-foreground">{profile.email}</div>
+            ) : null}
+            {roleLabel ? (
+              <div className="text-xs text-muted-foreground">
+                Workspace role: {roleLabel}
+              </div>
             ) : null}
           </div>
         </div>
