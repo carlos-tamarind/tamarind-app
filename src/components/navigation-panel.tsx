@@ -74,6 +74,7 @@ export type NavPage = {
 type Props = {
   workspaceId: string;
   workspaceName?: string | null;
+  canManageWorkspace?: boolean;
   folded: boolean;
   railOpen: boolean;
   onToggleRail: () => void;
@@ -249,6 +250,7 @@ function Section({
 export function NavigationPanel({
   workspaceId,
   workspaceName,
+  canManageWorkspace = false,
   folded,
   railOpen,
   onToggleRail,
@@ -749,15 +751,21 @@ export function NavigationPanel({
             </TooltipContent>
           </Tooltip>
         </div>
-        <Link
-          to="/w/$workspaceId/settings"
-          params={{ workspaceId }}
-          search={(prev) => prev}
-          className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
-          aria-label="Workspace settings"
-        >
-          {workspaceName ?? ""}
-        </Link>
+        {canManageWorkspace ? (
+          <Link
+            to="/w/$workspaceId/settings"
+            params={{ workspaceId }}
+            search={(prev) => prev}
+            className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors duration-(--motion-fast) hover:bg-accent hover:text-foreground"
+            aria-label="Workspace settings"
+          >
+            {workspaceName ?? ""}
+          </Link>
+        ) : (
+          <span className="min-w-0 flex-1 truncate px-2 py-1 text-sm font-medium text-muted-foreground">
+            {workspaceName ?? ""}
+          </span>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1">
