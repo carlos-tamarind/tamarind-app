@@ -1592,6 +1592,15 @@ export type Database = {
         Args: { p_message_semantics_id: string }
         Returns: undefined
       }
+      get_unread_conversation_summary_for_user: {
+        Args: { p_workspace_id: string; p_workspace_user_id: string }
+        Returns: {
+          conversation_id: string
+          newest_unread_message_id: string
+          oldest_unread_message_id: string
+          unread_count: number
+        }[]
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
