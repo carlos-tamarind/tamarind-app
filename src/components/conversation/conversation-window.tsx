@@ -826,12 +826,18 @@ export function ConversationWindow({
     : clientNewestUnreadId;
 
   const [unreadTargetVisible, setUnreadTargetVisible] = useState(true);
+  // Separate from unreadTargetVisible: clicking the chip only scrolls to the
+  // oldest unread message, not the newest, so it can't rely on the observer
+  // to hide itself. This is a local, per-mount acknowledgement — nothing is
+  // marked read server-side until the observer below actually fires.
+  const [chipDismissed, setChipDismissed] = useState(false);
   const markedReadRef = useRef<string | null>(null);
   const onMarkReadRef = useRef(onMarkRead);
   onMarkReadRef.current = onMarkRead;
 
   useEffect(() => {
     markedReadRef.current = null;
+    setChipDismissed(false);
   }, [conversationId]);
 
   useEffect(() => {
@@ -867,11 +873,13 @@ export function ConversationWindow({
     unreadEntry &&
       unreadEntry.unreadCount > 0 &&
       observeTargetId &&
-      !unreadTargetVisible,
+      !unreadTargetVisible &&
+      !chipDismissed,
   );
 
   const goToOldestUnread = () => {
     if (!unreadEntry) return;
+    setChipDismissed(true);
     navigate({
       to: "/w/$workspaceId",
       params: { workspaceId },
@@ -1560,7 +1568,10 @@ export function ConversationWindow({
                       <button
                         type="button"
                         onClick={goToOldestUnread}
-                        className="rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-md transition-colors duration-(--motion-fast) hover:bg-foreground/90"
+                        // Theme-aware darker primary: a pure function of
+                        // --primary, so it re-resolves under .dark on its own
+                        // rather than needing a second hand-picked value.
+                        className="cursor-pointer rounded-full bg-[color-mix(in_oklab,var(--primary)_70%,black_30%)] px-3 py-1.5 text-xs font-medium text-[oklch(0.985_0.004_190)] shadow-md transition-colors duration-(--motion-fast) hover:bg-[color-mix(in_oklab,var(--primary)_80%,black_30%)]"
                       >
                         Go to the last unread message
                       </button>
