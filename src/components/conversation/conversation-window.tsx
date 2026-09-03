@@ -109,6 +109,9 @@ import {
 } from "@/lib/composer-drafts";
 import { DebugLogger } from "@/lib/debugLogger";
 
+/** Height of the sticky day separator, so top-aligned scrolls clear it. */
+const STICKY_DAY_CHIP_OFFSET = 48;
+
 type Message = {
   id: string;
   rawText: string;
@@ -881,21 +884,6 @@ export function ConversationWindow({
       !chipDismissed,
   );
 
-  const goToOldestUnread = () => {
-    if (!unreadEntry) return;
-    setChipDismissed(true);
-    // Force the flash effect to re-run and re-scroll even if ?m= is already
-    // this exact id (see scrollRequestId above).
-    flashedMessageRef.current = null;
-    setScrollRequestId((n) => n + 1);
-    navigate({
-      to: "/w/$workspaceId",
-      params: { workspaceId },
-      search: (prev) =>
-        withConversation(prev, conversationId, unreadEntry.oldestUnreadMessageId),
-    });
-  };
-
   const mentionOpenRef = useRef(0);
 
   const entityMentionSuggestion = useMemo(
@@ -1246,14 +1234,48 @@ export function ConversationWindow({
     flashedMessageRef.current = null;
   }, [targetMessageId]);
 
-  const flashMessage = (id: string) => {
+  const flashMessage = (
+    id: string,
+    block: ScrollLogicalPosition = "center",
+  ) => {
     const el = scrollerRef.current?.querySelector(
       `[data-message-id="${CSS.escape(id)}"]`,
     ) as HTMLElement | null;
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Keeps a "start"-aligned message clear of the sticky day separator.
+    el.style.scrollMarginTop =
+      block === "start" ? `${STICKY_DAY_CHIP_OFFSET}px` : "";
+    el.scrollIntoView({ behavior: "smooth", block });
     el.classList.add("msg-flash");
     window.setTimeout(() => el.classList.remove("msg-flash"), 1400);
+  };
+
+  const goToOldestUnread = () => {
+    if (!unreadEntry) return;
+    const targetId = unreadEntry.oldestUnreadMessageId;
+    setChipDismissed(true);
+
+    // Router scrollRestoration (router.tsx) writes scrollTop back on every
+    // navigation, which cancels an in-flight smooth scroll. When the message
+    // is already loaded we don't need the URL at all — scroll directly, the
+    // same way the quote-click path does when the id already matches ?m=.
+    if (messages.some((m) => m.id === targetId)) {
+      flashedMessageRef.current = targetId; // keep the deep-link effect quiet
+      // One frame so the chip's own removal is committed before we measure.
+      requestAnimationFrame(() => flashMessage(targetId, "start"));
+      return;
+    }
+
+    // Outside the loaded window: ?m= is what enables listMessagesAround, so
+    // navigate and let the effect scroll once the neighbors arrive — that
+    // resolves well after the restore, so it isn't stomped.
+    flashedMessageRef.current = null;
+    setScrollRequestId((n) => n + 1);
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withConversation(prev, conversationId, targetId),
+    });
   };
 
   useEffect(() => {
