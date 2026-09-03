@@ -34,6 +34,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HOTKEYS, useHotkey, useShortcutLabel } from "@/hooks/use-hotkeys";
+import type { UnreadConversationEntry } from "@/hooks/use-unread";
 import {
   Popover,
   PopoverContent,
@@ -482,9 +483,13 @@ function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[
 export function ConversationWindow({
   workspaceId,
   conversationId,
+  unreadEntry,
+  onMarkRead,
 }: {
   workspaceId: string;
   conversationId: string;
+  unreadEntry?: UnreadConversationEntry | null;
+  onMarkRead?: () => void;
 }) {
   const navigate = useNavigate();
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
@@ -796,6 +801,84 @@ export function ConversationWindow({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages.length, targetMessageId]);
+
+  // ---- Unread tracking -----------------------------------------------------
+  // Unread messages are a contiguous suffix after my last_read_at cutoff, so
+  // "newest unread" is the newest message that is not mine — my own trailing
+  // reply must be skipped. Seeing that message marks the whole thread read.
+  const myLastReadAt = conv?.myLastReadAt ?? null;
+
+  const clientNewestUnreadId = useMemo(() => {
+    if (!myLastReadAt || !myWorkspaceUserId) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.authorWorkspaceUserId === myWorkspaceUserId) continue;
+      if (isTrashed(m.purgedAt)) continue;
+      return m.createdAt > myLastReadAt ? m.id : null;
+    }
+    return null;
+  }, [messages, myLastReadAt, myWorkspaceUserId]);
+
+  // listMessages always loads the newest 200, so the client value is
+  // authoritative unless we are showing an around-window deep in history.
+  const observeTargetId = aroundMode
+    ? (unreadEntry?.newestUnreadMessageId ?? clientNewestUnreadId)
+    : clientNewestUnreadId;
+
+  const [unreadTargetVisible, setUnreadTargetVisible] = useState(true);
+  const markedReadRef = useRef<string | null>(null);
+  const onMarkReadRef = useRef(onMarkRead);
+  onMarkReadRef.current = onMarkRead;
+
+  useEffect(() => {
+    markedReadRef.current = null;
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (!observeTargetId) {
+      setUnreadTargetVisible(true);
+      return;
+    }
+    const root = scrollerRef.current;
+    const el = root?.querySelector(
+      `[data-message-id="${CSS.escape(observeTargetId)}"]`,
+    ) as HTMLElement | null;
+    if (!root || !el) {
+      // Outside the loaded window — treat as unseen so the chip still shows.
+      setUnreadTargetVisible(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setUnreadTargetVisible(entry.isIntersecting);
+        if (!entry.isIntersecting) return;
+        if (markedReadRef.current === observeTargetId) return;
+        markedReadRef.current = observeTargetId;
+        onMarkReadRef.current?.();
+      },
+      { root, threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [observeTargetId, messages]);
+
+  const showUnreadChip = Boolean(
+    unreadEntry &&
+      unreadEntry.unreadCount > 0 &&
+      observeTargetId &&
+      !unreadTargetVisible,
+  );
+
+  const goToOldestUnread = () => {
+    if (!unreadEntry) return;
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) =>
+        withConversation(prev, conversationId, unreadEntry.oldestUnreadMessageId),
+    });
+  };
 
   const mentionOpenRef = useRef(0);
 
@@ -1471,6 +1554,18 @@ export function ConversationWindow({
                 />
               ) : (
                 <div role="log" className="px-4 pb-14 pt-2">
+                  {/* Sticks just under the day separator (which owns top-0). */}
+                  {showUnreadChip ? (
+                    <div className="sticky top-11 z-20 flex justify-center py-1">
+                      <button
+                        type="button"
+                        onClick={goToOldestUnread}
+                        className="rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-md transition-colors duration-(--motion-fast) hover:bg-foreground/90"
+                      >
+                        Go to the last unread message
+                      </button>
+                    </div>
+                  ) : null}
                   {messageRuns.map((run, runIndex) => {
                     const prevRun = messageRuns[runIndex - 1];
                     const showDaySeparator =

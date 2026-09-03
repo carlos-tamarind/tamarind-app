@@ -29,9 +29,10 @@ The main chat UI ([`conversation-window.tsx`](../../src/components/conversation/
 - **Selection** — click live messages to select; a floating bar exposes quote, copy, create page, and related actions. **Esc** clears the selection. **Delete** appears only when every selected message is authored by you and none is already deleted. One selected message deletes immediately; two or more open a confirm dialog (`Confirm deletion` / `Are you sure you want to remove these messages?`)
 - **Hover quick-actions** (nothing selected) — Quote & reply, Create page (same handlers as the selection bar). Deleted messages are not selectable and do not show hover actions
 - **Deleted messages** — stay in the original slot as `[Message deleted]`. The author sees **Undo** for one hour (`purged_at > now()`). After the grace period the placeholder remains; Undo is hidden. Quotes of a deleted message show the same placeholder at display time (stored HTML is not rewritten); clicking the quote sets `?m=` and scrolls to that message (fetching an around-window if needed)
+- **Unread messages** — while unread messages sit outside the viewport, a chip labelled **Go to the last unread message** sticks below the day separator at the top of the history. It deep-links (`?m=`) to the **oldest** unread message, reusing the same `listMessagesAround` path as search and minimap links. The thread marks itself read the moment the newest unread message *not authored by you* scrolls into view (an `IntersectionObserver` on the message scroller) — which hides the chip and clears every nav-panel cue at once. Read state is per participant (`conversation_participants.last_read_at`); the same mark-read path backs the nav panel's **Mark all messages as read** action, so using it while the thread is open also dismisses the chip
 - **TipTap composer** — see below
 - **@mentions** — `@` for workspace members and group/channel conversations, `@@page` for pages
-- **Realtime updates** — INSERT and UPDATE via Supabase Realtime; live rows overlay `listMessages` by id so other participants see the placeholder immediately. While viewing an around-window, new INSERTs are not appended (use **Jump to latest** or send a message to return)
+- **Realtime updates** — INSERT and UPDATE via Supabase Realtime; live rows overlay `listMessages` by id so other participants see the placeholder immediately. While viewing an around-window, new INSERTs are not appended (use **Jump to latest** or send a message to return). A separate workspace-wide subscription in [`use-unread.ts`](../../src/hooks/use-unread.ts) keeps unread counts fresh for conversations that are not open
 - **Semantic map** — header **Map** button (tooltip **Semantic map**) toggles a floating overlay on the message panel listing established conversation topics. Topics can be sorted by relevance (time-decayed score) or recency (`last_seen_at`), filtered by name/description, and expanded to show evidence message snapshots. Evidence clicks set `?m=` deep links (including `listMessagesAround` for messages outside the newest 200). Click outside the overlay, switch conversations, or navigate to a message to close the minimap
 - **Conversation settings** — rename, manage participants, view linked pages
 
@@ -93,10 +94,12 @@ All in [`src/lib/conversations.functions.ts`](../../src/lib/conversations.functi
 | `listWorkspaceMembers` | GET | Members for @mention autocomplete |
 | `listMyConversations` | GET | User's conversations in workspace (`lastModifiedAt` included) |
 | `findOrCreateConversation` | POST | Find existing direct or create new |
-| `getConversation` | GET | Conversation details + participants |
+| `getConversation` | GET | Conversation details + participants (`myLastReadAt` for the caller) |
+| `getUnreadSummary` | GET | Per-conversation unread counts + oldest/newest unread ids, via the `get_unread_conversation_summary_for_user` RPC |
 | `listMessages` | GET | Newest 200 messages for a conversation (`purgedAt`; deleted rows kept) |
 | `listMessagesAround` | GET | Target message ±25 neighbors for `?m=` misses |
 | `sendMessage` | POST | Insert message, trigger semantics pipeline |
+| `markConversationRead` | POST | Move the caller's `last_read_at` to now for one conversation |
 | `trashMessages` | POST | Author: schedule purge (`purged_at = now() + 1 hour`). Skips ids that are already purged |
 | `recoverMessage` | POST | Author: clear `purged_at` while the undo window is still open |
 | `addParticipants` | POST | Add members to group conversation |
