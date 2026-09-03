@@ -199,6 +199,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | Index | Table | Type | Used by |
 |-------|-------|------|---------|
 | `idx_messages_conversation` | messages | `(conversation_id, created_at)` | Conversation message listing |
+| `idx_messages_conversation_unread` | messages | `(conversation_id, created_at) INCLUDE (author_workspace_user_id) WHERE purged_at IS NULL` | Unread-message summary per conversation |
 | `idx_messages_fts` | messages | GIN full-text on `raw_text` | *(legacy — not used by current search RPCs)* |
 | `idx_pages_plaintext_fts` | pages | GIN full-text on `plain_text` | *(legacy — not used by current search RPCs)* |
 | `idx_pages_title_trgm` | pages | GIN trigram on `title` | Keyword search |
@@ -250,6 +251,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `search_people_keyword(...)` | Keyword search over participant display names |
 | `search_messages_semantic(...)` | Semantic search over message embedding vectors |
 | `search_pages_semantic(...)` | Semantic search over embedded page chunks (one best chunk per page); returns `chunk_id` of the winning chunk for passage deeplinks |
+| `get_unread_conversation_summary_for_user(p_workspace_id, p_workspace_user_id)` | Unread counts per conversation for a workspace user; counts messages by others after `conversation_participants.last_read_at`, excluding purged messages (called by service-role server functions with an explicit `p_workspace_user_id`) |
 | `purge_due_entities(p_entity_ids)` | Trash: process due trashed rows across every kind listed in `purgeable_entity_types` — hard-delete for pages, scrub-in-place for messages (service_role only) |
 | `unpin_on_page_purge()` | Trigger on `pages`: drops all pins for a page when it is moved to trash |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
@@ -292,6 +294,7 @@ Write patterns:
 | 2026-08-23 | Entity deletion groundwork: `pages.purged_at`, `messages.purged_at`, partial indexes, `purgeable_entity_types` registry, `trg_pages_unpin_on_purge`, and `purge_due_entities` RPC |
 | 2026-08-22 | Drop unreachable `NEW` from `embedding_status`; default `message_semantics.embedding_status` to `QUEUED`; recreate status indexes and `cti_is_next_processable` |
 | 2026-08-23 | Message delete with Undo: `purge_due_entities` scrubs messages instead of deleting them, message search RPCs filter `purged_at IS NULL`, and CTI claim/ordering ignore purged messages |
+| 2026-09-03 | Unread-messages groundwork: partial index `idx_messages_conversation_unread` and `get_unread_conversation_summary_for_user` RPC |
 
 
 ## Related Docs
