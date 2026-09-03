@@ -831,6 +831,10 @@ export function ConversationWindow({
   // to hide itself. This is a local, per-mount acknowledgement — nothing is
   // marked read server-side until the observer below actually fires.
   const [chipDismissed, setChipDismissed] = useState(false);
+  // Bumped on every chip click so the flash effect below re-runs even when
+  // ?m= is already the oldest unread id (e.g. entering from the Unread
+  // folder) — targetMessageId alone wouldn't change in that case.
+  const [scrollRequestId, setScrollRequestId] = useState(0);
   const markedReadRef = useRef<string | null>(null);
   const onMarkReadRef = useRef(onMarkRead);
   onMarkReadRef.current = onMarkRead;
@@ -880,6 +884,10 @@ export function ConversationWindow({
   const goToOldestUnread = () => {
     if (!unreadEntry) return;
     setChipDismissed(true);
+    // Force the flash effect to re-run and re-scroll even if ?m= is already
+    // this exact id (see scrollRequestId above).
+    flashedMessageRef.current = null;
+    setScrollRequestId((n) => n + 1);
     navigate({
       to: "/w/$workspaceId",
       params: { workspaceId },
@@ -1288,6 +1296,7 @@ export function ConversationWindow({
     aroundPending,
     aroundError,
     aroundMessages,
+    scrollRequestId,
   ]);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
