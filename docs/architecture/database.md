@@ -199,6 +199,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | Index | Table | Type | Used by |
 |-------|-------|------|---------|
 | `idx_messages_conversation` | messages | `(conversation_id, created_at)` | Conversation message listing |
+| `idx_messages_conversation_unread` | messages | `(conversation_id, created_at) INCLUDE (author_workspace_user_id) WHERE purged_at IS NULL` | Unread-message summary per conversation |
 | `idx_messages_fts` | messages | GIN full-text on `raw_text` | *(legacy — not used by current search RPCs)* |
 | `idx_pages_plaintext_fts` | pages | GIN full-text on `plain_text` | *(legacy — not used by current search RPCs)* |
 | `idx_pages_title_trgm` | pages | GIN trigram on `title` | Keyword search |
