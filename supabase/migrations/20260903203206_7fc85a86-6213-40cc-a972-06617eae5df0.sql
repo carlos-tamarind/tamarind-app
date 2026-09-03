@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_unread_conversation_summary_for_user(uuid, uuid) FROM PUBLIC;
