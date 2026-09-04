@@ -26,16 +26,40 @@ export const listMyWorkspaces = createServerFn({ method: "GET" })
     }));
   });
 
+// Shared by bootstrapFirstWorkspace and the invite-based bootstrap flow
+// (workspace-bootstrap-invites.functions.ts): create a workspace and make
+// the given user its admin.
+export async function createWorkspaceAndAssignAdmin(name: string, userId: string): Promise<string> {
+  const { data: adminRole, error: roleErr } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("key", "admin")
+    .single();
+  if (roleErr || !adminRole) throw new Error("Admin role missing");
+
+  const { data: ws, error: wsErr } = await supabaseAdmin
+    .from("workspaces")
+    .insert({ name })
+    .select("id")
+    .single();
+  if (wsErr || !ws) throw new Error(wsErr?.message ?? "Workspace create failed");
+
+  const { error: wuErr } = await supabaseAdmin.from("workspace_users").insert({
+    workspace_id: ws.id,
+    user_id: userId,
+    role_id: adminRole.id,
+  });
+  if (wuErr) throw new Error(wuErr.message);
+
+  return ws.id as string;
+}
+
 // Bootstrap: create the very first workspace + admin membership for the
 // current user. Allowed only when zero workspaces exist in the database.
 export const bootstrapFirstWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z.object({ name: z.string().min(1).max(120) }).parse(input),
-  )
+  .inputValidator((input) => z.object({ name: z.string().min(1).max(120) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { userId } = context;
-
     const { count, error: countErr } = await supabaseAdmin
       .from("workspaces")
       .select("id", { count: "exact", head: true });
@@ -44,47 +68,22 @@ export const bootstrapFirstWorkspace = createServerFn({ method: "POST" })
       throw new Error("Bootstrap not allowed: workspaces already exist.");
     }
 
-    const { data: adminRole, error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("key", "admin")
-      .single();
-    if (roleErr || !adminRole) throw new Error("Admin role missing");
-
-    const { data: ws, error: wsErr } = await supabaseAdmin
-      .from("workspaces")
-      .insert({ name: data.name })
-      .select("id")
-      .single();
-    if (wsErr || !ws) throw new Error(wsErr?.message ?? "Workspace create failed");
-
-    const { error: wuErr } = await supabaseAdmin.from("workspace_users").insert({
-      workspace_id: ws.id,
-      user_id: userId,
-      role_id: adminRole.id,
-    });
-    if (wuErr) throw new Error(wuErr.message);
-
-    return { workspaceId: ws.id as string };
+    const workspaceId = await createWorkspaceAndAssignAdmin(data.name, context.userId);
+    return { workspaceId };
   });
 
 // Whether the system has any workspace at all (drives /bootstrap visibility).
-export const workspaceCountIsZero = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { count, error } = await supabaseAdmin
-      .from("workspaces")
-      .select("id", { count: "exact", head: true });
-    if (error) throw new Error(error.message);
-    return { isZero: (count ?? 0) === 0 };
-  },
-);
+export const workspaceCountIsZero = createServerFn({ method: "GET" }).handler(async () => {
+  const { count, error } = await supabaseAdmin
+    .from("workspaces")
+    .select("id", { count: "exact", head: true });
+  if (error) throw new Error(error.message);
+  return { isZero: (count ?? 0) === 0 };
+});
 
 // Server-side gate. Throws FeatureGateError if the workspace plan doesn't grant
 // the feature. Wrap inside any protected server fn.
-export async function requireFeature(
-  workspaceId: string,
-  feature: FeatureKey,
-): Promise<PlanTier> {
+export async function requireFeature(workspaceId: string, feature: FeatureKey): Promise<PlanTier> {
   const { data, error } = await supabaseAdmin
     .from("workspaces")
     .select("plan")

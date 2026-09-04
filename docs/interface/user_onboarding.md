@@ -38,6 +38,35 @@ Server function: `bootstrapFirstWorkspace` in [`src/lib/workspaces.functions.ts`
 
 Uses `supabaseAdmin` to bypass RLS for initial setup.
 
+## Bootstrap via Invite (Additional Workspaces)
+
+Once workspace #1 exists, `/bootstrap` (no token) is permanently unreachable — the zero-workspace gate above never opens again. Spinning up workspace #2, #3, etc. instead goes through a platform-owner-issued, single-use, time-limited link:
+
+```mermaid
+sequenceDiagram
+  participant Owner as Platform owner
+  participant System
+  participant Invitee
+
+  Owner->>System: createWorkspaceBootstrapInvite(expiresInHours, adminEmail?, welcomeMessage?)
+  System-->>Owner: /bootstrap?token=...
+  Owner->>Invitee: Share link
+  Invitee->>System: GET /bootstrap?token=...
+  Invitee->>System: bootstrapWorkspaceWithInvite(token, name)
+  System-->>Invitee: New workspace, admin membership, redirect to /w/$workspaceId
+```
+
+**Generate a link:** `/generate-workspace-invite` ([`src/routes/_authenticated.generate-workspace-invite.tsx`](../../src/routes/_authenticated.generate-workspace-invite.tsx)) — restricted to the `PLATFORM_OWNER_EMAILS` allowlist (see [Deployment](../architecture/deployment.md)), a concept distinct from any per-workspace `admin` role. Lets the owner set an expiry, optionally lock the invite to a specific admin email (shown disabled on `/bootstrap` if set), and attach a personalized welcome message (shown as the page headline).
+
+**Redeem a link:** `/bootstrap?token=...` reuses the same page as the first-workspace flow, but on submit calls `bootstrapWorkspaceWithInvite` instead of `bootstrapFirstWorkspace`. One-time use is enforced atomically server-side (not just hidden in the UI), and an email lock, if set, is enforced server-side too.
+
+Server functions in [`src/lib/workspace-bootstrap-invites.functions.ts`](../../src/lib/workspace-bootstrap-invites.functions.ts):
+- `createWorkspaceBootstrapInvite` / `listWorkspaceBootstrapInvites` / `revokeWorkspaceBootstrapInvite` — owner-only management
+- `getWorkspaceBootstrapInviteByToken` — public preview, used by `/bootstrap` before sign-in
+- `bootstrapWorkspaceWithInvite` — redeems the invite, creating the workspace and admin membership
+
+Sending the invite link and a post-creation confirmation email are not implemented here — no email-sending infrastructure exists in this codebase today; invites are copy-link only, same as [workspace invites](workspaces_permissions.md) below.
+
 ## Auth screens
 
 Login, bootstrap, forgot/reset password, and accept-invite share [`AuthLayout`](../../src/components/auth-layout.tsx): form on the left, Tamarind wordmark, accent panel with the product tagline on large viewports. They follow the same light/dark theme as the rest of the app.

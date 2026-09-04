@@ -23,6 +23,10 @@ A user can belong to multiple workspaces. The workspace rail in the UI (⌘⇧\\
 
 Roles are assigned at invite time or during bootstrap. Conversation-level roles (`conversation_role`) exist separately in `conversation_participants` for group chat administration.
 
+### Platform Owner (distinct from workspace `admin`)
+
+A platform owner is not a workspace role — it's a server-only `PLATFORM_OWNER_EMAILS` allowlist (env var, checked against the caller's authoritative account email) that governs who may mint workspace-bootstrap invites at `/generate-workspace-invite`. It lives entirely outside the database, so there's no table/RLS surface for it. See [User Onboarding — Bootstrap via Invite](user_onboarding.md#bootstrap-via-invite-additional-workspaces).
+
 ## Authorization
 
 Three layers enforce access (see [Auth](../architecture/auth.md)):
