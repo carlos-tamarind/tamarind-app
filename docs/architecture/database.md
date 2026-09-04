@@ -76,6 +76,7 @@ erDiagram
 | `user_roles` | Role catalog (`admin`, `member`, `viewer`) with JSON permissions | — |
 | `workspace_users` | Links `auth.users` to workspace with role | → `workspaces`, → `auth.users`, → `user_roles`; UNIQUE(workspace_id, user_id) |
 | `workspace_invites` | Token-based email invites (24h TTL) | → `workspaces`, → `user_roles` |
+| `workspace_bootstrap_invites` | Platform-owner-issued tokens that let a recipient create a new workspace + admin account. Columns: `token` (unique), `admin_email` (optional lock; NULL = recipient supplies their own), `welcome_message`, `created_by`, `expires_at`, `used_at`, `created_workspace_id`. RLS enabled with **no policies** — all access goes through server functions using the service-role client, gated by the `PLATFORM_OWNER_EMAILS` env allowlist | → `auth.users` (created_by), → `workspaces` (created_workspace_id, ON DELETE SET NULL) |
 
 ### Conversations & Messages
 
@@ -295,6 +296,7 @@ Write patterns:
 | 2026-08-22 | Drop unreachable `NEW` from `embedding_status`; default `message_semantics.embedding_status` to `QUEUED`; recreate status indexes and `cti_is_next_processable` |
 | 2026-08-23 | Message delete with Undo: `purge_due_entities` scrubs messages instead of deleting them, message search RPCs filter `purged_at IS NULL`, and CTI claim/ordering ignore purged messages |
 | 2026-09-03 | Unread-messages groundwork: partial index `idx_messages_conversation_unread` and `get_unread_conversation_summary_for_user` RPC |
+| 2026-09-04 | Platform bootstrap groundwork: `workspace_bootstrap_invites` table (service-role only, RLS enabled with no policies) |
 
 
 ## Related Docs
