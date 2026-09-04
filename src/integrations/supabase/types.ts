@@ -1211,6 +1211,53 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_bootstrap_invites: {
+        Row: {
+          admin_email: string | null
+          created_at: string
+          created_by: string
+          created_workspace_id: string | null
+          expires_at: string
+          id: string
+          last_modified_at: string
+          token: string
+          used_at: string | null
+          welcome_message: string | null
+        }
+        Insert: {
+          admin_email?: string | null
+          created_at?: string
+          created_by: string
+          created_workspace_id?: string | null
+          expires_at: string
+          id?: string
+          last_modified_at?: string
+          token: string
+          used_at?: string | null
+          welcome_message?: string | null
+        }
+        Update: {
+          admin_email?: string | null
+          created_at?: string
+          created_by?: string
+          created_workspace_id?: string | null
+          expires_at?: string
+          id?: string
+          last_modified_at?: string
+          token?: string
+          used_at?: string | null
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bootstrap_invites_created_workspace_id_fkey"
+            columns: ["created_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           accepted_at: string | null
