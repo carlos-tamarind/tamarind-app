@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -17,12 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  createInvite,
-  listInvites,
-  revokeInvite,
-} from "@/lib/invites.functions";
+import { createInvite, listInvites, revokeInvite } from "@/lib/invites.functions";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
+import { getIsPlatformOwner } from "@/lib/workspace-bootstrap-invites.functions";
 import { workspaceSearchSchema } from "@/lib/workspace-search";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId/settings")({
@@ -34,13 +31,22 @@ function SettingsModal() {
   const { workspaceId } = useParams({ from: "/_authenticated/w/$workspaceId/settings" });
   const navigate = useNavigate();
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
+  const fetchIsOwner = useServerFn(getIsPlatformOwner);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["my-profile", workspaceId],
     queryFn: () => fetchProfile({ data: { workspaceId } }),
   });
 
+  // Reuses the same query key as /generate-workspace-invite so the check is
+  // warm by the time that page is reached via this in-app link.
+  const { data: ownerCheck } = useQuery({
+    queryKey: ["is-platform-owner"],
+    queryFn: () => fetchIsOwner(),
+  });
+
   const isAdmin = profile?.roleKey === "admin";
+  const isPlatformOwner = ownerCheck?.isOwner ?? false;
 
   useEffect(() => {
     if (isLoading || !profile) return;
@@ -74,14 +80,36 @@ function SettingsModal() {
         <Tabs defaultValue="invites">
           <TabsList>
             <TabsTrigger value="invites">Invites</TabsTrigger>
-            <TabsTrigger value="general" disabled>General</TabsTrigger>
+            <TabsTrigger value="general" disabled>
+              General
+            </TabsTrigger>
+            {isPlatformOwner && <TabsTrigger value="platform">Platform</TabsTrigger>}
           </TabsList>
           <TabsContent value="invites" className="mt-4">
             <InvitesPanel workspaceId={workspaceId} />
           </TabsContent>
+          {isPlatformOwner && (
+            <TabsContent value="platform" className="mt-4">
+              <PlatformOwnerPanel />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PlatformOwnerPanel() {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground">
+        Generate a single-use link that lets someone create a brand-new workspace and become its
+        admin.
+      </p>
+      <Button asChild>
+        <Link to="/generate-workspace-invite">Generate workspace invite</Link>
+      </Button>
+    </div>
   );
 }
 
@@ -151,7 +179,9 @@ function InvitesPanel({ workspaceId }: { workspaceId: string }) {
         <div className="w-32 space-y-1.5">
           <Label>Role</Label>
           <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="member">Member</SelectItem>
@@ -165,9 +195,7 @@ function InvitesPanel({ workspaceId }: { workspaceId: string }) {
       </form>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-          Pending invites
-        </h3>
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground">Pending invites</h3>
         {invitesQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : invitesQuery.data?.length === 0 ? (
@@ -176,11 +204,7 @@ function InvitesPanel({ workspaceId }: { workspaceId: string }) {
           <ul className="divide-y rounded-md border">
             {invitesQuery.data?.map((inv) => {
               const expired = new Date(inv.expiresAt) < new Date();
-              const status = inv.acceptedAt
-                ? "accepted"
-                : expired
-                ? "expired"
-                : "pending";
+              const status = inv.acceptedAt ? "accepted" : expired ? "expired" : "pending";
               return (
                 <li key={inv.id} className="flex items-center gap-3 px-3 py-2 text-sm">
                   <div className="flex-1 min-w-0">
