@@ -16,6 +16,7 @@ import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
 import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
@@ -71,6 +72,12 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedGenerateWorkspaceInviteRoute =
+  AuthenticatedGenerateWorkspaceInviteRouteImport.update({
+    id: '/generate-workspace-invite',
+    path: '/generate-workspace-invite',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
   id: '/api/generate-embeddings',
   path: '/api/generate-embeddings',
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -222,6 +230,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -252,6 +261,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -310,6 +321,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -339,6 +351,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/_authenticated/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/generate-workspace-invite': {
+      id: '/_authenticated/generate-workspace-invite'
+      path: '/generate-workspace-invite'
+      fullPath: '/generate-workspace-invite'
+      preLoaderRoute: typeof AuthenticatedGenerateWorkspaceInviteRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/api/generate-embeddings': {
       id: '/api/generate-embeddings'
@@ -603,10 +623,13 @@ const AuthenticatedWWorkspaceIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedGenerateWorkspaceInviteRoute: typeof AuthenticatedGenerateWorkspaceInviteRoute
   AuthenticatedWWorkspaceIdRoute: typeof AuthenticatedWWorkspaceIdRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedGenerateWorkspaceInviteRoute:
+    AuthenticatedGenerateWorkspaceInviteRoute,
   AuthenticatedWWorkspaceIdRoute: AuthenticatedWWorkspaceIdRouteWithChildren,
 }
 
