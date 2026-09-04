@@ -216,6 +216,52 @@ export const listMyConversations = createServerFn({ method: "GET" })
     return results;
   });
 
+export type UnreadConversationEntry = {
+  conversationId: string;
+  unreadCount: number;
+  oldestUnreadMessageId: string;
+  newestUnreadMessageId: string;
+};
+
+export type UnreadSummary = {
+  totalUnread: number;
+  byConversation: UnreadConversationEntry[];
+};
+
+/**
+ * Per-conversation unread counts for the current user in a workspace.
+ *
+ * The RPC takes an explicit workspace_user_id because every query here runs
+ * through the service-role client, where auth.uid() is null and RLS does not
+ * apply — identity is resolved and validated server-side first.
+ */
+export const getUnreadSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ workspaceId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<UnreadSummary> => {
+    const meWuId = await getCurrentWorkspaceUser(data.workspaceId, context.userId);
+
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "get_unread_conversation_summary_for_user",
+      { p_workspace_id: data.workspaceId, p_workspace_user_id: meWuId },
+    );
+    if (error) throw new Error(error.message);
+
+    const byConversation = (rows ?? []).map((r) => ({
+      conversationId: r.conversation_id as string,
+      unreadCount: Number(r.unread_count),
+      oldestUnreadMessageId: r.oldest_unread_message_id as string,
+      newestUnreadMessageId: r.newest_unread_message_id as string,
+    }));
+
+    return {
+      totalUnread: byConversation.reduce((sum, c) => sum + c.unreadCount, 0),
+      byConversation,
+    };
+  });
+
 export const findOrCreateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -322,10 +368,15 @@ export const getConversation = createServerFn({ method: "GET" })
 
     const { data: parts } = await supabaseAdmin
       .from("conversation_participants")
-      .select("workspace_users!inner(id, display_name, avatar_url, user_id)")
+      .select(
+        "workspace_user_id, last_read_at, workspace_users!inner(id, display_name, avatar_url, user_id)",
+      )
       .eq("conversation_id", data.conversationId);
 
     const rawParts = (parts ?? []).map((p: any) => p.workspace_users);
+    const myLastReadAt =
+      ((parts ?? []).find((p: any) => p.workspace_user_id === meWuId)
+        ?.last_read_at as string | undefined) ?? null;
 
     const creatorWuId = (conv.created_by_workspace_user_id as string | null) ?? null;
     let creatorRow: { id: string; display_name: string | null; user_id: string | null } | null =
@@ -405,6 +456,7 @@ export const getConversation = createServerFn({ method: "GET" })
       workspaceId: conv.workspace_id as string,
       participants,
       createdBy,
+      myLastReadAt,
     };
   });
 
@@ -552,6 +604,32 @@ export const sendMessage = createServerFn({ method: "POST" })
       .eq("id", data.conversationId);
 
     return { id: msg.id as string, createdAt: msg.created_at as string };
+  });
+
+/**
+ * Marks every message in a conversation as read for the current user.
+ *
+ * Scoped by the server-resolved workspace_user_id: the service-role client
+ * bypasses the table's permissive RLS policy, so this filter is what keeps a
+ * participant from moving someone else's read cursor.
+ */
+export const markConversationRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ conversationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { meWuId } = await assertParticipant(data.conversationId, context.userId);
+    const lastReadAt = new Date().toISOString();
+
+    const { error } = await supabaseAdmin
+      .from("conversation_participants")
+      .update({ last_read_at: lastReadAt })
+      .eq("conversation_id", data.conversationId)
+      .eq("workspace_user_id", meWuId);
+    if (error) throw new Error(error.message);
+
+    return { lastReadAt };
   });
 
 export const trashMessages = createServerFn({ method: "POST" })

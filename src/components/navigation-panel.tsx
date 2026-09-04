@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  MessageSquareCheck,
   MessageSquareDot,
   MessageSquareLock,
   MessageSquareMore,
@@ -50,6 +51,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HOTKEYS, useShortcutLabel } from "@/hooks/use-hotkeys";
+import type { UnreadConversationEntry } from "@/hooks/use-unread";
 import { withConversation, withPage } from "@/lib/workspace-search";
 
 type NavSection = "conversations" | "pages" | "knowledge";
@@ -85,6 +87,9 @@ type Props = {
   pinnedPageIds?: string[];
   onUnpin?: (entityId: string, kind: "conversation" | "page") => void;
   onRecoverPage?: (pageId: string) => void;
+  unreadByConversationId?: Map<string, UnreadConversationEntry>;
+  totalUnread?: number;
+  onMarkConversationRead?: (conversationId: string) => void;
   activeConversationId?: string;
   activePageId?: string;
   profile?: {
@@ -138,12 +143,14 @@ function RailButton({
   label,
   shortcut,
   active,
+  hasUnread,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   label: string;
   shortcut?: string;
   active?: boolean;
+  hasUnread?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -160,7 +167,15 @@ function RailButton({
           {active ? (
             <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
           ) : null}
-          <Icon className="size-[1.125rem]" strokeWidth={1.5} />
+          <span className="relative inline-flex">
+            <Icon className="size-[1.125rem]" strokeWidth={1.5} />
+            {hasUnread ? (
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-px -right-px size-[7px] rounded-full bg-[#0D635D] ring-2 ring-surface"
+              />
+            ) : null}
+          </span>
         </button>
       </TooltipTrigger>
       <TooltipContent side="right" className={shortcut ? "gap-2" : undefined}>
@@ -261,6 +276,9 @@ export function NavigationPanel({
   pinnedPageIds = [],
   onUnpin,
   onRecoverPage,
+  unreadByConversationId,
+  totalUnread = 0,
+  onMarkConversationRead,
   activeConversationId,
   activePageId,
   profile,
@@ -360,8 +378,21 @@ export function NavigationPanel({
     return pages.filter((p) => ids.has(p.id));
   }, [pages, pinnedPageIds]);
 
+  const unreadConversations = useMemo(() => {
+    if (!unreadByConversationId || unreadByConversationId.size === 0) return [];
+    return conversations
+      .filter((c) => unreadByConversationId.has(c.id))
+      .sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+      );
+  }, [conversations, unreadByConversationId]);
+
   const isFiltering = filterQuery.trim().length > 0;
 
+  const filteredUnreadConversations = useMemo(
+    () => applyNavFilter(unreadConversations, (c) => c.title, filterQuery),
+    [unreadConversations, filterQuery],
+  );
   const filteredPinnedConversations = useMemo(
     () => applyNavFilter(pinnedConversations, (c) => c.title, filterQuery),
     [pinnedConversations, filterQuery],
@@ -396,6 +427,7 @@ export function NavigationPanel({
   );
 
   const hasConversationMatches =
+    filteredUnreadConversations.length > 0 ||
     filteredPinnedConversations.length > 0 ||
     filteredDirectConversations.length > 0 ||
     filteredGroupConversations.length > 0;
@@ -457,6 +489,7 @@ export function NavigationPanel({
           icon={MessageSquareMore}
           label="Conversations"
           active={!folded && section === "conversations"}
+          hasUnread={totalUnread > 0}
           onClick={() => handleRailSelect("conversations")}
         />
         <RailButton
@@ -491,10 +524,17 @@ export function NavigationPanel({
 
   const conversationItem = (
     c: NavConversation,
-    opts?: { onUnpin?: () => void },
+    opts?: {
+      onUnpin?: () => void;
+      unread?: boolean;
+      onMarkRead?: () => void;
+      deepLinkMessageId?: string;
+    },
   ) => {
     const active = activeConversationId === c.id;
     const unpinHint = "Un-pin this conversation";
+    const markReadHint = "Mark all messages as read";
+    const hasTrailingAction = Boolean(opts?.onUnpin || opts?.onMarkRead);
     const initials =
       c.title
         .split(" ")
@@ -508,11 +548,17 @@ export function NavigationPanel({
         <Link
           to="/w/$workspaceId"
           params={{ workspaceId }}
-          search={(prev) => withConversation(prev, c.id)}
-          className={`${rowClass(active)} ${opts?.onUnpin ? "pr-8" : ""}`}
+          search={(prev) => withConversation(prev, c.id, opts?.deepLinkMessageId)}
+          className={`${rowClass(active)} ${hasTrailingAction ? "pr-8" : ""}`}
         >
           {active ? (
             <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
+          ) : null}
+          {opts?.unread ? (
+            <span
+              aria-hidden="true"
+              className="absolute left-2 top-1/2 size-[6px] -translate-y-1/2 rounded-full bg-[#0D635D]"
+            />
           ) : null}
           <Avatar className="size-3.5 shrink-0">
             {c.avatarUrl ? <AvatarImage src={c.avatarUrl} /> : null}
@@ -520,7 +566,10 @@ export function NavigationPanel({
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="truncate">{c.title}</span>
+          {/* Kept a step below the section header's font-bold so folder names stay dominant. */}
+          <span className={`truncate ${opts?.unread ? "font-semibold" : ""}`}>
+            {c.title}
+          </span>
         </Link>
         {opts?.onUnpin ? (
           <Tooltip>
@@ -539,6 +588,25 @@ export function NavigationPanel({
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">{unpinHint}</TooltipContent>
+          </Tooltip>
+        ) : null}
+        {opts?.onMarkRead ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={markReadHint}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  opts.onMarkRead?.();
+                }}
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-[color,background-color] duration-(--motion-fast) hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              >
+                <MessageSquareCheck className="size-3.5" strokeWidth={1.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{markReadHint}</TooltipContent>
           </Tooltip>
         ) : null}
       </li>
@@ -814,22 +882,44 @@ export function NavigationPanel({
                           onUnpin: onUnpin
                             ? () => onUnpin(c.id, "conversation")
                             : undefined,
+                          unread: unreadByConversationId?.has(c.id),
                         }),
                       )}
                     </ul>
                   </Section>
                 )}
-                {!isFiltering && (
+                {(!isFiltering || filteredUnreadConversations.length > 0) && (
                   <Section
                     id="unread"
                     icon={MessageSquareDot}
-                    label="Unread"
-                    count={0}
-                    empty
+                    label={`Unread (${totalUnread})`}
+                    empty={
+                      (isFiltering
+                        ? filteredUnreadConversations
+                        : unreadConversations
+                      ).length === 0
+                    }
                     emptyHint="You're all caught up"
                     isCollapsed={collapsedSections.has("unread")}
                     onToggle={toggleSectionOpen}
-                  />
+                  >
+                    <ul className="space-y-px">
+                      {(isFiltering
+                        ? filteredUnreadConversations
+                        : unreadConversations
+                      ).map((c) =>
+                        conversationItem(c, {
+                          unread: true,
+                          onMarkRead: onMarkConversationRead
+                            ? () => onMarkConversationRead(c.id)
+                            : undefined,
+                          // Only this folder deep-links; elsewhere the row opens normally.
+                          deepLinkMessageId:
+                            unreadByConversationId?.get(c.id)?.oldestUnreadMessageId,
+                        }),
+                      )}
+                    </ul>
+                  </Section>
                 )}
                 {(!isFiltering || filteredDirectConversations.length > 0) && (
                   <Section
@@ -847,7 +937,11 @@ export function NavigationPanel({
                       {(isFiltering
                         ? filteredDirectConversations
                         : directConversations
-                      ).map((c) => conversationItem(c))}
+                      ).map((c) =>
+                        conversationItem(c, {
+                          unread: unreadByConversationId?.has(c.id),
+                        }),
+                      )}
                     </ul>
                   </Section>
                 )}
@@ -867,7 +961,11 @@ export function NavigationPanel({
                       {(isFiltering
                         ? filteredGroupConversations
                         : groupConversations
-                      ).map((c) => conversationItem(c))}
+                      ).map((c) =>
+                        conversationItem(c, {
+                          unread: unreadByConversationId?.has(c.id),
+                        }),
+                      )}
                     </ul>
                   </Section>
                 )}

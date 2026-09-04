@@ -35,13 +35,23 @@ Resizable, collapsible. Icon rail (always visible when the panel is open or fold
 
 | Icon | Action |
 |------|--------|
-| Conversations | Open conversations section |
+| Conversations | Open conversations section; carries an unread dot (see below) |
 | Pages | Open pages section |
 | Search | Open search overlay (⌘F) |
 | Knowledge base | Placeholder (“coming soon”) |
 | Create | New conversation / new page |
 
 Sections use uppercase labels (`Section` in [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx)). The pages list includes Private library, From conversations, Public pages, and Deleted (owner-trashed pages only). Fold and open-section state persist in `localStorage`.
+
+#### Unread indicators
+
+Read state is per participant per conversation (`conversation_participants.last_read_at`); a message counts as unread when it postdates that cutoff and was written by someone else. Deleted messages never count.
+
+- **Rail** — a small dot overlaps the lower-right corner of the Conversations icon whenever any conversation in the workspace has unread messages, in both folded and unfolded states.
+- **Conversation rows** — an unread conversation shows the same dot in the row's left gutter and renders its title in `font-semibold`, deliberately a step below the section header's `font-bold` so folder names stay dominant. These cues appear in **every** section the conversation belongs to (Pinned, Private, Groups, Unread), driven by one shared lookup.
+- **Unread section** — lists every conversation with unread messages regardless of type, alphabetically. Its label carries the live total of unread messages across the workspace, `Unread (n)`. The section stays visible when caught up, showing its empty hint. Rows here expose a **Mark all messages as read** action (`MessageSquareCheck`) on the right edge, and opening a conversation from this section deep-links to its oldest unread message — opening the same conversation from any other section navigates normally.
+
+Counts come from `getUnreadSummary` via the `useUnreadSummary` hook ([`use-unread.ts`](../../src/hooks/use-unread.ts)), which also holds a workspace-wide Realtime subscription so badges refresh for conversations that are not open. Marking read updates every surface optimistically.
 
 ### Search
 
@@ -124,7 +134,7 @@ Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
 
 | Component | File | Role |
 |-----------|------|------|
-| `NavigationPanel` | [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx) | Icon rail + lists |
+| `NavigationPanel` | [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx) | Icon rail + lists, including unread indicators |
 | `ConversationWindow` | [`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx) | Chat UI |
 | `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Page editor |
 | `EmptyStateHome` | [`empty-state-home.tsx`](../../src/components/empty-state-home.tsx) | Home empty state |

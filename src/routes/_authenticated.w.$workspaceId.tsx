@@ -23,6 +23,7 @@ import { listMyWorkspaces } from "@/lib/workspaces.functions";
 import { listMyPages, recoverPage } from "@/lib/pages.functions";
 import { listMyConversations } from "@/lib/conversations.functions";
 import { usePinnedEntities } from "@/hooks/use-pinned-entities";
+import { useUnreadSummary } from "@/hooks/use-unread";
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NewConversationDialog } from "@/components/new-conversation-dialog";
@@ -109,6 +110,7 @@ function WorkspaceShell() {
   });
 
   const pins = usePinnedEntities(workspaceId);
+  const unread = useUnreadSummary(workspaceId);
 
   const sortedPages = useMemo(
     () =>
@@ -339,6 +341,9 @@ function WorkspaceShell() {
                   pinnedConversationIds={pins.pins.conversations}
                   pinnedPageIds={pins.pins.pages}
                   onUnpin={(entityId, kind) => pins.setPinned(entityId, kind, false)}
+                  unreadByConversationId={unread.byConversationId}
+                  totalUnread={unread.totalUnread}
+                  onMarkConversationRead={unread.markConversationRead}
                   onRecoverPage={async (id) => {
                     try {
                       await recoverTrashedPage({ data: { pageId: id } });
@@ -386,6 +391,15 @@ function WorkspaceShell() {
                             key={conversationId}
                             workspaceId={workspaceId}
                             conversationId={conversationId!}
+                            unreadEntry={
+                              conversationId
+                                ? (unread.byConversationId.get(conversationId) ?? null)
+                                : null
+                            }
+                            onMarkRead={() =>
+                              conversationId &&
+                              unread.markConversationRead(conversationId)
+                            }
                           />
                           {closeHint?.target === "conv" ? (
                             <CloseHintOverlay
@@ -417,6 +431,14 @@ function WorkspaceShell() {
                       key={conversationId}
                       workspaceId={workspaceId}
                       conversationId={conversationId!}
+                      unreadEntry={
+                        conversationId
+                          ? (unread.byConversationId.get(conversationId) ?? null)
+                          : null
+                      }
+                      onMarkRead={() =>
+                        conversationId && unread.markConversationRead(conversationId)
+                      }
                     />
                   ) : (
                     <PageWindow

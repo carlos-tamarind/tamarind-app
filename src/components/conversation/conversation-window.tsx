@@ -34,6 +34,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HOTKEYS, useHotkey, useShortcutLabel } from "@/hooks/use-hotkeys";
+import type { UnreadConversationEntry } from "@/hooks/use-unread";
 import {
   Popover,
   PopoverContent,
@@ -107,6 +108,9 @@ import {
   setComposerDraft,
 } from "@/lib/composer-drafts";
 import { DebugLogger } from "@/lib/debugLogger";
+
+/** Height of the sticky day separator, so top-aligned scrolls clear it. */
+const STICKY_DAY_CHIP_OFFSET = 48;
 
 type Message = {
   id: string;
@@ -482,9 +486,13 @@ function defaultGroupTitle(participants: { isMe: boolean; displayName: string }[
 export function ConversationWindow({
   workspaceId,
   conversationId,
+  unreadEntry,
+  onMarkRead,
 }: {
   workspaceId: string;
   conversationId: string;
+  unreadEntry?: UnreadConversationEntry | null;
+  onMarkRead?: () => void;
 }) {
   const navigate = useNavigate();
   const search = useSearch({ from: "/_authenticated/w/$workspaceId" });
@@ -796,6 +804,85 @@ export function ConversationWindow({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages.length, targetMessageId]);
+
+  // ---- Unread tracking -----------------------------------------------------
+  // Unread messages are a contiguous suffix after my last_read_at cutoff, so
+  // "newest unread" is the newest message that is not mine — my own trailing
+  // reply must be skipped. Seeing that message marks the whole thread read.
+  const myLastReadAt = conv?.myLastReadAt ?? null;
+
+  const clientNewestUnreadId = useMemo(() => {
+    if (!myLastReadAt || !myWorkspaceUserId) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.authorWorkspaceUserId === myWorkspaceUserId) continue;
+      if (isTrashed(m.purgedAt)) continue;
+      return m.createdAt > myLastReadAt ? m.id : null;
+    }
+    return null;
+  }, [messages, myLastReadAt, myWorkspaceUserId]);
+
+  // listMessages always loads the newest 200, so the client value is
+  // authoritative unless we are showing an around-window deep in history.
+  const observeTargetId = aroundMode
+    ? (unreadEntry?.newestUnreadMessageId ?? clientNewestUnreadId)
+    : clientNewestUnreadId;
+
+  const [unreadTargetVisible, setUnreadTargetVisible] = useState(true);
+  // Separate from unreadTargetVisible: clicking the chip only scrolls to the
+  // oldest unread message, not the newest, so it can't rely on the observer
+  // to hide itself. This is a local, per-mount acknowledgement — nothing is
+  // marked read server-side until the observer below actually fires.
+  const [chipDismissed, setChipDismissed] = useState(false);
+  // Bumped on every chip click so the flash effect below re-runs even when
+  // ?m= is already the oldest unread id (e.g. entering from the Unread
+  // folder) — targetMessageId alone wouldn't change in that case.
+  const [scrollRequestId, setScrollRequestId] = useState(0);
+  const markedReadRef = useRef<string | null>(null);
+  const onMarkReadRef = useRef(onMarkRead);
+  onMarkReadRef.current = onMarkRead;
+
+  useEffect(() => {
+    markedReadRef.current = null;
+    setChipDismissed(false);
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (!observeTargetId) {
+      setUnreadTargetVisible(true);
+      return;
+    }
+    const root = scrollerRef.current;
+    const el = root?.querySelector(
+      `[data-message-id="${CSS.escape(observeTargetId)}"]`,
+    ) as HTMLElement | null;
+    if (!root || !el) {
+      // Outside the loaded window — treat as unseen so the chip still shows.
+      setUnreadTargetVisible(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setUnreadTargetVisible(entry.isIntersecting);
+        if (!entry.isIntersecting) return;
+        if (markedReadRef.current === observeTargetId) return;
+        markedReadRef.current = observeTargetId;
+        onMarkReadRef.current?.();
+      },
+      { root, threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [observeTargetId, messages]);
+
+  const showUnreadChip = Boolean(
+    unreadEntry &&
+      unreadEntry.unreadCount > 0 &&
+      observeTargetId &&
+      !unreadTargetVisible &&
+      !chipDismissed,
+  );
 
   const mentionOpenRef = useRef(0);
 
@@ -1147,14 +1234,48 @@ export function ConversationWindow({
     flashedMessageRef.current = null;
   }, [targetMessageId]);
 
-  const flashMessage = (id: string) => {
+  const flashMessage = (
+    id: string,
+    block: ScrollLogicalPosition = "center",
+  ) => {
     const el = scrollerRef.current?.querySelector(
       `[data-message-id="${CSS.escape(id)}"]`,
     ) as HTMLElement | null;
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Keeps a "start"-aligned message clear of the sticky day separator.
+    el.style.scrollMarginTop =
+      block === "start" ? `${STICKY_DAY_CHIP_OFFSET}px` : "";
+    el.scrollIntoView({ behavior: "smooth", block });
     el.classList.add("msg-flash");
     window.setTimeout(() => el.classList.remove("msg-flash"), 1400);
+  };
+
+  const goToOldestUnread = () => {
+    if (!unreadEntry) return;
+    const targetId = unreadEntry.oldestUnreadMessageId;
+    setChipDismissed(true);
+
+    // Router scrollRestoration (router.tsx) writes scrollTop back on every
+    // navigation, which cancels an in-flight smooth scroll. When the message
+    // is already loaded we don't need the URL at all — scroll directly, the
+    // same way the quote-click path does when the id already matches ?m=.
+    if (messages.some((m) => m.id === targetId)) {
+      flashedMessageRef.current = targetId; // keep the deep-link effect quiet
+      // One frame so the chip's own removal is committed before we measure.
+      requestAnimationFrame(() => flashMessage(targetId, "start"));
+      return;
+    }
+
+    // Outside the loaded window: ?m= is what enables listMessagesAround, so
+    // navigate and let the effect scroll once the neighbors arrive — that
+    // resolves well after the restore, so it isn't stomped.
+    flashedMessageRef.current = null;
+    setScrollRequestId((n) => n + 1);
+    navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withConversation(prev, conversationId, targetId),
+    });
   };
 
   useEffect(() => {
@@ -1197,6 +1318,7 @@ export function ConversationWindow({
     aroundPending,
     aroundError,
     aroundMessages,
+    scrollRequestId,
   ]);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1471,6 +1593,21 @@ export function ConversationWindow({
                 />
               ) : (
                 <div role="log" className="px-4 pb-14 pt-2">
+                  {/* Sticks just under the day separator (which owns top-0). */}
+                  {showUnreadChip ? (
+                    <div className="sticky top-11 z-20 flex justify-center py-1">
+                      <button
+                        type="button"
+                        onClick={goToOldestUnread}
+                        // Theme-aware darker primary: a pure function of
+                        // --primary, so it re-resolves under .dark on its own
+                        // rather than needing a second hand-picked value.
+                        className="cursor-pointer rounded-full bg-[color-mix(in_oklab,var(--primary)_70%,black_30%)] px-3 py-1.5 text-xs font-medium text-[oklch(0.985_0.004_190)] shadow-md transition-colors duration-(--motion-fast) hover:bg-[color-mix(in_oklab,var(--primary)_80%,black_30%)]"
+                      >
+                        Go to the last unread message
+                      </button>
+                    </div>
+                  ) : null}
                   {messageRuns.map((run, runIndex) => {
                     const prevRun = messageRuns[runIndex - 1];
                     const showDaySeparator =
