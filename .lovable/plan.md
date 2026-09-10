@@ -38,7 +38,7 @@ Verified against the live database before planning:
 ## Points worth flagging
 
 - **No `QUEUED` dedup per source.** Repeated edits to the same page topic queue repeated `REMOVE`/`ADD` pairs. Ordering by `created_at` keeps them correct but the queue can grow; a dedup rule can be added later without schema change.
-- **One-time-use / ordering is not DB-enforced** across `ADD` and `REMOVE` for the same source — correctness relies on the worker processing in `created_at` order.
+- **Ordering within a source is now DB-enforced.** The partial unique index plus the `NOT EXISTS` filter in `claim_canonical_topic_job` ensures only one job per `(source_type, source_id)` can be `PROCESSING` at a time, and `claim` always picks the oldest `created_at` first. A `REMOVE` enqueued before its paired `ADD` will complete before the `ADD` becomes claimable.
 - **`evidence_count` is maintained by the RPCs only.** Direct deletes of evidence rows (cascade from a workspace delete aside) would leave counters stale; nothing outside the RPCs should write these tables.
 - **Cascade behavior on source deletion.** Deleting a page or conversation cascades to its topics, which fires the delete triggers and enqueues `REMOVE` jobs — jobs referencing a source row that no longer exists. The remove path only needs `(source_type, source_id)`, so this works, but the job's registry FK on `source_type` (not `source_id`) is what keeps it valid.
 - **Embedding dimension is hardcoded at 1536**, consistent with the rest of the semantic layer.
