@@ -21,7 +21,7 @@ Verified against the live database before planning:
 
 **`canonical_topic_evidences`** — as specified, with the denormalized `owning_entity_id`, the `(canonical_topic_id, source_type, source_id)` unique constraint, the `(source_type, source_id)` index, and a `BEFORE INSERT` `SECURITY DEFINER` validation trigger that resolves the source row dynamically through the registry and rejects a workspace mismatch or a missing source row. Read access mirrors `canonical_topics` (member of the workspace); writes `service_role`.
 
-**`canonical_topic_jobs`** — as specified, with the partial claimable index and a denormalized `workspace_id`. No authenticated access at all.
+**`canonical_topic_jobs`** — as specified, with the partial claimable index and a denormalized `workspace_id`. Also add a unique partial index `uniq_canonical_topic_jobs_source_inflight ON (source_type, source_id) WHERE status = 'PROCESSING'` so only one in-flight job can exist per source at a time. No authenticated access at all.
 
 **`updated_at` triggers** — dedicated `set_<table>_updated_at` trigger functions on `canonical_topics` and `canonical_topic_jobs`, following the existing page-topic tables.
 
@@ -29,7 +29,7 @@ Verified against the live database before planning:
 
 - `match_canonical_topics(p_workspace_id, p_embedding, p_limit default 10)` → `id, name, description, similarity`, ordered by cosine distance.
 - `enqueue_canonical_topic_job(p_workspace_id, p_job_type, p_source_type, p_source_id)` — single insert point.
-- `claim_canonical_topic_job(p_stale_after default '00:10:00')` — cloned from `claim_page_topic_job`.
+- `claim_canonical_topic_job(p_stale_after default '00:10:00')` — cloned from `claim_page_topic_job`, but the candidate `SELECT` also excludes rows whose `(source_type, source_id)` already has another `PROCESSING` row (`NOT EXISTS ...`). This, combined with the partial unique index, guarantees a source never has two in-flight jobs at once, while still allowing concurrent jobs across sources and workspaces.
 - `apply_canonical_topic_add_and_commit(p_job_id, p_result jsonb)` — per-workspace `pg_advisory_xact_lock(hashtextextended(workspace_id::text, 1))`, re-check `PROCESSING`, re-run the nearest-match check under the lock and downgrade `create` to `reinforce` when a matching topic appeared meanwhile, apply evidence insert / counter increment / optional regeneration fields, mark `COMPLETED`. Returns `committed | not_processing | not_found`.
 - `apply_canonical_topic_remove_and_commit(p_job_id)` — no advisory lock; deletes matching evidence rows, decrements each affected topic under row-level `FOR UPDATE`, deletes topics that hit zero, marks `COMPLETED`.
 
@@ -38,7 +38,7 @@ Verified against the live database before planning:
 ## Points worth flagging
 
 - **No `QUEUED` dedup per source.** Repeated edits to the same page topic queue repeated `REMOVE`/`ADD` pairs. Ordering by `created_at` keeps them correct but the queue can grow; a dedup rule can be added later without schema change.
-- **One-time-use / ordering is not DB-enforced** across `ADD` and `REMOVE` for the same source — correctness relies on the worker processing in `created_at` order.
+- **Ordering within a source is now DB-enforced.** The partial unique index plus the `NOT EXISTS` filter in `claim_canonical_topic_job` ensures only one job per `(source_type, source_id)` can be `PROCESSING` at a time, and `claim` always picks the oldest `created_at` first. A `REMOVE` enqueued before its paired `ADD` will complete before the `ADD` becomes claimable.
 - **`evidence_count` is maintained by the RPCs only.** Direct deletes of evidence rows (cascade from a workspace delete aside) would leave counters stale; nothing outside the RPCs should write these tables.
 - **Cascade behavior on source deletion.** Deleting a page or conversation cascades to its topics, which fires the delete triggers and enqueues `REMOVE` jobs — jobs referencing a source row that no longer exists. The remove path only needs `(source_type, source_id)`, so this works, but the job's registry FK on `source_type` (not `source_id`) is what keeps it valid.
 - **Embedding dimension is hardcoded at 1536**, consistent with the rest of the semantic layer.
