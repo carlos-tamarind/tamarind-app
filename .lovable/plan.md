@@ -21,7 +21,7 @@ Verified against the live database before planning:
 
 **`canonical_topic_evidences`** — as specified, with the denormalized `owning_entity_id`, the `(canonical_topic_id, source_type, source_id)` unique constraint, the `(source_type, source_id)` index, and a `BEFORE INSERT` `SECURITY DEFINER` validation trigger that resolves the source row dynamically through the registry and rejects a workspace mismatch or a missing source row. Read access mirrors `canonical_topics` (member of the workspace); writes `service_role`.
 
-**`canonical_topic_jobs`** — as specified, with the partial claimable index and a denormalized `workspace_id`. No authenticated access at all.
+**`canonical_topic_jobs`** — as specified, with the partial claimable index and a denormalized `workspace_id`. Also add a unique partial index `uniq_canonical_topic_jobs_source_inflight ON (source_type, source_id) WHERE status = 'PROCESSING'` so only one in-flight job can exist per source at a time. No authenticated access at all.
 
 **`updated_at` triggers** — dedicated `set_<table>_updated_at` trigger functions on `canonical_topics` and `canonical_topic_jobs`, following the existing page-topic tables.
 
