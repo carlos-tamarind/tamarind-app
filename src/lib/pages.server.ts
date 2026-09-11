@@ -33,6 +33,57 @@ export async function getCurrentWorkspaceUser(workspaceId: string, userId: strin
   return data.id as string;
 }
 
+// Notifies the original owner of a page (via the N8N_PAGE_EVENTS_WEBHOOK_URL
+// webhook) when someone else shares or duplicates it. No-ops if the owner is
+// the acting user themselves, or if the webhook URL isn't configured. Never
+// throws — a notification failure must not break the underlying page action.
+export async function notifyPageOwnerOnEvent(params: {
+  event: "page_shared" | "page_duplicated";
+  ownerWuId: string | null;
+  actorWuId: string;
+  workspaceId: string;
+  pageId: string;
+  pageTitle: string | null;
+  extra?: Record<string, unknown>;
+}) {
+  const { event, ownerWuId, actorWuId, workspaceId, pageId, pageTitle, extra } = params;
+  if (!ownerWuId || ownerWuId === actorWuId) return;
+
+  const webhookUrl = process.env.N8N_PAGE_EVENTS_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const { data: ownerWu, error: ownerErr } = await supabaseAdmin
+      .from("workspace_users")
+      .select("user_id")
+      .eq("id", ownerWuId)
+      .maybeSingle();
+    if (ownerErr || !ownerWu) return;
+
+    const { data: ownerAuth, error: authErr } = await supabaseAdmin.auth.admin.getUserById(
+      ownerWu.user_id as string,
+    );
+    if (authErr || !ownerAuth.user?.email) return;
+
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event,
+        pageId,
+        pageTitle,
+        ownerEmail: ownerAuth.user.email,
+        actorWorkspaceUserId: actorWuId,
+        workspaceId,
+        timestamp: new Date().toISOString(),
+        ...extra,
+      }),
+    });
+  } catch (err) {
+    console.error(`[pages] failed to notify page owner (${event})`, err);
+  }
+}
+
 export function assertPageNotTrashed(purgedAt: string | null | undefined) {
   if (purgedAt) {
     throw new Error("This page cannot be shared, duplicated, published, or pinned while it is in the trash");

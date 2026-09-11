@@ -376,9 +376,8 @@ export const sharePage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getCurrentWorkspaceUser, shareToConversations } = await import(
-      "@/lib/pages.server"
-    );
+    const { getCurrentWorkspaceUser, shareToConversations, notifyPageOwnerOnEvent } =
+      await import("@/lib/pages.server");
 
     const { data: page, error: pErr } = await supabaseAdmin
       .from("pages")
@@ -426,6 +425,15 @@ export const sharePage = createServerFn({ method: "POST" })
       if (uErr) throw new Error(uErr.message);
     }
 
+    await notifyPageOwnerOnEvent({
+      event: "page_shared",
+      ownerWuId: page.owner_workspace_user_id as string | null,
+      actorWuId: meWuId,
+      workspaceId,
+      pageId: data.pageId,
+      pageTitle: (page.title as string | null) ?? null,
+    });
+
     return { ok: true, conversationIds: targetConvIds };
   });
 
@@ -451,9 +459,8 @@ export const duplicatePage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getCurrentWorkspaceUser, shareToConversations } = await import(
-      "@/lib/pages.server"
-    );
+    const { getCurrentWorkspaceUser, shareToConversations, notifyPageOwnerOnEvent } =
+      await import("@/lib/pages.server");
     const { supabase } = context;
 
     // Caller must be able to read the source page (RLS enforces this).
@@ -467,7 +474,7 @@ export const duplicatePage = createServerFn({ method: "POST" })
 
     const { data: source, error: srcErr } = await supabaseAdmin
       .from("pages")
-      .select("id, content, workspace_id, purged_at")
+      .select("id, title, content, workspace_id, owner_workspace_user_id, purged_at")
       .eq("id", data.pageId)
       .maybeSingle();
     if (srcErr) throw new Error(srcErr.message);
@@ -521,6 +528,16 @@ export const duplicatePage = createServerFn({ method: "POST" })
         if (linkErr) throw new Error(linkErr.message);
       }
     }
+
+    await notifyPageOwnerOnEvent({
+      event: "page_duplicated",
+      ownerWuId: source.owner_workspace_user_id as string | null,
+      actorWuId: meWuId,
+      workspaceId,
+      pageId: data.pageId,
+      pageTitle: (source.title as string | null) ?? null,
+      extra: { newPageId },
+    });
 
     return { pageId: newPageId, conversationIds: targetConvIds };
   });

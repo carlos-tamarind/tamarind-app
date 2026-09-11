@@ -61,6 +61,7 @@ Supabase Project
 | `CONVERSATION_SUGGESTIONS_WORKER_SECRET` | Conversation suggestion cron endpoint authentication |
 | `PURGE_WORKER_SECRET` | Purge (trash erase) cron endpoint authentication |
 | `PLATFORM_OWNER_EMAILS` | Comma-separated, lowercase allowlist of platform-owner emails permitted to issue workspace bootstrap invites. Server-only; never stored in the database |
+| `N8N_PAGE_EVENTS_WEBHOOK_URL` | n8n webhook URL notified when a page is shared or duplicated by someone other than its owner. Optional — the notification is skipped if unset |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
 
