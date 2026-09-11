@@ -14,6 +14,200 @@ export type Database = {
   }
   public: {
     Tables: {
+      canonical_topic_evidences: {
+        Row: {
+          canonical_topic_id: string
+          created_at: string
+          id: string
+          owning_entity_id: string
+          similarity: number | null
+          source_id: string
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_topic_id: string
+          created_at?: string
+          id?: string
+          owning_entity_id: string
+          similarity?: number | null
+          source_id: string
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_topic_id?: string
+          created_at?: string
+          id?: string
+          owning_entity_id?: string
+          similarity?: number | null
+          source_id?: string
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_topic_evidences_canonical_topic_id_fkey"
+            columns: ["canonical_topic_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_topic_evidences_source_type_fkey"
+            columns: ["source_type"]
+            isOneToOne: false
+            referencedRelation: "canonical_topic_source_types"
+            referencedColumns: ["source_type"]
+          },
+        ]
+      }
+      canonical_topic_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_type: Database["public"]["Enums"]["canonical_topic_job_type"]
+          last_error: string | null
+          next_retry_at: string | null
+          result: Json | null
+          source_id: string
+          source_type: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["canonical_topic_job_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type: Database["public"]["Enums"]["canonical_topic_job_type"]
+          last_error?: string | null
+          next_retry_at?: string | null
+          result?: Json | null
+          source_id: string
+          source_type: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["canonical_topic_job_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type?: Database["public"]["Enums"]["canonical_topic_job_type"]
+          last_error?: string | null
+          next_retry_at?: string | null
+          result?: Json | null
+          source_id?: string
+          source_type?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["canonical_topic_job_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_topic_jobs_source_type_fkey"
+            columns: ["source_type"]
+            isOneToOne: false
+            referencedRelation: "canonical_topic_source_types"
+            referencedColumns: ["source_type"]
+          },
+          {
+            foreignKeyName: "canonical_topic_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      canonical_topic_source_types: {
+        Row: {
+          created_at: string
+          owning_entity_column: string
+          owning_table_name: string
+          source_type: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          owning_entity_column: string
+          owning_table_name: string
+          source_type: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          owning_entity_column?: string
+          owning_table_name?: string
+          source_type?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      canonical_topics: {
+        Row: {
+          created_at: string
+          description: string
+          embedding: string
+          embedding_model: string
+          evidence_count: number
+          generated_at: string
+          generation_model: string | null
+          id: string
+          last_evidence_at: string | null
+          name: string
+          regenerated_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          embedding: string
+          embedding_model?: string
+          evidence_count?: number
+          generated_at?: string
+          generation_model?: string | null
+          id?: string
+          last_evidence_at?: string | null
+          name: string
+          regenerated_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          embedding?: string
+          embedding_model?: string
+          evidence_count?: number
+          generated_at?: string
+          generation_model?: string | null
+          id?: string
+          last_evidence_at?: string | null
+          name?: string
+          regenerated_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_topics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_participants: {
         Row: {
           conversation_id: string
@@ -1437,6 +1631,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_canonical_topic_add_and_commit: {
+        Args: { p_job_id: string; p_result?: Json }
+        Returns: string
+      }
+      apply_canonical_topic_remove_and_commit: {
+        Args: { p_job_id: string }
+        Returns: string
+      }
       apply_conversation_suggestion_result: {
         Args: {
           p_conversation_topic_id?: string
@@ -1469,6 +1671,31 @@ export type Database = {
       can_read_page_as: {
         Args: { _page_id: string; _workspace_user_id: string }
         Returns: boolean
+      }
+      claim_canonical_topic_job: {
+        Args: { p_stale_after?: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_type: Database["public"]["Enums"]["canonical_topic_job_type"]
+          last_error: string | null
+          next_retry_at: string | null
+          result: Json | null
+          source_id: string
+          source_type: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["canonical_topic_job_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "canonical_topic_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       claim_conversation_suggestion_job: {
         Args: { p_stale_after: string }
@@ -1625,6 +1852,15 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
+      enqueue_canonical_topic_job: {
+        Args: {
+          p_job_type: Database["public"]["Enums"]["canonical_topic_job_type"]
+          p_source_id: string
+          p_source_type: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       enqueue_conversation_suggestion_job: {
         Args: { p_conversation_id: string; p_workspace_user_id: string }
         Returns: string
@@ -1717,6 +1953,15 @@ export type Database = {
           page_snapshot_hash: string
           plain_text: string
           title: string
+        }[]
+      }
+      match_canonical_topics: {
+        Args: { p_embedding: string; p_limit?: number; p_workspace_id: string }
+        Returns: {
+          description: string
+          id: string
+          name: string
+          similarity: number
         }[]
       }
       match_conversation_topics: {
@@ -1874,6 +2119,13 @@ export type Database = {
       tiptap_to_plaintext: { Args: { doc: Json }; Returns: string }
     }
     Enums: {
+      canonical_topic_job_status:
+        | "QUEUED"
+        | "PROCESSING"
+        | "RETRY_WAIT"
+        | "COMPLETED"
+        | "QUARANTINED"
+      canonical_topic_job_type: "ADD" | "REMOVE"
       conversation_role: "admin" | "member" | "viewer"
       conversation_suggestion_feedback: "positive" | "negative"
       conversation_suggestion_job_status:
@@ -2048,6 +2300,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      canonical_topic_job_status: [
+        "QUEUED",
+        "PROCESSING",
+        "RETRY_WAIT",
+        "COMPLETED",
+        "QUARANTINED",
+      ],
+      canonical_topic_job_type: ["ADD", "REMOVE"],
       conversation_role: ["admin", "member", "viewer"],
       conversation_suggestion_feedback: ["positive", "negative"],
       conversation_suggestion_job_status: [
