@@ -53,7 +53,7 @@ Verified against the live database before planning:
 
 ## Platform actions after deploy
 
-1. **Provision `CANONICAL_TOPIC_WORKER_SECRET`** — generate a fresh high-entropy Cloudflare Worker secret, same pattern as the seven existing worker secrets. Header name: `x-canonical-topics-worker-secret`.
+1. **Provision `CANONICAL_TOPICS_WORKER_SECRET`** — generate a fresh high-entropy Cloudflare Worker secret, same pattern as the seven existing worker secrets. Header name: `x-canonical-topics-worker-secret`.
 2. **Register the pg_cron job** — after the build containing the new route is live, schedule `run-canonical-topics-worker` every minute (`* * * * *`) calling `https://<host>/api/public/internal/run-canonical-topics-worker` with the secret header and an empty `{}` body. Early 404/503 ticks are harmless until the route and secret are live.
 
 ## Out of scope
