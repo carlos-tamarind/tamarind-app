@@ -64,6 +64,8 @@ erDiagram
 | `embedding_status` | `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` (column default `QUEUED`) |
 | `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
 | `page_semantic_job_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `FAILED` |
+| `canonical_topic_job_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `QUARANTINED` |
+| `canonical_topic_job_type` | `ADD`, `REMOVE` |
 
 ## Tables
 
