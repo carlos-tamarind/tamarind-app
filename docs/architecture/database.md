@@ -151,6 +151,24 @@ erDiagram
 **Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
 
 **Configurable cooldown.** `list_conversation_suggestion_jobs_due` takes both the debounce (`p_idle`) and the negative-feedback cooldown (`p_cooldown`) as intervals from the caller — there is no hardcoded 14-day window. The worker supplies them from its TypeScript config (exploration default cooldown 120h) and re-checks the last negative `feedback_at` after claiming, since the due-list is only a pre-filter.
+
+### Canonical Topics
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `canonical_topic_source_types` | Registry of source topic kinds: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name` | — |
+| `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`) | → `workspaces` (CASCADE) |
+| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`) | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
+| `canonical_topic_jobs` | Work queue for canonicalization (`workspace_id`, `source_type`, `source_id`, `job_type`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`) | → `workspaces` (CASCADE), → `canonical_topic_source_types` (source_type) |
+
+**Source-type registry.** `canonical_topic_source_types` is the source of truth for resolving a source row to its owning entity and workspace. It is read by the validation trigger on `canonical_topic_evidences` and by the enqueue triggers on `page_topics` / `conversation_topics`. Only `service_role` can read it.
+
+**Workspace-wide identity.** A `canonical_topics` row represents one idea inside a workspace. It is created or reinforced by `apply_canonical_topic_add_and_commit`. Evidence links from `page_topics` and `conversation_topics` accumulate on `canonical_topic_evidences`; when the last evidence for a topic is removed, the topic is deleted.
+
+**Job lifecycle.** Source changes enqueue `ADD` or `REMOVE` jobs on `canonical_topic_jobs`. `claim_canonical_topic_job` picks the oldest claimable job, but skips any source that already has a `PROCESSING` row. A partial unique index `uniq_canonical_topic_jobs_source_inflight` on `(source_type, source_id) WHERE status = 'PROCESSING'` enforces the same exclusivity at the DB level. `apply_canonical_topic_add_and_commit` takes a per-workspace advisory lock, re-runs a nearest-match check under the lock, and downgrades a `create` decision to `reinforce` if a matching topic appeared meanwhile. `apply_canonical_topic_remove_and_commit` deletes matching evidences, decrements each affected topic, and deletes topics whose `evidence_count` reaches zero.
+
+**Access.** `canonical_topics` and `canonical_topic_evidences` grant `SELECT` to `authenticated` and `ALL` to `service_role`; RLS allows reads only for workspace members. `canonical_topic_source_types` and `canonical_topic_jobs` are `service_role`-only with a `USING (false)` policy.
+
 ### Pinned Entities
 
 | Table | Purpose | Key relationships |
