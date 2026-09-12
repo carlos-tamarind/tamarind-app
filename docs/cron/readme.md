@@ -61,6 +61,13 @@ flowchart TB
     Purge["purge_due_entities()"]
   end
 
+  subgraph cronCanonical [Scheduled: canonical topics]
+    PGCronCanonical["pg_cron (every minute)"]
+    PGNetCanonical["pg_net HTTP POST"]
+    WorkerCanonical["runCanonicalTopicsWorker"]
+    Canonical["canonical_topics + evidences"]
+  end
+
   Send --> Enqueue --> Norm
   PGCronEmbed --> PGNetEmbed --> WorkerEmbed --> Embed
   PGCronCti --> PGNetCti --> WorkerCti --> Cti
