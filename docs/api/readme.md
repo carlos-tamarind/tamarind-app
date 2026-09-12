@@ -278,6 +278,16 @@ Production endpoint called by pg_cron via pg_net, hourly. See [Cron & Background
 
 **Response:** Same shape as the dev endpoint.
 
+## POST /api/public/internal/run-canonical-topics-worker
+
+**File:** `src/routes/api/public/internal/run-canonical-topics-worker.ts` (not yet implemented)
+
+Production endpoint called by pg_cron via pg_net, every minute. See [Cron & Background Jobs](../cron/readme.md).
+
+**Auth:** Requires `x-canonical-topics-worker-secret` header matching `CANONICAL_TOPICS_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
+
+**Response:** `{ processed, committed, skipped }` (shape TBD when the worker is implemented).
+
 ## Server Functions vs REST
 
 | Use server functions when | Use REST routes when |

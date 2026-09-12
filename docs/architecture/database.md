@@ -64,6 +64,8 @@ erDiagram
 | `embedding_status` | `QUEUED`, `PROCESSING`, `EMBEDDED`, `FAILED`, `SKIPPED` (column default `QUEUED`) |
 | `page_embedding_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `EMBEDDED`, `FAILED` |
 | `page_semantic_job_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `FAILED` |
+| `canonical_topic_job_status` | `QUEUED`, `PROCESSING`, `RETRY_WAIT`, `COMPLETED`, `QUARANTINED` |
+| `canonical_topic_job_type` | `ADD`, `REMOVE` |
 
 ## Tables
 
@@ -149,6 +151,24 @@ erDiagram
 **Service-role ACL helpers.** Workers run as `service_role`, where `auth.uid()` is NULL, so the explicit-user variants `is_workspace_member_as`, `is_conversation_participant_as`, `is_page_collaborator_as`, and `can_read_page_as` exist alongside the session-based helpers. `search_pages_semantic_for_user` and `search_messages_semantic_for_user` are `SECURITY DEFINER` wrappers that over-fetch and post-filter with those helpers. All of them, plus the four queue RPCs (`list_conversation_suggestion_jobs_due(p_idle, p_cooldown, p_limit)`, `enqueue_conversation_suggestion_job`, `claim_conversation_suggestion_job`, `apply_conversation_suggestion_result`), are `service_role`-only.
 
 **Configurable cooldown.** `list_conversation_suggestion_jobs_due` takes both the debounce (`p_idle`) and the negative-feedback cooldown (`p_cooldown`) as intervals from the caller — there is no hardcoded 14-day window. The worker supplies them from its TypeScript config (exploration default cooldown 120h) and re-checks the last negative `feedback_at` after claiming, since the due-list is only a pre-filter.
+
+### Canonical Topics
+
+| Table | Purpose | Key relationships |
+|-------|---------|-------------------|
+| `canonical_topic_source_types` | Registry of source topic kinds: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name` | — |
+| `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`) | → `workspaces` (CASCADE) |
+| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`) | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
+| `canonical_topic_jobs` | Work queue for canonicalization (`workspace_id`, `source_type`, `source_id`, `job_type`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`) | → `workspaces` (CASCADE), → `canonical_topic_source_types` (source_type) |
+
+**Source-type registry.** `canonical_topic_source_types` is the source of truth for resolving a source row to its owning entity and workspace. It is read by the validation trigger on `canonical_topic_evidences` and by the enqueue triggers on `page_topics` / `conversation_topics`. Only `service_role` can read it.
+
+**Workspace-wide identity.** A `canonical_topics` row represents one idea inside a workspace. It is created or reinforced by `apply_canonical_topic_add_and_commit`. Evidence links from `page_topics` and `conversation_topics` accumulate on `canonical_topic_evidences`; when the last evidence for a topic is removed, the topic is deleted.
+
+**Job lifecycle.** Source changes enqueue `ADD` or `REMOVE` jobs on `canonical_topic_jobs`. `claim_canonical_topic_job` picks the oldest claimable job, but skips any source that already has a `PROCESSING` row. A partial unique index `uniq_canonical_topic_jobs_source_inflight` on `(source_type, source_id) WHERE status = 'PROCESSING'` enforces the same exclusivity at the DB level. `apply_canonical_topic_add_and_commit` takes a per-workspace advisory lock, re-runs a nearest-match check under the lock, and downgrades a `create` decision to `reinforce` if a matching topic appeared meanwhile. `apply_canonical_topic_remove_and_commit` deletes matching evidences, decrements each affected topic, and deletes topics whose `evidence_count` reaches zero.
+
+**Access.** `canonical_topics` and `canonical_topic_evidences` grant `SELECT` to `authenticated` and `ALL` to `service_role`; RLS allows reads only for workspace members. `canonical_topic_source_types` and `canonical_topic_jobs` are `service_role`-only with a `USING (false)` policy.
+
 ### Pinned Entities
 
 | Table | Purpose | Key relationships |
@@ -224,6 +244,12 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `idx_page_topic_embeddings_claimable` | page_topic_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page topic embedding worker |
 | `idx_page_topic_embeddings_queue` | page_topic_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
 | `idx_page_topic_embeddings_vector` | page_topic_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | *(reserved — not wired into search)* |
+| `idx_canonical_topics_workspace_id` | canonical_topics | `(workspace_id)` | Workspace topic listing |
+| `idx_canonical_topics_embedding` | canonical_topics | HNSW cosine on `embedding` | `match_canonical_topics` nearest-match |
+| `idx_canonical_topic_evidences_source` | canonical_topic_evidences | `(source_type, source_id)` | Reverse lookup from a source topic |
+| `idx_canonical_topic_evidences_topic` | canonical_topic_evidences | `(canonical_topic_id)` | Evidence listing for a canonical topic |
+| `idx_canonical_topic_jobs_claimable` | canonical_topic_jobs | Partial: `(status, next_retry_at, created_at, id) WHERE status IN ('QUEUED','RETRY_WAIT')` | Worker claim |
+| `uniq_canonical_topic_jobs_source_inflight` | canonical_topic_jobs | Partial UNIQUE: `(source_type, source_id) WHERE status = 'PROCESSING'` | One in-flight job per source |
 
 ## Database Functions
 
@@ -256,6 +282,14 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `purge_due_entities(p_entity_ids)` | Trash: process due trashed rows across every kind listed in `purgeable_entity_types` — hard-delete for pages, scrub-in-place for messages (service_role only) |
 | `unpin_on_page_purge()` | Trigger on `pages`: drops all pins for a page when it is moved to trash |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
+| `match_canonical_topics(p_workspace_id, p_embedding, p_limit)` | Semantic nearest-match over `canonical_topics` in a workspace; returns `id, name, description, similarity` (service_role only) |
+| `enqueue_canonical_topic_job(p_workspace_id, p_job_type, p_source_type, p_source_id)` | Enqueue a single `ADD`/`REMOVE` canonical-topic job (service_role only) |
+| `claim_canonical_topic_job(p_stale_after)` | Claim one canonical-topic job, `SKIP LOCKED`, recovers stale `PROCESSING`, excludes sources already in-flight (service_role only) |
+| `apply_canonical_topic_add_and_commit(p_job_id, p_result)` | Atomic commit of an `ADD` job: per-workspace advisory lock, nearest-match downgrade, evidence insert, counter increment, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
+| `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
+| `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
+| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete (service_role only) |
+| `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on candidate promotion/demotion/delete (service_role only) |
 
 ## Row-Level Security
 
@@ -297,6 +331,7 @@ Write patterns:
 | 2026-08-23 | Message delete with Undo: `purge_due_entities` scrubs messages instead of deleting them, message search RPCs filter `purged_at IS NULL`, and CTI claim/ordering ignore purged messages |
 | 2026-09-03 | Unread-messages groundwork: partial index `idx_messages_conversation_unread` and `get_unread_conversation_summary_for_user` RPC |
 | 2026-09-04 | Platform bootstrap groundwork: `workspace_bootstrap_invites` table (service-role only, RLS enabled with no policies) |
+| 2026-09-11 | Canonical Topics groundwork: `canonical_topic_source_types`, `canonical_topics`, `canonical_topic_evidences`, `canonical_topic_jobs`, matching/queue/claim/apply RPCs, source enqueue triggers, and source-level in-flight exclusivity |
 
 
 ## Related Docs
