@@ -76,6 +76,7 @@ flowchart TB
   PGCronPageSemantic --> PGNetPageSemantic --> WorkerPageSemantic --> PageSemantic
   PGCronSug --> PGNetSug --> WorkerSug --> Suggest
   PGCronPurge --> PGNetPurge --> WorkerPurge --> Purge
+  PGCronCanonical --> PGNetCanonical --> WorkerCanonical --> Canonical
 ```
 
 ## Inline Semantics Processing
