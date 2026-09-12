@@ -282,6 +282,14 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `purge_due_entities(p_entity_ids)` | Trash: process due trashed rows across every kind listed in `purgeable_entity_types` — hard-delete for pages, scrub-in-place for messages (service_role only) |
 | `unpin_on_page_purge()` | Trigger on `pages`: drops all pins for a page when it is moved to trash |
 | `escape_ilike_pattern(text)` | Escape helper for ILIKE patterns in keyword RPCs |
+| `match_canonical_topics(p_workspace_id, p_embedding, p_limit)` | Semantic nearest-match over `canonical_topics` in a workspace; returns `id, name, description, similarity` (service_role only) |
+| `enqueue_canonical_topic_job(p_workspace_id, p_job_type, p_source_type, p_source_id)` | Enqueue a single `ADD`/`REMOVE` canonical-topic job (service_role only) |
+| `claim_canonical_topic_job(p_stale_after)` | Claim one canonical-topic job, `SKIP LOCKED`, recovers stale `PROCESSING`, excludes sources already in-flight (service_role only) |
+| `apply_canonical_topic_add_and_commit(p_job_id, p_result)` | Atomic commit of an `ADD` job: per-workspace advisory lock, nearest-match downgrade, evidence insert, counter increment, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
+| `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
+| `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
+| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete (service_role only) |
+| `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on candidate promotion/demotion/delete (service_role only) |
 
 ## Row-Level Security
 
