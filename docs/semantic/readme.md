@@ -96,6 +96,10 @@ Phase B is triggered externally:
 | `conversation_topics` | Per-conversation topic candidates and established topics (`historical_weight`, `is_candidate`) |
 | `conversation_topic_evidences` | Message-to-topic links with cosine similarity |
 | `conversation_topic_jobs` | CTI queue (`QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `QUARANTINED`) |
+| `canonical_topic_source_types` | Registry mapping `source_type` to source table, owning-entity column, and owning table |
+| `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding`, `evidence_count`) |
+| `canonical_topic_evidences` | Source-topic-to-canonical-topic links with cosine similarity |
+| `canonical_topic_jobs` | Canonicalization queue (`ADD` / `REMOVE`, `QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `QUARANTINED`) |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 
