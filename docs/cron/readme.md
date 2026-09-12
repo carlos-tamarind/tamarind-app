@@ -350,6 +350,7 @@ POST /api/run-page-embedding-worker
 POST /api/run-page-semantic-worker
 POST /api/run-conversation-suggestion-worker
 POST /api/run-purge-worker
+POST /api/run-canonical-topics-worker
 ```
 
 
