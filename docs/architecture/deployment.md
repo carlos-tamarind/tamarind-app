@@ -275,6 +275,29 @@ SELECT cron.schedule(
 
 Use a dedicated secret (`PURGE_WORKER_SECRET`) — never reuse another worker secret. Enable the job only after a build containing the production route is live; earlier ticks simply log 404s. Each tick calls the service-role `purge_due_entities()` RPC, which walks `purgeable_entity_types` in `purge_order` — no table names are hardcoded in the worker.
 
+## Canonical Topics Worker Cron
+
+After deploying, configure a one-minute pg_cron job for the canonical-topics worker:
+
+```sql
+SELECT cron.schedule(
+  'run-canonical-topics-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://your-app.example.com/api/public/internal/run-canonical-topics-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-canonical-topics-worker-secret', 'your-canonical-topics-secret-here'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Use a dedicated secret (`CANONICAL_TOPICS_WORKER_SECRET`) — never reuse another worker secret. Enable the job only after a build containing the production route is live; earlier ticks simply return 404/503. Each tick claims one `canonical_topic_jobs` row via `claim_canonical_topic_job` and commits the result with `apply_canonical_topic_add_and_commit` or `apply_canonical_topic_remove_and_commit`.
+
 ## Database Migrations
 
 Migrations are SQL files in [`supabase/migrations/`](../../supabase/migrations/). Apply via Supabase CLI or dashboard:
