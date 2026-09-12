@@ -1,6 +1,6 @@
 # Semantic Pipeline Overview
 
-The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. After a message is embedded, a CTI worker matches or promotes conversation topics (`conversation_topics`). A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_chunk_embeddings` as `QUEUED`, which the page embedding worker turns into vectors. The same worker also embeds canonical page-topic strings onto `page_topic_embeddings`. A page-semantic worker produces an LLM topic name and description per page on `page_topics`.
+The semantic pipeline transforms raw chat messages into searchable vector embeddings. It runs in two decoupled phases: inline processing on message insert, and a cron-driven embedding worker. After a message is embedded, a CTI worker matches or promotes conversation topics (`conversation_topics`). A separate page-chunking sweeper decomposes idle pages into `page_chunks` and queues `page_chunk_embeddings` as `QUEUED`, which the page embedding worker turns into vectors. The same worker also embeds canonical page-topic strings onto `page_topic_embeddings`. A page-semantic worker produces an LLM topic name and description per page on `page_topics`. A canonical-topics worker then lifts established page and conversation topics into workspace-wide `canonical_topics` nodes linked by `canonical_topic_evidences`.
 
 Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 
@@ -16,6 +16,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 | [Page Semantics](page_semantic.md) | Page-level LLM topic name/description worker |
 | [Conversation Topics](conversation_topics.md) | CTI worker: similarity tiers, candidates, promotion |
 | [Conversation Suggestions](conversation_suggestions.md) | Per-participant related-entity nudge worker |
+| [Canonical Topics](canonical_topics.md) | Workspace-wide topic nodes, evidence links, and canonicalization worker |
 
 ## Purpose
 
@@ -95,6 +96,10 @@ Phase B is triggered externally:
 | `conversation_topics` | Per-conversation topic candidates and established topics (`historical_weight`, `is_candidate`) |
 | `conversation_topic_evidences` | Message-to-topic links with cosine similarity |
 | `conversation_topic_jobs` | CTI queue (`QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `QUARANTINED`) |
+| `canonical_topic_source_types` | Registry mapping `source_type` to source table, owning-entity column, and owning table |
+| `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding`, `evidence_count`) |
+| `canonical_topic_evidences` | Source-topic-to-canonical-topic links with cosine similarity |
+| `canonical_topic_jobs` | Canonicalization queue (`ADD` / `REMOVE`, `QUEUED` → `PROCESSING` → `COMPLETED` / `RETRY_WAIT` / `QUARANTINED`) |
 
 See [Database Schema](../architecture/database.md) for full table definitions.
 
