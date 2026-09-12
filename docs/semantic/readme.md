@@ -16,6 +16,7 @@ Developer reference: [`src/semantic/README.md`](../../src/semantic/README.md)
 | [Page Semantics](page_semantic.md) | Page-level LLM topic name/description worker |
 | [Conversation Topics](conversation_topics.md) | CTI worker: similarity tiers, candidates, promotion |
 | [Conversation Suggestions](conversation_suggestions.md) | Per-participant related-entity nudge worker |
+| [Canonical Topics](canonical_topics.md) | Workspace-wide topic nodes, evidence links, and canonicalization worker |
 
 ## Purpose
 
