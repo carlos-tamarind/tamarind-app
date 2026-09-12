@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { DebugLogger } from "@/lib/debugLogger";
 import { enqueueMessageSemanticsProcessing } from "@/semantic/enqueueMessageSemanticsProcessing";
 
 // A ProseMirror doc is "empty" when it's null/undefined, not a doc, or a doc
@@ -65,22 +66,42 @@ export async function notifyPageOwnerOnEvent(params: {
     );
     if (authErr || !ownerAuth.user?.email) return;
 
-    await fetch(webhookUrl, {
+    const payload = {
+      event,
+      pageId,
+      pageTitle,
+      ownerEmail: ownerAuth.user.email,
+      actorWorkspaceUserId: actorWuId,
+      workspaceId,
+      timestamp: new Date().toISOString(),
+      ...extra,
+    };
+
+    DebugLogger.log({
+      scope: "pages",
+      event: "notifyPageOwnerOnEvent:sending",
+      message: `POST ${webhookUrl} · ${JSON.stringify(payload)}`,
+    });
+
+    const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event,
-        pageId,
-        pageTitle,
-        ownerEmail: ownerAuth.user.email,
-        actorWorkspaceUserId: actorWuId,
-        workspaceId,
-        timestamp: new Date().toISOString(),
-        ...extra,
-      }),
+      body: JSON.stringify(payload),
+    });
+
+    DebugLogger.log({
+      scope: "pages",
+      event: "notifyPageOwnerOnEvent:sent",
+      message: `status=${res.status} ok=${res.ok}`,
+      level: res.ok ? "log" : "warn",
     });
   } catch (err) {
-    console.error(`[pages] failed to notify page owner (${event})`, err);
+    DebugLogger.log({
+      scope: "pages",
+      event: "notifyPageOwnerOnEvent:error",
+      message: `${event} · ${err instanceof Error ? err.message : String(err)}`,
+      level: "error",
+    });
   }
 }
 
