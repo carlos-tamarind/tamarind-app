@@ -319,6 +319,25 @@ A pg_cron job (`run-purge-worker`) calls the purge endpoint **hourly** (`0 * * *
 The worker never hardcodes table names — adding a deletable entity type is a registry row, not a code change. Mention rewrite runs immediately before the RPC so remaining links become plain `[Deleted page]` text.
 
 
+## Canonical Topics Worker (Cron)
+
+**Trigger:** External scheduler calling HTTP endpoint (dedicated secret)
+
+**Mechanism:** pg_cron + pg_net in Supabase Postgres
+
+A pg_cron job (`run-canonical-topics-worker`) calls the canonical-topics endpoint **every minute** (`* * * * *`) via pg_net HTTP POST with the `x-canonical-topics-worker-secret` header (`CANONICAL_TOPICS_WORKER_SECRET`).
+
+### Worker execution (planned)
+
+`runCanonicalTopicsWorker` (not yet implemented):
+
+1. Claims one due `canonical_topic_jobs` row via `claim_canonical_topic_job(p_stale_after)`.
+2. For `ADD` jobs: embeds the source topic name/description, calls `match_canonical_topics` for a nearest-match check, then commits with `apply_canonical_topic_add_and_commit(p_job_id, p_result)`.
+3. For `REMOVE` jobs: commits with `apply_canonical_topic_remove_and_commit(p_job_id)`.
+4. Returns `{ processed, committed, skipped }`.
+
+Source changes enqueue `ADD`/`REMOVE` jobs through triggers on `page_topics` and `conversation_topics`.
+
 ## Dev Manual Triggers
 
 For local testing without pg_cron:
