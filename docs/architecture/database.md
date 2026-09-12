@@ -244,6 +244,12 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `idx_page_topic_embeddings_claimable` | page_topic_embeddings | Partial: `(next_retry_at, created_at) WHERE status IN ('QUEUED','RETRY_WAIT')` | Page topic embedding worker |
 | `idx_page_topic_embeddings_queue` | page_topic_embeddings | `(embedding_status, next_retry_at, created_at)` | Queue inspection |
 | `idx_page_topic_embeddings_vector` | page_topic_embeddings | Partial HNSW cosine on `embedding` WHERE status = `'EMBEDDED'` | *(reserved — not wired into search)* |
+| `idx_canonical_topics_workspace_id` | canonical_topics | `(workspace_id)` | Workspace topic listing |
+| `idx_canonical_topics_embedding` | canonical_topics | HNSW cosine on `embedding` | `match_canonical_topics` nearest-match |
+| `idx_canonical_topic_evidences_source` | canonical_topic_evidences | `(source_type, source_id)` | Reverse lookup from a source topic |
+| `idx_canonical_topic_evidences_topic` | canonical_topic_evidences | `(canonical_topic_id)` | Evidence listing for a canonical topic |
+| `idx_canonical_topic_jobs_claimable` | canonical_topic_jobs | Partial: `(status, next_retry_at, created_at, id) WHERE status IN ('QUEUED','RETRY_WAIT')` | Worker claim |
+| `uniq_canonical_topic_jobs_source_inflight` | canonical_topic_jobs | Partial UNIQUE: `(source_type, source_id) WHERE status = 'PROCESSING'` | One in-flight job per source |
 
 ## Database Functions
 
