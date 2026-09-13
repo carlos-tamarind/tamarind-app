@@ -38,7 +38,7 @@ Also re-assert the existing `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authe
 
 ### Version
 
-- Bump `src/lib/version.ts` (`0.3.213` → `0.3.214`).
+- Bump `src/lib/version.ts` (`0.3.220` → `0.3.221`).
 
 ### Verification
 
