@@ -23,6 +23,19 @@ const GLOBAL_INFRA_PATTERNS = [
 
 function summarizeError(error: unknown): string {
   if (error instanceof Error) return error.message.slice(0, 500);
+
+  if (typeof error === "object" && error !== null) {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message.length > 0) {
+      return record.message.slice(0, 500);
+    }
+    try {
+      return JSON.stringify(error).slice(0, 500);
+    } catch {
+      // fall through to String() below
+    }
+  }
+
   return String(error).slice(0, 500);
 }
 
