@@ -327,16 +327,17 @@ The worker never hardcodes table names — adding a deletable entity type is a r
 
 A pg_cron job (`run-canonical-topics-worker`) calls the canonical-topics endpoint **every minute** (`* * * * *`) via pg_net HTTP POST with the `x-canonical-topics-worker-secret` header (`CANONICAL_TOPICS_WORKER_SECRET`).
 
-### Worker execution (planned)
+### Worker execution
 
-`runCanonicalTopicsWorker` (not yet implemented):
+[`runCanonicalTopicsWorker`](../../src/semantic/canonical-topics/worker/runCanonicalTopicsWorker.ts):
 
-1. Claims one due `canonical_topic_jobs` row via `claim_canonical_topic_job(p_stale_after)`.
-2. For `ADD` jobs: embeds the source topic name/description, calls `match_canonical_topics` for a nearest-match check, then commits with `apply_canonical_topic_add_and_commit(p_job_id, p_result)`.
-3. For `REMOVE` jobs: commits with `apply_canonical_topic_remove_and_commit(p_job_id)`.
-4. Returns `{ processed, committed, skipped }`.
+1. Claims one due `canonical_topic_jobs` row via `claim_canonical_topic_job(p_stale_after)`, up to `MAX_JOBS_PER_TICK` (5) per tick.
+2. For `ADD` jobs: embeds the source topic's current name/description, calls `match_canonical_topics`, and routes by similarity — high match reinforces directly, medium match asks an LLM to arbitrate create-vs-merge, low/no match creates a new canonical topic. Reinforcement that pushes `evidence_count` to a multiple of 5 triggers a regeneration LLM call first. Commits with `apply_canonical_topic_add_and_commit(p_job_id, p_result)`.
+3. For `REMOVE` jobs: commits with `apply_canonical_topic_remove_and_commit(p_job_id)` (no engine logic — the RPC does the entire fan-out).
+4. Returns `{ jobsProcessed, added, removed }`.
+5. Transient errors → `RETRY_WAIT` with exponential backoff (5× then 24h cooldown); permanent errors → `QUARANTINED`; a global-infra transient error circuit-breaks the rest of the tick.
 
-Source changes enqueue `ADD`/`REMOVE` jobs through triggers on `page_topics` and `conversation_topics`.
+Source changes enqueue `ADD`/`REMOVE` jobs through triggers on `page_topics` and `conversation_topics`. See [Canonical Topics](../semantic/canonical_topics.md) for the full engine design.
 
 ## Dev Manual Triggers
 

@@ -28,6 +28,7 @@ Message normalization, scoring, and embedding subsystem.
 | [Normalization](semantic/msg_normalization.md) | Text cleanup and skip gates |
 | [Scoring](semantic/msg_scoring.md) | MVP v1 heuristic quality model |
 | [Embedding](semantic/msg_embedding.md) | Batch worker, OpenAI provider, retry logic |
+| [Canonical Topics](semantic/canonical_topics.md) | Workspace-wide topic nodes unifying page and conversation topics |
 
 Developer entry point for the module: [`src/semantic/README.md`](../src/semantic/README.md)
 
