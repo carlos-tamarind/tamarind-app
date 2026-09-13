@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { DebugLogger } from "@/lib/debugLogger";
+import { fetchEmailsForUserIds, resolveLabel } from "@/lib/user-label.server";
 import { enqueueMessageSemanticsProcessing } from "@/semantic/enqueueMessageSemanticsProcessing";
 
 // A ProseMirror doc is "empty" when it's null/undefined, not a doc, or a doc
@@ -66,13 +67,27 @@ export async function notifyPageOwnerOnEvent(params: {
     );
     if (authErr || !ownerAuth.user?.email) return;
 
+    const [{ data: actorWu }, { data: workspace }] = await Promise.all([
+      supabaseAdmin
+        .from("workspace_users")
+        .select("display_name, user_id")
+        .eq("id", actorWuId)
+        .maybeSingle(),
+      supabaseAdmin.from("workspaces").select("name").eq("id", workspaceId).maybeSingle(),
+    ]);
+    const actorEmails = await fetchEmailsForUserIds([actorWu?.user_id as string | undefined]);
+    const actorLabel = resolveLabel(actorWu, actorEmails);
+    const workspaceName = (workspace?.name as string | null) ?? "Unknown workspace";
+
     const payload = {
       event,
       pageId,
       pageTitle,
       ownerEmail: ownerAuth.user.email,
       actorWorkspaceUserId: actorWuId,
+      actorLabel,
       workspaceId,
+      workspaceName,
       timestamp: new Date().toISOString(),
       ...extra,
     };
