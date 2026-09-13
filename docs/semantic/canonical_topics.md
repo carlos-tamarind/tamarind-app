@@ -2,7 +2,18 @@
 
 Canonical Topics are workspace-wide topic nodes that unify topic-like output from two separate semantic pipelines: `page_topics` (per-page LLM topic name/description) and `conversation_topics` (per-conversation CTI topics). Each `canonical_topics` row represents one idea inside a workspace; `canonical_topic_evidences` records which source topics support it.
 
-This layer is database-only groundwork for a future Knowledge Base graph tool. No application code reads or writes these tables yet.
+This layer is groundwork for a future Knowledge Base graph tool. The canonicalization worker (`src/semantic/canonical-topics/`) is the only application code that reads or writes these tables — see the Worker section below.
+
+## Worker
+
+`runCanonicalTopicsWorker` (`src/semantic/canonical-topics/worker/runCanonicalTopicsWorker.ts`) claims one `canonical_topic_jobs` row at a time via `claim_canonical_topic_job`, up to `MAX_JOBS_PER_TICK` per invocation:
+
+- **`ADD`** (`engine/planAdd.ts`): loads the source topic's current name/description, embeds it, calls `match_canonical_topics`, and routes by similarity — `> 0.5` reinforces the best match directly, `[0.2, 0.5]` asks an LLM to arbitrate create-vs-merge over the top matches, otherwise it creates a new canonical topic seeded from the source's own (already LLM-named) content. When reinforcing pushes `evidence_count` to a multiple of 5, a second LLM call regenerates the canonical topic's name/description from a sample of its evidence before committing. Every outcome is assembled into the `p_result` payload and committed via `apply_canonical_topic_add_and_commit`.
+- **`REMOVE`** (`engine/planRemove.ts`): a pass-through to `apply_canonical_topic_remove_and_commit`, which does the entire fan-out delete/decrement/auto-drop itself.
+
+Error handling follows the CTI pattern: permanent errors quarantine the job (`QUARANTINED`), transient errors retry with exponential backoff, and exceeding `MAX_TRANSIENT_BACKOFFS` parks the job on a 24h cooldown (`RETRY_WAIT`) rather than quarantining it.
+
+Read-only server functions (`src/lib/canonical-topics.functions.ts`) — `listCanonicalTopics` and `getCanonicalTopicEvidence` — expose the result for future UI use; no UI consumes them yet.
 
 ## Tables
 

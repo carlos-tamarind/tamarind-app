@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
 import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
+import { Route as ApiRunCanonicalTopicsWorkerRouteImport } from './routes/api/run-canonical-topics-worker'
 import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
 import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
 import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
@@ -28,6 +29,7 @@ import { Route as ApiRunPurgeWorkerRouteImport } from './routes/api/run-purge-wo
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
+import { Route as ApiPublicInternalRunCanonicalTopicsWorkerRouteImport } from './routes/api/public/internal/run-canonical-topics-worker'
 import { Route as ApiPublicInternalRunConversationSuggestionWorkerRouteImport } from './routes/api/public/internal/run-conversation-suggestion-worker'
 import { Route as ApiPublicInternalRunCtiWorkerRouteImport } from './routes/api/public/internal/run-cti-worker'
 import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
@@ -83,6 +85,12 @@ const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
   path: '/api/generate-embeddings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunCanonicalTopicsWorkerRoute =
+  ApiRunCanonicalTopicsWorkerRouteImport.update({
+    id: '/api/run-canonical-topics-worker',
+    path: '/api/run-canonical-topics-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiRunConversationSuggestionWorkerRoute =
   ApiRunConversationSuggestionWorkerRouteImport.update({
     id: '/api/run-conversation-suggestion-worker',
@@ -138,6 +146,12 @@ const AuthenticatedWWorkspaceIdSettingsRoute =
     id: '/settings',
     path: '/settings',
     getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+  } as any)
+const ApiPublicInternalRunCanonicalTopicsWorkerRoute =
+  ApiPublicInternalRunCanonicalTopicsWorkerRouteImport.update({
+    id: '/api/public/internal/run-canonical-topics-worker',
+    path: '/api/public/internal/run-canonical-topics-worker',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicInternalRunConversationSuggestionWorkerRoute =
   ApiPublicInternalRunConversationSuggestionWorkerRouteImport.update({
@@ -203,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
@@ -213,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
   '/api/public/internal/run-conversation-suggestion-worker': typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
@@ -232,6 +248,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
@@ -242,6 +259,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
   '/api/public/internal/run-conversation-suggestion-worker': typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
@@ -263,6 +281,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
+  '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
   '/api/run-embedding-worker': typeof ApiRunEmbeddingWorkerRoute
@@ -273,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
+  '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
   '/api/public/internal/run-conversation-suggestion-worker': typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
   '/api/public/internal/run-cti-worker': typeof ApiPublicInternalRunCtiWorkerRoute
   '/api/public/internal/run-embedding-worker': typeof ApiPublicInternalRunEmbeddingWorkerRoute
@@ -294,6 +314,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/generate-workspace-invite'
     | '/api/generate-embeddings'
+    | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
@@ -304,6 +325,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-canonical-topics-worker'
     | '/api/public/internal/run-conversation-suggestion-worker'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
@@ -323,6 +345,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/generate-workspace-invite'
     | '/api/generate-embeddings'
+    | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
@@ -333,6 +356,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
+    | '/api/public/internal/run-canonical-topics-worker'
     | '/api/public/internal/run-conversation-suggestion-worker'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
@@ -353,6 +377,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/generate-workspace-invite'
     | '/api/generate-embeddings'
+    | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
     | '/api/run-embedding-worker'
@@ -363,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/w/$workspaceId'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
+    | '/api/public/internal/run-canonical-topics-worker'
     | '/api/public/internal/run-conversation-suggestion-worker'
     | '/api/public/internal/run-cti-worker'
     | '/api/public/internal/run-embedding-worker'
@@ -383,6 +409,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
+  ApiRunCanonicalTopicsWorkerRoute: typeof ApiRunCanonicalTopicsWorkerRoute
   ApiRunConversationSuggestionWorkerRoute: typeof ApiRunConversationSuggestionWorkerRoute
   ApiRunCtiWorkerRoute: typeof ApiRunCtiWorkerRoute
   ApiRunEmbeddingWorkerRoute: typeof ApiRunEmbeddingWorkerRoute
@@ -391,6 +418,7 @@ export interface RootRouteChildren {
   ApiRunPageSemanticWorkerRoute: typeof ApiRunPageSemanticWorkerRoute
   ApiRunPurgeWorkerRoute: typeof ApiRunPurgeWorkerRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
+  ApiPublicInternalRunCanonicalTopicsWorkerRoute: typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
   ApiPublicInternalRunConversationSuggestionWorkerRoute: typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
   ApiPublicInternalRunCtiWorkerRoute: typeof ApiPublicInternalRunCtiWorkerRoute
   ApiPublicInternalRunEmbeddingWorkerRoute: typeof ApiPublicInternalRunEmbeddingWorkerRoute
@@ -465,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/run-canonical-topics-worker': {
+      id: '/api/run-canonical-topics-worker'
+      path: '/api/run-canonical-topics-worker'
+      fullPath: '/api/run-canonical-topics-worker'
+      preLoaderRoute: typeof ApiRunCanonicalTopicsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/run-conversation-suggestion-worker': {
       id: '/api/run-conversation-suggestion-worker'
       path: '/api/run-conversation-suggestion-worker'
@@ -534,6 +569,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId/settings'
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdSettingsRouteImport
       parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    }
+    '/api/public/internal/run-canonical-topics-worker': {
+      id: '/api/public/internal/run-canonical-topics-worker'
+      path: '/api/public/internal/run-canonical-topics-worker'
+      fullPath: '/api/public/internal/run-canonical-topics-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunCanonicalTopicsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/internal/run-conversation-suggestion-worker': {
       id: '/api/public/internal/run-conversation-suggestion-worker'
@@ -646,6 +688,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
+  ApiRunCanonicalTopicsWorkerRoute: ApiRunCanonicalTopicsWorkerRoute,
   ApiRunConversationSuggestionWorkerRoute:
     ApiRunConversationSuggestionWorkerRoute,
   ApiRunCtiWorkerRoute: ApiRunCtiWorkerRoute,
@@ -655,6 +698,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRunPageSemanticWorkerRoute: ApiRunPageSemanticWorkerRoute,
   ApiRunPurgeWorkerRoute: ApiRunPurgeWorkerRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
+  ApiPublicInternalRunCanonicalTopicsWorkerRoute:
+    ApiPublicInternalRunCanonicalTopicsWorkerRoute,
   ApiPublicInternalRunConversationSuggestionWorkerRoute:
     ApiPublicInternalRunConversationSuggestionWorkerRoute,
   ApiPublicInternalRunCtiWorkerRoute: ApiPublicInternalRunCtiWorkerRoute,
