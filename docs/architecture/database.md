@@ -289,7 +289,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
 | `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete (service_role only) |
-| `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on candidate promotion/demotion/delete (service_role only) |
+| `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: INSERT is a no-op (rows start as candidates); DELETE enqueues `REMOVE` only for established topics; UPDATE enqueues `ADD` on promotion, `REMOVE` on demotion, and `REMOVE` then `ADD` on content drift of established topics (service_role only) |
 
 ## Row-Level Security
 
@@ -332,6 +332,7 @@ Write patterns:
 | 2026-09-03 | Unread-messages groundwork: partial index `idx_messages_conversation_unread` and `get_unread_conversation_summary_for_user` RPC |
 | 2026-09-04 | Platform bootstrap groundwork: `workspace_bootstrap_invites` table (service-role only, RLS enabled with no policies) |
 | 2026-09-11 | Canonical Topics groundwork: `canonical_topic_source_types`, `canonical_topics`, `canonical_topic_evidences`, `canonical_topic_jobs`, matching/queue/claim/apply RPCs, source enqueue triggers, and source-level in-flight exclusivity |
+| 2026-09-13 | Fix `enqueue_conversation_topic_canonical_job()` to enqueue only established (`is_candidate = false`) conversation topics; candidates are no longer canonical-topic sources |
 
 
 ## Related Docs
