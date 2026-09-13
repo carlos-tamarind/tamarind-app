@@ -20,11 +20,11 @@ Source changes enqueue jobs through triggers:
 - `page_topics` insert → `ADD`
 - `page_topics` update of `topic_name`/`topic_description` → `REMOVE` then `ADD` (content drift)
 - `page_topics` delete → `REMOVE`
-- `conversation_topics` insert with `is_candidate = true` → `ADD`
-- `conversation_topics` update `is_candidate` false → true → `ADD`
-- `conversation_topics` update `is_candidate` true → false → `REMOVE`
-- `conversation_topics` update `name`/`description` while `is_candidate = true` → `REMOVE` then `ADD`
-- `conversation_topics` delete while `is_candidate = true` → `REMOVE`
+- `conversation_topics` insert → no enqueue (rows start as candidates)
+- `conversation_topics` update `is_candidate` true → false (promotion) → `ADD`
+- `conversation_topics` update `is_candidate` false → true (demotion) → `REMOVE`
+- `conversation_topics` update `name`/`description` while `is_candidate = false` (established content drift) → `REMOVE` then `ADD`
+- `conversation_topics` delete while `is_candidate = false` → `REMOVE`
 
 The worker calls `claim_canonical_topic_job`, which:
 
