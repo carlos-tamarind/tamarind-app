@@ -23,6 +23,19 @@ const GLOBAL_INFRA_PATTERNS = [
 
 function summarizeError(error: unknown): string {
   if (error instanceof Error) return error.message.slice(0, 500);
+
+  if (typeof error === "object" && error !== null) {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message.length > 0) {
+      return record.message.slice(0, 500);
+    }
+    try {
+      return JSON.stringify(error).slice(0, 500);
+    } catch {
+      // fall through to String() below
+    }
+  }
+
   return String(error).slice(0, 500);
 }
 
@@ -40,6 +53,17 @@ function extractHttpStatus(error: unknown): number | null {
   }
 
   return null;
+}
+
+/**
+ * Postgres SQLSTATE class 42 ("Syntax Error or Access Rule Violation") covers
+ * undefined column/table/function and insufficient-privilege errors — always
+ * a schema/code bug, never something a retry can fix.
+ */
+function isPermanentPostgresSqlState(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const record = error as Record<string, unknown>;
+  return typeof record.code === "string" && /^42\d{3}$/.test(record.code);
 }
 
 function isGlobalInfraMessage(message: string): boolean {
@@ -69,6 +93,10 @@ export function classifyCanonicalTopicError(error: unknown): CanonicalTopicError
 
   if (isZodLikeError(error)) {
     return { kind: "permanent", summary: `validation: ${summary}` };
+  }
+
+  if (isPermanentPostgresSqlState(error)) {
+    return { kind: "permanent", summary };
   }
 
   const status = extractHttpStatus(error);
