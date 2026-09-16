@@ -28,7 +28,7 @@ Read-only server functions (`src/lib/canonical-topics.functions.ts`) — `listCa
 
 Source changes enqueue jobs through triggers:
 
-- `page_topics` insert → `ADD`
+- `page_topics` insert → `ADD` (`source_id` = the topic row's `id`)
 - `page_topics` update of `topic_name`/`topic_description` → `REMOVE` then `ADD` (content drift)
 - `page_topics` delete → `REMOVE`
 - `conversation_topics` insert → no enqueue (rows start as candidates)
