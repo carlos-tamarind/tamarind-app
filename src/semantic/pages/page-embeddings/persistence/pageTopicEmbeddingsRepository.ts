@@ -7,7 +7,7 @@ import { formatStaleAfterInterval } from "../worker/retry";
 export type PageTopicEmbeddingRow = Database["public"]["Tables"]["page_topic_embeddings"]["Row"];
 
 export type PageTopicText = {
-  page_id: string;
+  id: string;
   topic_name: string;
   topic_description: string;
 };
@@ -30,16 +30,16 @@ export async function claimPageTopicEmbeddingBatch(
 }
 
 export async function loadPageTopicsByIds(
-  pageIds: string[],
+  pageTopicIds: string[],
 ): Promise<Map<string, PageTopicText>> {
-  if (pageIds.length === 0) return new Map();
+  if (pageTopicIds.length === 0) return new Map();
   const supabase = await getAdmin();
   const { data, error } = await supabase
     .from("page_topics")
-    .select("page_id, topic_name, topic_description")
-    .in("page_id", pageIds);
+    .select("id, topic_name, topic_description")
+    .in("id", pageTopicIds);
   if (error) throw error;
-  return new Map((data ?? []).map((row) => [row.page_id, row as PageTopicText]));
+  return new Map((data ?? []).map((row) => [row.id, row as PageTopicText]));
 }
 
 /**
@@ -103,10 +103,7 @@ export async function requeuePageTopicEmbedding(options: {
   if (error) throw error;
 }
 
-export async function markPageTopicEmbeddingFailed(
-  id: string,
-  lastError: string,
-): Promise<void> {
+export async function markPageTopicEmbeddingFailed(id: string, lastError: string): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
     .from("page_topic_embeddings")
@@ -123,10 +120,7 @@ export async function markPageTopicEmbeddingFailed(
  * Return a claimed row to the queue without counting it as a failure. When the
  * live canonical checksum drifted, store it so the next tick embeds the right text.
  */
-export async function releasePageTopicEmbedding(
-  id: string,
-  checksum?: string,
-): Promise<void> {
+export async function releasePageTopicEmbedding(id: string, checksum?: string): Promise<void> {
   const supabase = await getAdmin();
   const { error } = await supabase
     .from("page_topic_embeddings")

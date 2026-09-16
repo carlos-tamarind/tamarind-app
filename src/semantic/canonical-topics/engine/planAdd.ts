@@ -15,11 +15,17 @@ import {
 } from "./persistence/loadCanonicalContext";
 import {
   applyCanonicalTopicAdd,
+  applyCanonicalTopicRemove,
   type CanonicalTopicAddPayload,
 } from "./persistence/applyCanonicalTopicResult";
 
 export async function planAdd(job: CanonicalTopicJob): Promise<ApplyCanonicalTopicResult> {
   const source = await loadSourceTopicContent(job);
+  // Stale ADD: the source row is gone (deleted, or — for page_topic — recreated
+  // with a new synthetic id since the job was enqueued). Nothing to add; ensure
+  // no evidence lingers and close the job quietly rather than quarantining it.
+  if (!source) return applyCanonicalTopicRemove(job.id);
+
   const embedding = await embedCanonicalTopic(source.name, source.description);
 
   const matches = await matchCanonicalTopics(job.workspace_id, embedding);

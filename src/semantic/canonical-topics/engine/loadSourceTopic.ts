@@ -15,8 +15,16 @@ export type SourceTopicContent = {
 /**
  * Loads the current name/description/owning-entity for an ADD job's source row.
  * Only two source kinds exist today (mirrors canonical_topic_source_types).
+ *
+ * Returns null when the source row no longer exists — a stale ADD, enqueued
+ * before the row was deleted (or, for page_topic, deleted and re-created with
+ * a new id since source_id is now the row's own synthetic id, not the page
+ * id). That's a no-op for the caller, not a permanent error: the row being
+ * malformed (still) is.
  */
-export async function loadSourceTopicContent(job: CanonicalTopicJob): Promise<SourceTopicContent> {
+export async function loadSourceTopicContent(
+  job: CanonicalTopicJob,
+): Promise<SourceTopicContent | null> {
   const supabase = await getAdmin();
 
   if (job.source_type === "conversation_topic") {
@@ -27,7 +35,8 @@ export async function loadSourceTopicContent(job: CanonicalTopicJob): Promise<So
       .maybeSingle();
 
     if (error) throw error;
-    if (!data || !data.name || !data.description) {
+    if (!data) return null;
+    if (!data.name || !data.description) {
       throw new CanonicalTopicPermanentError(
         `conversation_topic ${job.source_id} has no established name/description`,
       );
@@ -43,19 +52,17 @@ export async function loadSourceTopicContent(job: CanonicalTopicJob): Promise<So
   if (job.source_type === "page_topic") {
     const { data, error } = await supabase
       .from("page_topics")
-      .select("topic_name, topic_description")
-      .eq("page_id", job.source_id)
+      .select("page_id, topic_name, topic_description")
+      .eq("id", job.source_id)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) {
-      throw new CanonicalTopicPermanentError(`page_topic ${job.source_id} not found`);
-    }
+    if (!data) return null;
 
     return {
       name: data.topic_name,
       description: data.topic_description,
-      owningEntityId: job.source_id,
+      owningEntityId: data.page_id,
     };
   }
 
