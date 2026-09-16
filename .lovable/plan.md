@@ -36,8 +36,9 @@ Left unchanged as specified: `validate_canonical_topic_evidence()`, `canonical_t
 **4. Multi-topic readiness is structural only — accepted.** `page_id` stays UNIQUE and `apply_page_topic_result` still upserts on it, so one topic per page remains enforced.
 
 
-## Also updated
+## Also updated (nothing beyond this)
 
 - Supabase types regeneration.
 - `docs/architecture/database.md` (page_topics / page_topic_embeddings schema, constraints, trigger descriptions, migration timeline row), `docs/semantic/page_semantic.md`, `docs/semantic/page_embedding.md`, `docs/semantic/canonical_topics.md` (page-topic `source_id` now the topic row id).
-- Version bump in `src/lib/version.ts`.
+
+No application code changes, no version bump.
