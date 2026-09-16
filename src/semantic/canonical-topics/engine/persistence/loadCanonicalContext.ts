@@ -92,11 +92,11 @@ export async function loadEvidenceTextsForRegeneration(
   if (pageTopicIds.length > 0) {
     const { data, error } = await supabase
       .from("page_topics")
-      .select("page_id, topic_name, topic_description")
-      .in("page_id", pageTopicIds);
+      .select("id, topic_name, topic_description")
+      .in("id", pageTopicIds);
     if (error) throw error;
     for (const row of data ?? []) {
-      textById.set(row.page_id, canonicalTopicText(row.topic_name, row.topic_description));
+      textById.set(row.id, canonicalTopicText(row.topic_name, row.topic_description));
     }
   }
 

@@ -106,12 +106,12 @@ export const getCanonicalTopicEvidence = createServerFn({ method: "GET" })
     if (pageTopicIds.length > 0) {
       const { data: rows, error } = await supabaseAdmin
         .from("page_topics")
-        .select("page_id, topic_name, topic_description")
-        .in("page_id", pageTopicIds);
+        .select("id, topic_name, topic_description")
+        .in("id", pageTopicIds);
       if (error) throw new Error(error.message);
       for (const row of rows ?? []) {
         const text = `${row.topic_name}: ${row.topic_description}`;
-        snapshotById.set(row.page_id, extractSnippet(text, ""));
+        snapshotById.set(row.id, extractSnippet(text, ""));
       }
     }
 

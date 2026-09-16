@@ -152,18 +152,18 @@ async function processClaimedTopicBatch(): Promise<BatchOutcome> {
     message: `${claimedRows.length} rows`,
   });
 
-  const topics = await loadPageTopicsByIds(claimedRows.map((row) => row.page_id));
+  const topics = await loadPageTopicsByIds(claimedRows.map((row) => row.page_topic_id));
   const embeddable: Array<{ row: PageTopicEmbeddingRow; content: string }> = [];
 
   for (const row of claimedRows) {
-    const topic = topics.get(row.page_id);
+    const topic = topics.get(row.page_topic_id);
 
     if (!topic) {
       outcome.skipped += 1;
       DebugLogger.log({
         scope: LOG_SCOPE,
         event: "TOPIC_ROW_MISSING",
-        message: `${row.id} · page ${row.page_id}`,
+        message: `${row.id} · page topic ${row.page_topic_id}`,
         level: "warn",
       });
       continue;
@@ -187,7 +187,7 @@ async function processClaimedTopicBatch(): Promise<BatchOutcome> {
     DebugLogger.log({
       scope: LOG_SCOPE,
       event: "TOPIC_CANONICAL",
-      message: `${row.page_id} · ${row.checksum}`,
+      message: `${row.page_topic_id} · ${row.checksum}`,
     });
     embeddable.push({ row, content });
   }
@@ -233,7 +233,10 @@ async function processClaimedTopicBatch(): Promise<BatchOutcome> {
       const vector = embeddings[index];
       if (!vector) {
         outcome.failed += 1;
-        await markPageTopicEmbeddingFailed(item.row.id, "Provider returned no vector for this text");
+        await markPageTopicEmbeddingFailed(
+          item.row.id,
+          "Provider returned no vector for this text",
+        );
         continue;
       }
 
