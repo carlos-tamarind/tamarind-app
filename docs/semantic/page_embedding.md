@@ -24,7 +24,7 @@ flowchart LR
 
 ### Topic embeddings
 
-1. `claim_page_topic_embedding_batch` uses the same claim/stale-recovery pattern as chunks. Rows are enqueued only by `trg_page_topics_enqueue_embedding` when `page_topics.topic_name` or `topic_description` change.
+1. `claim_page_topic_embedding_batch` uses the same claim/stale-recovery pattern as chunks. Rows are enqueued only by `trg_page_topics_enqueue_embedding` when `page_topics.topic_name` or `topic_description` change, and each row is keyed by `page_topic_id` → `page_topics.id`.
 2. Live `page_topics` text is formatted with `canonicalTopicText` (`name: description`) and SHA-256 compared to the claimed checksum before spending an API call.
 3. Heartbeat `updated_at`, then `embedBatch` of the canonical strings.
 4. Guarded persist: `WHERE id = ? AND embedding_status = 'PROCESSING' AND checksum = ?`.
