@@ -95,7 +95,7 @@ erDiagram
 | `pages` | Rich-text documents (TipTap JSON); `purged_at` marks trash state | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
 | `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
-| `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | → `pages` (PK = page_id, CASCADE) |
+| `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | PK = synthetic `id`; → `pages` (CASCADE); UNIQUE(page_id) |
 | `page_topic_jobs` | Analysis work queue per page (`page_snapshot_hash`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`) | → `pages` (CASCADE) |
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
@@ -127,7 +127,7 @@ erDiagram
 | `message_semantics` | Normalized text, quality score, embedding queue state | → `messages` (1:1, CASCADE); UNIQUE(message_id), UNIQUE(checksum) |
 | `message_embeddings` | Vector embeddings for semantic search | → `message_semantics` (CASCADE); `embedding_vector vector(1536)` |
 | `page_chunk_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
-| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(page_id)` (CASCADE); UNIQUE(page_id), UNIQUE(page_id, embedding_model); `embedding vector(1536)` |
+| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(id)` (CASCADE); UNIQUE(page_topic_id), UNIQUE(page_topic_id, embedding_model); `embedding vector(1536)` |
 
 **Page embedding queue.** `page_chunk_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
 
@@ -135,7 +135,7 @@ erDiagram
 
 **Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
 
-**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` — `page_topic_embeddings` resolves that page through its `page_topics` row — so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
 
 ### Conversation Suggestions
 
@@ -158,7 +158,7 @@ erDiagram
 |-------|---------|-------------------|
 | `canonical_topic_source_types` | Registry of source topic kinds: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name` | — |
 | `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`) | → `workspaces` (CASCADE) |
-| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`) | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
+| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`). `source_id` is the source row's own PK — `page_topics.id` or `conversation_topics.id` | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
 | `canonical_topic_jobs` | Work queue for canonicalization (`workspace_id`, `source_type`, `source_id`, `job_type`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`) | → `workspaces` (CASCADE), → `canonical_topic_source_types` (source_type) |
 
 **Source-type registry.** `canonical_topic_source_types` is the source of truth for resolving a source row to its owning entity and workspace. It is read by the validation trigger on `canonical_topic_evidences` and by the enqueue triggers on `page_topics` / `conversation_topics`. Only `service_role` can read it.
@@ -270,7 +270,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `enqueue_page_topic_job(p_page_id, p_hash)` | Pipeline: upsert the in-flight job — overwrites hash and resets `QUEUED`/`RETRY_WAIT` rows, no-ops while `PROCESSING`. Returns `enqueued` / `requeued` / `processing` (service_role only) |
 | `apply_page_topic_result(p_job_id, p_topic_name, p_topic_description, p_page_snapshot, p_page_snapshot_hash, p_llm_model)` | Pipeline: atomic commit — re-checks the live page hash, upserts `page_topics` and completes the job. Returns `committed` / `drifted` / `not_processing` / `not_found` (service_role only) |
 | `claim_page_topic_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-topic-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
-| `enqueue_page_topic_embedding()` | Trigger on `page_topics`: upserts the `QUEUED` topic-embedding row with the new checksum (service_role only) |
+| `enqueue_page_topic_embedding()` | Trigger on `page_topics`: upserts the `QUEUED` topic-embedding row (keyed by `page_topic_id`) with the new checksum (service_role only) |
 | `set_page_chunks_updated_at()` / `set_page_chunk_embeddings_updated_at()` / `set_page_topics_updated_at()` / `set_page_topic_jobs_updated_at()` / `set_page_topic_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
@@ -288,7 +288,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `apply_canonical_topic_add_and_commit(p_job_id, p_result)` | Atomic commit of an `ADD` job: per-workspace advisory lock, nearest-match downgrade, evidence insert, counter increment, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
-| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete (service_role only) |
+| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete, with the topic row's `id` as `source_id` (service_role only) |
 | `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: INSERT is a no-op (rows start as candidates); DELETE enqueues `REMOVE` only for established topics; UPDATE enqueues `ADD` on promotion, `REMOVE` on demotion, and `REMOVE` then `ADD` on content drift of established topics (service_role only) |
 
 ## Row-Level Security
@@ -333,6 +333,7 @@ Write patterns:
 | 2026-09-04 | Platform bootstrap groundwork: `workspace_bootstrap_invites` table (service-role only, RLS enabled with no policies) |
 | 2026-09-11 | Canonical Topics groundwork: `canonical_topic_source_types`, `canonical_topics`, `canonical_topic_evidences`, `canonical_topic_jobs`, matching/queue/claim/apply RPCs, source enqueue triggers, and source-level in-flight exclusivity |
 | 2026-09-13 | Fix `enqueue_conversation_topic_canonical_job()` to enqueue only established (`is_candidate = false`) conversation topics; candidates are no longer canonical-topic sources |
+| 2026-09-16 | `page_topics` gains a synthetic `id` PK (`page_id` demoted to UNIQUE); `page_topic_embeddings` repoints to `page_topic_id`; page-topic canonical `source_id` now carries `page_topics.id` (existing rows backfilled) |
 
 
 ## Related Docs
