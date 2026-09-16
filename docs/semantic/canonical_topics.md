@@ -21,7 +21,7 @@ Read-only server functions (`src/lib/canonical-topics.functions.ts`) — `listCa
 |-------|------|
 | `canonical_topic_source_types` | Registry: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name`. Used by validation/enqueue triggers to resolve workspace and owning entity. |
 | `canonical_topics` | Workspace-wide topic node (`workspace_id`, `name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`). |
-| `canonical_topic_evidences` | One row per (canonical topic, source topic): `canonical_topic_id`, `source_type`, `source_id`, `owning_entity_id`, `similarity`. UNIQUE on `(canonical_topic_id, source_type, source_id)`. |
+| `canonical_topic_evidences` | One row per (canonical topic, source topic): `canonical_topic_id`, `source_type`, `source_id`, `owning_entity_id`, `similarity`. `source_id` is the source row's own primary key (`page_topics.id` / `conversation_topics.id`); `owning_entity_id` is the page or conversation. UNIQUE on `(canonical_topic_id, source_type, source_id)`. |
 | `canonical_topic_jobs` | Work queue: `workspace_id`, `source_type`, `source_id`, `job_type` (`ADD` / `REMOVE`), `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`. |
 
 ## Job Lifecycle

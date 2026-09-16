@@ -135,7 +135,7 @@ erDiagram
 
 **Naming split.** Page rows use `embedding` / `embedding_model`; the older `message_embeddings` uses `embedding_vector` / `model`. The two enums are deliberately separate so page states (`RETRY_WAIT`) never leak into message/CTI predicates.
 
-**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
+**Access.** `page_chunks`, `page_chunk_embeddings`, `page_topics`, `page_topic_jobs`, and `page_topic_embeddings` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS allows SELECT only, gated by `public.can_read_page(page_id)` — `page_topic_embeddings` resolves that page through its `page_topics` row — so the existing page visibility policy (private / conversation / collaborator / workspace / external) applies without duplication. All writes go through the service-role pipeline.
 
 ### Conversation Suggestions
 
@@ -270,7 +270,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `enqueue_page_topic_job(p_page_id, p_hash)` | Pipeline: upsert the in-flight job — overwrites hash and resets `QUEUED`/`RETRY_WAIT` rows, no-ops while `PROCESSING`. Returns `enqueued` / `requeued` / `processing` (service_role only) |
 | `apply_page_topic_result(p_job_id, p_topic_name, p_topic_description, p_page_snapshot, p_page_snapshot_hash, p_llm_model)` | Pipeline: atomic commit — re-checks the live page hash, upserts `page_topics` and completes the job. Returns `committed` / `drifted` / `not_processing` / `not_found` (service_role only) |
 | `claim_page_topic_embedding_batch(batch_size, stale_after)` | Pipeline: atomic page-topic-embedding batch claim, `SKIP LOCKED`, recovers stale `PROCESSING` via `updated_at` (service_role only — workers must bump `updated_at` as a heartbeat) |
-| `enqueue_page_topic_embedding()` | Trigger on `page_topics`: upserts the `QUEUED` topic-embedding row with the new checksum (service_role only) |
+| `enqueue_page_topic_embedding()` | Trigger on `page_topics`: upserts the `QUEUED` topic-embedding row (keyed by `page_topic_id`) with the new checksum (service_role only) |
 | `set_page_chunks_updated_at()` / `set_page_chunk_embeddings_updated_at()` / `set_page_topics_updated_at()` / `set_page_topic_jobs_updated_at()` / `set_page_topic_embeddings_updated_at()` | Triggers: auto-update `updated_at` |
 | `search_pages_keyword(...)` | Keyword search over page titles and content |
 | `search_conversations_keyword(...)` | Keyword search over conversation titles |
@@ -288,7 +288,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `apply_canonical_topic_add_and_commit(p_job_id, p_result)` | Atomic commit of an `ADD` job: per-workspace advisory lock, nearest-match downgrade, evidence insert, counter increment, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
-| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete (service_role only) |
+| `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete, with the topic row's `id` as `source_id` (service_role only) |
 | `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: INSERT is a no-op (rows start as candidates); DELETE enqueues `REMOVE` only for established topics; UPDATE enqueues `ADD` on promotion, `REMOVE` on demotion, and `REMOVE` then `ADD` on content drift of established topics (service_role only) |
 
 ## Row-Level Security
