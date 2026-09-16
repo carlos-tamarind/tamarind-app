@@ -1085,7 +1085,7 @@ export type Database = {
           id: string
           last_error: string | null
           next_retry_at: string | null
-          page_id: string
+          page_topic_id: string
           updated_at: string
         }
         Insert: {
@@ -1099,7 +1099,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           next_retry_at?: string | null
-          page_id: string
+          page_topic_id: string
           updated_at?: string
         }
         Update: {
@@ -1113,16 +1113,16 @@ export type Database = {
           id?: string
           last_error?: string | null
           next_retry_at?: string | null
-          page_id?: string
+          page_topic_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "page_topic_embeddings_page_id_fkey"
-            columns: ["page_id"]
+            foreignKeyName: "page_topic_embeddings_page_topic_id_fkey"
+            columns: ["page_topic_id"]
             isOneToOne: true
             referencedRelation: "page_topics"
-            referencedColumns: ["page_id"]
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1179,6 +1179,7 @@ export type Database = {
       page_topics: {
         Row: {
           created_at: string
+          id: string
           llm_model: string
           page_id: string
           page_snapshot: string
@@ -1189,6 +1190,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          id?: string
           llm_model: string
           page_id: string
           page_snapshot: string
@@ -1199,6 +1201,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          id?: string
           llm_model?: string
           page_id?: string
           page_snapshot?: string
@@ -1803,7 +1806,7 @@ export type Database = {
           id: string
           last_error: string | null
           next_retry_at: string | null
-          page_id: string
+          page_topic_id: string
           updated_at: string
         }[]
         SetofOptions: {
