@@ -95,7 +95,7 @@ erDiagram
 | `pages` | Rich-text documents (TipTap JSON); `purged_at` marks trash state | → `workspaces`, → `workspace_users` (owner, created_by), → `conversations`, → `pages` (parent), → `entities` (optional) |
 | `page_collaborators` | Tracks who edited a page | → `pages`, → `workspace_users`; PK(page_id, workspace_user_id) |
 | `page_chunks` | Chunked page text for semantic indexing (`position`, `content`, `checksum`, `token_count`) | → `pages` (CASCADE); UNIQUE(page_id, position) |
-| `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | → `pages` (PK = page_id, CASCADE) |
+| `page_topics` | Last successful page analysis: `topic_name`, `topic_description`, `page_snapshot`, `page_snapshot_hash`, `llm_model` | PK = synthetic `id`; → `pages` (CASCADE); UNIQUE(page_id) |
 | `page_topic_jobs` | Analysis work queue per page (`page_snapshot_hash`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`) | → `pages` (CASCADE) |
 
 `pages.plain_text` is a generated column via `tiptap_to_plaintext(doc)` for full-text search.
@@ -127,7 +127,7 @@ erDiagram
 | `message_semantics` | Normalized text, quality score, embedding queue state | → `messages` (1:1, CASCADE); UNIQUE(message_id), UNIQUE(checksum) |
 | `message_embeddings` | Vector embeddings for semantic search | → `message_semantics` (CASCADE); `embedding_vector vector(1536)` |
 | `page_chunk_embeddings` | Vector + queue state per page chunk | → `page_chunks` (CASCADE); UNIQUE(chunk_id, embedding_model); `embedding vector(1536)` |
-| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(page_id)` (CASCADE); UNIQUE(page_id), UNIQUE(page_id, embedding_model); `embedding vector(1536)` |
+| `page_topic_embeddings` | Vector + queue state per page topic (1:1 with `page_topics`) | → `page_topics(id)` (CASCADE); UNIQUE(page_topic_id), UNIQUE(page_topic_id, embedding_model); `embedding vector(1536)` |
 
 **Page embedding queue.** `page_chunk_embeddings` carries its own state machine (`page_embedding_status`: `QUEUED` → `PROCESSING` → `EMBEDDED` / `RETRY_WAIT` / `FAILED`) plus `attempts`, `next_retry_at`, `last_error`, `embedded_at`. `embedding` is NULL until a successful embed; a CHECK enforces that an `EMBEDDED` row has a vector. Re-embedding updates the existing `(chunk_id, embedding_model)` row instead of inserting.
 
@@ -158,7 +158,7 @@ erDiagram
 |-------|---------|-------------------|
 | `canonical_topic_source_types` | Registry of source topic kinds: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name` | — |
 | `canonical_topics` | Workspace-wide canonical topic nodes (`name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`) | → `workspaces` (CASCADE) |
-| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`) | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
+| `canonical_topic_evidences` | Links a canonical topic to one source topic row (`source_type`, `source_id`, `owning_entity_id`, `similarity`). `source_id` is the source row's own PK — `page_topics.id` or `conversation_topics.id` | → `canonical_topics` (CASCADE), → `canonical_topic_source_types` (source_type); UNIQUE(`canonical_topic_id`, `source_type`, `source_id`) |
 | `canonical_topic_jobs` | Work queue for canonicalization (`workspace_id`, `source_type`, `source_id`, `job_type`, `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`) | → `workspaces` (CASCADE), → `canonical_topic_source_types` (source_type) |
 
 **Source-type registry.** `canonical_topic_source_types` is the source of truth for resolving a source row to its owning entity and workspace. It is read by the validation trigger on `canonical_topic_evidences` and by the enqueue triggers on `page_topics` / `conversation_topics`. Only `service_role` can read it.
@@ -333,6 +333,7 @@ Write patterns:
 | 2026-09-04 | Platform bootstrap groundwork: `workspace_bootstrap_invites` table (service-role only, RLS enabled with no policies) |
 | 2026-09-11 | Canonical Topics groundwork: `canonical_topic_source_types`, `canonical_topics`, `canonical_topic_evidences`, `canonical_topic_jobs`, matching/queue/claim/apply RPCs, source enqueue triggers, and source-level in-flight exclusivity |
 | 2026-09-13 | Fix `enqueue_conversation_topic_canonical_job()` to enqueue only established (`is_candidate = false`) conversation topics; candidates are no longer canonical-topic sources |
+| 2026-09-16 | `page_topics` gains a synthetic `id` PK (`page_id` demoted to UNIQUE); `page_topic_embeddings` repoints to `page_topic_id`; page-topic canonical `source_id` now carries `page_topics.id` (existing rows backfilled) |
 
 
 ## Related Docs
