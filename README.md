@@ -6,6 +6,8 @@ Tamarind helps teams capture, organize, and retrieve the knowledge that emerges 
 
 [www.tamarind.so](https://www.tamarind.so)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 ## What Tamarind Does
 
 Teams generate knowledge constantly — in Slack threads, standups, design reviews, and ad-hoc discussions. Most of it disappears. Tamarind gives that knowledge a home:
@@ -61,14 +63,16 @@ These are grounded in existing schema and feature flags, not speculative roadmap
 # Install dependencies
 bun install
 
-# Configure environment (see docs/deployment.md)
-cp .env.example .env.local
+# Configure environment
+cp .env.example .env
 
 # Start development server
 bun dev
 ```
 
-Required environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. See [Deployment](docs/deployment.md) for the full list.
+Required environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. See [Deployment](docs/architecture/deployment.md) for the full list.
+
+> **Security note:** `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, and every `*_WORKER_SECRET` are server-side only — they must never be exposed to the browser or committed. Only `VITE_*` values reach the client. Keep your filled-in `.env` local; it is git-ignored, and only `.env.example` (names, no values) belongs in the repository.
 
 ## Documentation
 
@@ -99,4 +103,4 @@ docs/                 # Architecture documentation
 
 ## License
 
-Proprietary. All rights reserved.
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Carlos Rabadán.
