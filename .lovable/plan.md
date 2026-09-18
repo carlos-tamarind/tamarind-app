@@ -24,14 +24,9 @@ All 83 direct dependencies are MIT (80), Apache-2.0 (2), or ISC (1). Across all 
 5. **README**: replace "Proprietary. All rights reserved." with an MIT section pointing at `LICENSE`, add an MIT badge line at the top, and add a short security note to Getting Started — `SUPABASE_SERVICE_ROLE_KEY` is server-only and never committed; `.env` stays local.
 6. **`.claude` / `.cursor`**: nothing to do — neither folder exists on disk, neither is tracked in version control, and `.gitignore` already lists both. Verified, no change needed.
 
-## Important caveat: git history
+## Git history: accepted as-is (decided)
 
-Removing `.env` and `.lovable/` from the current tree does **not** remove them from past commits — the publishable key and the planning notes remain readable in history to anyone who clones a public repo. Options:
-
-- **Accept it** (reasonable): the exposed values are publishable/anon-tier, protected by row-level security, and the planning notes are not secret. Nothing here is a credential that grants privileged access.
-- **Rewrite history** (`git filter-repo`) before going public: clean, but rewrites every commit hash and is not something I can run here — git history operations are outside what I can do in this project.
-
-My recommendation: accept, and additionally rotate nothing since no privileged credential was ever committed. If you want the history scrubbed, do that locally before the first public push.
+Removing `.env` and `.lovable/` from the current tree does not remove them from past commits, and that is accepted. No history rewrite. Nothing committed was a privileged credential: the exposed values are publishable/anon-tier and protected by row-level security, and the planning notes are not secret. No rotation needed.
 
 ## Out of scope
 
