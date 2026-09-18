@@ -22,6 +22,7 @@ All 83 direct dependencies are MIT (80), Apache-2.0 (2), or ISC (1). Across all 
 3. **Stop tracking `.env`**: remove it from version control while keeping the local file, and add a bare `.env` line to `.gitignore`. Add a committed `.env.example` listing variable names with empty values, since the README already points at it.
 4. **Stop tracking `.lovable/`**: remove the folder from version control (files stay on disk; `.gitignore` already covers it). This also removes the personal email from the public tree.
 5. **README**: replace "Proprietary. All rights reserved." with an MIT section pointing at `LICENSE`, add an MIT badge line at the top, and add a short security note to Getting Started — `SUPABASE_SERVICE_ROLE_KEY` is server-only and never committed; `.env` stays local.
+6. **`.claude` / `.cursor`**: nothing to do — neither folder exists on disk, neither is tracked in version control, and `.gitignore` already lists both. Verified, no change needed.
 
 ## Important caveat: git history
 
