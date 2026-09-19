@@ -36,6 +36,11 @@ The confirmation link lands on `/bootstrap`, which gains a third mode for a sign
 
 **One workspace per email** is enforced on the server at creation time: if the account already belongs to any workspace, creation is refused and the user is sent to their existing workspace instead.
 
+## Login page tweaks
+
+- Remove the "Invite-only workspace." subtitle.
+- Add a "Request access" link next to "Forgot password?" in the bottom row, pointing to `/signup`.
+
 ## Out of scope
 
 Website changes, and removing `/generate-workspace-invite` and its table (separate task).
