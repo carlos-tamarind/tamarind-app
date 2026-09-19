@@ -37,6 +37,8 @@ import { Route as ApiPublicInternalRunPageChunkingWorkerRouteImport } from './ro
 import { Route as ApiPublicInternalRunPageEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-page-embedding-worker'
 import { Route as ApiPublicInternalRunPageSemanticWorkerRouteImport } from './routes/api/public/internal/run-page-semantic-worker'
 import { Route as ApiPublicInternalRunPurgeWorkerRouteImport } from './routes/api/public/internal/run-purge-worker'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 
@@ -195,6 +197,16 @@ const ApiPublicInternalRunPurgeWorkerRoute =
     path: '/api/public/internal/run-purge-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWWorkspaceIdCConversationIdRoute =
   AuthenticatedWWorkspaceIdCConversationIdRouteImport.update({
     id: '/c/$conversationId',
@@ -236,6 +248,8 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -267,6 +281,8 @@ export interface FileRoutesByTo {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -300,6 +316,8 @@ export interface FileRoutesById {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -333,6 +351,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -364,6 +384,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -396,6 +418,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -426,6 +450,8 @@ export interface RootRouteChildren {
   ApiPublicInternalRunPageEmbeddingWorkerRoute: typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   ApiPublicInternalRunPageSemanticWorkerRoute: typeof ApiPublicInternalRunPageSemanticWorkerRoute
   ApiPublicInternalRunPurgeWorkerRoute: typeof ApiPublicInternalRunPurgeWorkerRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -626,6 +652,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalRunPurgeWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/w/$workspaceId/c/$conversationId': {
       id: '/_authenticated/w/$workspaceId/c/$conversationId'
       path: '/c/$conversationId'
@@ -712,6 +752,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalRunPageSemanticWorkerRoute:
     ApiPublicInternalRunPageSemanticWorkerRoute,
   ApiPublicInternalRunPurgeWorkerRoute: ApiPublicInternalRunPurgeWorkerRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
