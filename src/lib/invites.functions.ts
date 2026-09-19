@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, getRequest } from "@tanstack/react-start";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -8,7 +8,7 @@ import { requireFeature } from "./workspaces.functions";
 
 const INVITE_TTL_HOURS = 24;
 const ROLE_KEYS = ["admin", "member", "viewer"] as const;
-const APP_BASE_URL = "https://tamarind.so";
+const APP_BASE_URL = "https://app.tamarind.so";
 
 async function assertWorkspaceAdmin(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
