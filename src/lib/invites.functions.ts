@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -8,7 +9,7 @@ import { requireFeature } from "./workspaces.functions";
 
 const INVITE_TTL_HOURS = 24;
 const ROLE_KEYS = ["admin", "member", "viewer"] as const;
-const APP_BASE_URL = "https://tamarind.so";
+const APP_BASE_URL = "https://app.tamarind.so";
 
 async function assertWorkspaceAdmin(workspaceId: string, userId: string) {
   const { data, error } = await supabaseAdmin
@@ -108,6 +109,7 @@ export const createInvite = createServerFn({ method: "POST" })
       workspaceId: data.workspaceId,
       inviterWorkspaceUserId,
       roleKey: data.roleKey,
+      origin: resolveRequestOrigin(),
     });
 
     return {
@@ -124,6 +126,18 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "a viewer",
 };
 
+// Invite emails point at the environment the invite was sent from (preview vs
+// production), matching the "Copy link" button. Falls back to the production
+// app domain when no request origin is available.
+function resolveRequestOrigin(): string {
+  try {
+    const origin = getRequest().headers.get("origin");
+    return origin ?? APP_BASE_URL;
+  } catch {
+    return APP_BASE_URL;
+  }
+}
+
 // Best-effort delivery: the invite exists regardless, and the admin can always
 // share the link manually if the email is suppressed or the API is unavailable.
 async function sendInviteEmail(params: {
@@ -133,6 +147,7 @@ async function sendInviteEmail(params: {
   workspaceId: string;
   inviterWorkspaceUserId: string;
   roleKey: string;
+  origin: string;
 }): Promise<boolean> {
   try {
     const [{ data: workspace }, { data: inviter }] = await Promise.all([
@@ -151,7 +166,7 @@ async function sendInviteEmail(params: {
         workspaceName: workspace?.name ?? "a workspace",
         inviterName: inviter?.display_name ?? undefined,
         roleLabel: ROLE_LABELS[params.roleKey],
-        acceptUrl: `${APP_BASE_URL}/accept-invite?token=${encodeURIComponent(params.token)}`,
+        acceptUrl: `${params.origin}/accept-invite?token=${encodeURIComponent(params.token)}`,
         expiresInHours: INVITE_TTL_HOURS,
       },
       idempotencyKey: `workspace-invite-${params.inviteId}`,
