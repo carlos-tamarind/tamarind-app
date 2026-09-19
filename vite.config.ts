@@ -5,8 +5,14 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { execSync } from "node:child_process";
+import path from "node:path";
 
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { loadEnv } from "vite";
+
+// Server-side env (no VITE_ prefix) for server routes such as the email webhook.
+// Never added to define/envDefine — these must not reach the client bundle.
+Object.assign(process.env, loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), ""));
 
 function resolveCommitHash(): string {
   const ciHash =
@@ -40,6 +46,13 @@ export default defineConfig({
     },
     ssr: {
       external: ["cloudflare:workers"],
+    },
+    resolve: {
+      alias: {
+        "entities/lib/decode.js": path.resolve(process.cwd(), "node_modules/entities/lib/decode.js"),
+        "entities/lib/encode.js": path.resolve(process.cwd(), "node_modules/entities/lib/encode.js"),
+        entities: path.resolve(process.cwd(), "node_modules/entities"),
+      },
     },
   },
 });
