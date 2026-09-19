@@ -166,7 +166,7 @@ async function sendInviteEmail(params: {
         workspaceName: workspace?.name ?? "a workspace",
         inviterName: inviter?.display_name ?? undefined,
         roleLabel: ROLE_LABELS[params.roleKey],
-        acceptUrl: `${APP_BASE_URL}/accept-invite?token=${encodeURIComponent(params.token)}`,
+        acceptUrl: `${params.origin}/accept-invite?token=${encodeURIComponent(params.token)}`,
         expiresInHours: INVITE_TTL_HOURS,
       },
       idempotencyKey: `workspace-invite-${params.inviteId}`,
