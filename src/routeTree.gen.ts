@@ -9,59 +9,42 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
-import { Route as BootstrapRouteImport } from './routes/bootstrap'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
-import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
-import { Route as ApiRunCanonicalTopicsWorkerRouteImport } from './routes/api/run-canonical-topics-worker'
-import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
-import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
-import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
-import { Route as ApiRunPageChunkingWorkerRouteImport } from './routes/api/run-page-chunking-worker'
-import { Route as ApiRunPageEmbeddingWorkerRouteImport } from './routes/api/run-page-embedding-worker'
-import { Route as ApiRunPageSemanticWorkerRouteImport } from './routes/api/run-page-semantic-worker'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as BootstrapRouteImport } from './routes/bootstrap'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiRunPurgeWorkerRouteImport } from './routes/api/run-purge-worker'
-import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as ApiRunPageSemanticWorkerRouteImport } from './routes/api/run-page-semantic-worker'
+import { Route as ApiRunPageEmbeddingWorkerRouteImport } from './routes/api/run-page-embedding-worker'
+import { Route as ApiRunPageChunkingWorkerRouteImport } from './routes/api/run-page-chunking-worker'
+import { Route as ApiRunEmbeddingWorkerRouteImport } from './routes/api/run-embedding-worker'
+import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
+import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
+import { Route as ApiRunCanonicalTopicsWorkerRouteImport } from './routes/api/run-canonical-topics-worker'
+import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
+import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
-import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
-import { Route as ApiPublicInternalRunCanonicalTopicsWorkerRouteImport } from './routes/api/public/internal/run-canonical-topics-worker'
-import { Route as ApiPublicInternalRunConversationSuggestionWorkerRouteImport } from './routes/api/public/internal/run-conversation-suggestion-worker'
-import { Route as ApiPublicInternalRunCtiWorkerRouteImport } from './routes/api/public/internal/run-cti-worker'
-import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
-import { Route as ApiPublicInternalRunPageChunkingWorkerRouteImport } from './routes/api/public/internal/run-page-chunking-worker'
-import { Route as ApiPublicInternalRunPageEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-page-embedding-worker'
-import { Route as ApiPublicInternalRunPageSemanticWorkerRouteImport } from './routes/api/public/internal/run-page-semantic-worker'
+import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicInternalRunPurgeWorkerRouteImport } from './routes/api/public/internal/run-purge-worker'
-import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
+import { Route as ApiPublicInternalRunPageSemanticWorkerRouteImport } from './routes/api/public/internal/run-page-semantic-worker'
+import { Route as ApiPublicInternalRunPageEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-page-embedding-worker'
+import { Route as ApiPublicInternalRunPageChunkingWorkerRouteImport } from './routes/api/public/internal/run-page-chunking-worker'
+import { Route as ApiPublicInternalRunEmbeddingWorkerRouteImport } from './routes/api/public/internal/run-embedding-worker'
+import { Route as ApiPublicInternalRunCtiWorkerRouteImport } from './routes/api/public/internal/run-cti-worker'
+import { Route as ApiPublicInternalRunConversationSuggestionWorkerRouteImport } from './routes/api/public/internal/run-conversation-suggestion-worker'
+import { Route as ApiPublicInternalRunCanonicalTopicsWorkerRouteImport } from './routes/api/public/internal/run-canonical-topics-worker'
+import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
+import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AcceptInviteRoute = AcceptInviteRouteImport.update({
-  id: '/accept-invite',
-  path: '/accept-invite',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BootstrapRoute = BootstrapRouteImport.update({
-  id: '/bootstrap',
-  path: '/bootstrap',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -69,48 +52,39 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedGenerateWorkspaceInviteRoute =
-  AuthenticatedGenerateWorkspaceInviteRouteImport.update({
-    id: '/generate-workspace-invite',
-    path: '/generate-workspace-invite',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
-  id: '/api/generate-embeddings',
-  path: '/api/generate-embeddings',
+const BootstrapRoute = BootstrapRouteImport.update({
+  id: '/bootstrap',
+  path: '/bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRunCanonicalTopicsWorkerRoute =
-  ApiRunCanonicalTopicsWorkerRouteImport.update({
-    id: '/api/run-canonical-topics-worker',
-    path: '/api/run-canonical-topics-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRunConversationSuggestionWorkerRoute =
-  ApiRunConversationSuggestionWorkerRouteImport.update({
-    id: '/api/run-conversation-suggestion-worker',
-    path: '/api/run-conversation-suggestion-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiRunCtiWorkerRoute = ApiRunCtiWorkerRouteImport.update({
-  id: '/api/run-cti-worker',
-  path: '/api/run-cti-worker',
+const AcceptInviteRoute = AcceptInviteRouteImport.update({
+  id: '/accept-invite',
+  path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRunEmbeddingWorkerRoute = ApiRunEmbeddingWorkerRouteImport.update({
-  id: '/api/run-embedding-worker',
-  path: '/api/run-embedding-worker',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRunPageChunkingWorkerRoute =
-  ApiRunPageChunkingWorkerRouteImport.update({
-    id: '/api/run-page-chunking-worker',
-    path: '/api/run-page-chunking-worker',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunPurgeWorkerRoute = ApiRunPurgeWorkerRouteImport.update({
+  id: '/api/run-purge-worker',
+  path: '/api/run-purge-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunPageSemanticWorkerRoute =
+  ApiRunPageSemanticWorkerRouteImport.update({
+    id: '/api/run-page-semantic-worker',
+    path: '/api/run-page-semantic-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiRunPageEmbeddingWorkerRoute =
@@ -119,15 +93,48 @@ const ApiRunPageEmbeddingWorkerRoute =
     path: '/api/run-page-embedding-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiRunPageSemanticWorkerRoute =
-  ApiRunPageSemanticWorkerRouteImport.update({
-    id: '/api/run-page-semantic-worker',
-    path: '/api/run-page-semantic-worker',
+const ApiRunPageChunkingWorkerRoute =
+  ApiRunPageChunkingWorkerRouteImport.update({
+    id: '/api/run-page-chunking-worker',
+    path: '/api/run-page-chunking-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiRunPurgeWorkerRoute = ApiRunPurgeWorkerRouteImport.update({
-  id: '/api/run-purge-worker',
-  path: '/api/run-purge-worker',
+const ApiRunEmbeddingWorkerRoute = ApiRunEmbeddingWorkerRouteImport.update({
+  id: '/api/run-embedding-worker',
+  path: '/api/run-embedding-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunCtiWorkerRoute = ApiRunCtiWorkerRouteImport.update({
+  id: '/api/run-cti-worker',
+  path: '/api/run-cti-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunConversationSuggestionWorkerRoute =
+  ApiRunConversationSuggestionWorkerRouteImport.update({
+    id: '/api/run-conversation-suggestion-worker',
+    path: '/api/run-conversation-suggestion-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiRunCanonicalTopicsWorkerRoute =
+  ApiRunCanonicalTopicsWorkerRouteImport.update({
+    id: '/api/run-canonical-topics-worker',
+    path: '/api/run-canonical-topics-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
+  id: '/api/generate-embeddings',
+  path: '/api/generate-embeddings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedGenerateWorkspaceInviteRoute =
+  AuthenticatedGenerateWorkspaceInviteRouteImport.update({
+    id: '/generate-workspace-invite',
+    path: '/generate-workspace-invite',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
+  id: '/api/pages/save',
+  path: '/api/pages/save',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWWorkspaceIdRoute =
@@ -136,51 +143,20 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
-  id: '/api/pages/save',
-  path: '/api/pages/save',
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedWWorkspaceIdSettingsRoute =
-  AuthenticatedWWorkspaceIdSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
-  } as any)
-const ApiPublicInternalRunCanonicalTopicsWorkerRoute =
-  ApiPublicInternalRunCanonicalTopicsWorkerRouteImport.update({
-    id: '/api/public/internal/run-canonical-topics-worker',
-    path: '/api/public/internal/run-canonical-topics-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInternalRunConversationSuggestionWorkerRoute =
-  ApiPublicInternalRunConversationSuggestionWorkerRouteImport.update({
-    id: '/api/public/internal/run-conversation-suggestion-worker',
-    path: '/api/public/internal/run-conversation-suggestion-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInternalRunCtiWorkerRoute =
-  ApiPublicInternalRunCtiWorkerRouteImport.update({
-    id: '/api/public/internal/run-cti-worker',
-    path: '/api/public/internal/run-cti-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInternalRunEmbeddingWorkerRoute =
-  ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
-    id: '/api/public/internal/run-embedding-worker',
-    path: '/api/public/internal/run-embedding-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInternalRunPageChunkingWorkerRoute =
-  ApiPublicInternalRunPageChunkingWorkerRouteImport.update({
-    id: '/api/public/internal/run-page-chunking-worker',
-    path: '/api/public/internal/run-page-chunking-worker',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInternalRunPageEmbeddingWorkerRoute =
-  ApiPublicInternalRunPageEmbeddingWorkerRouteImport.update({
-    id: '/api/public/internal/run-page-embedding-worker',
-    path: '/api/public/internal/run-page-embedding-worker',
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicInternalRunPurgeWorkerRoute =
+  ApiPublicInternalRunPurgeWorkerRouteImport.update({
+    id: '/api/public/internal/run-purge-worker',
+    path: '/api/public/internal/run-purge-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicInternalRunPageSemanticWorkerRoute =
@@ -189,22 +165,58 @@ const ApiPublicInternalRunPageSemanticWorkerRoute =
     path: '/api/public/internal/run-page-semantic-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicInternalRunPurgeWorkerRoute =
-  ApiPublicInternalRunPurgeWorkerRouteImport.update({
-    id: '/api/public/internal/run-purge-worker',
-    path: '/api/public/internal/run-purge-worker',
+const ApiPublicInternalRunPageEmbeddingWorkerRoute =
+  ApiPublicInternalRunPageEmbeddingWorkerRouteImport.update({
+    id: '/api/public/internal/run-page-embedding-worker',
+    path: '/api/public/internal/run-page-embedding-worker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedWWorkspaceIdCConversationIdRoute =
-  AuthenticatedWWorkspaceIdCConversationIdRouteImport.update({
-    id: '/c/$conversationId',
-    path: '/c/$conversationId',
+const ApiPublicInternalRunPageChunkingWorkerRoute =
+  ApiPublicInternalRunPageChunkingWorkerRouteImport.update({
+    id: '/api/public/internal/run-page-chunking-worker',
+    path: '/api/public/internal/run-page-chunking-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalRunEmbeddingWorkerRoute =
+  ApiPublicInternalRunEmbeddingWorkerRouteImport.update({
+    id: '/api/public/internal/run-embedding-worker',
+    path: '/api/public/internal/run-embedding-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalRunCtiWorkerRoute =
+  ApiPublicInternalRunCtiWorkerRouteImport.update({
+    id: '/api/public/internal/run-cti-worker',
+    path: '/api/public/internal/run-cti-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalRunConversationSuggestionWorkerRoute =
+  ApiPublicInternalRunConversationSuggestionWorkerRouteImport.update({
+    id: '/api/public/internal/run-conversation-suggestion-worker',
+    path: '/api/public/internal/run-conversation-suggestion-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalRunCanonicalTopicsWorkerRoute =
+  ApiPublicInternalRunCanonicalTopicsWorkerRouteImport.update({
+    id: '/api/public/internal/run-canonical-topics-worker',
+    path: '/api/public/internal/run-canonical-topics-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedWWorkspaceIdSettingsRoute =
+  AuthenticatedWWorkspaceIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
     getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
   } as any)
 const AuthenticatedWWorkspaceIdPPageIdRoute =
   AuthenticatedWWorkspaceIdPPageIdRouteImport.update({
     id: '/p/$pageId',
     path: '/p/$pageId',
+    getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
+  } as any)
+const AuthenticatedWWorkspaceIdCConversationIdRoute =
+  AuthenticatedWWorkspaceIdCConversationIdRouteImport.update({
+    id: '/c/$conversationId',
+    path: '/c/$conversationId',
     getParentRoute: () => AuthenticatedWWorkspaceIdRoute,
   } as any)
 
@@ -236,6 +248,8 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -267,6 +281,8 @@ export interface FileRoutesByTo {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -300,6 +316,8 @@ export interface FileRoutesById {
   '/api/public/internal/run-page-embedding-worker': typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   '/api/public/internal/run-page-semantic-worker': typeof ApiPublicInternalRunPageSemanticWorkerRoute
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -333,6 +351,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -364,6 +384,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -396,6 +418,8 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-page-embedding-worker'
     | '/api/public/internal/run-page-semantic-worker'
     | '/api/public/internal/run-purge-worker'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -426,43 +450,17 @@ export interface RootRouteChildren {
   ApiPublicInternalRunPageEmbeddingWorkerRoute: typeof ApiPublicInternalRunPageEmbeddingWorkerRoute
   ApiPublicInternalRunPageSemanticWorkerRoute: typeof ApiPublicInternalRunPageSemanticWorkerRoute
   ApiPublicInternalRunPurgeWorkerRoute: typeof ApiPublicInternalRunPurgeWorkerRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accept-invite': {
-      id: '/accept-invite'
-      path: '/accept-invite'
-      fullPath: '/accept-invite'
-      preLoaderRoute: typeof AcceptInviteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bootstrap': {
-      id: '/bootstrap'
-      path: '/bootstrap'
-      fullPath: '/bootstrap'
-      preLoaderRoute: typeof BootstrapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -472,74 +470,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/generate-workspace-invite': {
-      id: '/_authenticated/generate-workspace-invite'
-      path: '/generate-workspace-invite'
-      fullPath: '/generate-workspace-invite'
-      preLoaderRoute: typeof AuthenticatedGenerateWorkspaceInviteRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/generate-embeddings': {
-      id: '/api/generate-embeddings'
-      path: '/api/generate-embeddings'
-      fullPath: '/api/generate-embeddings'
-      preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
+    '/bootstrap': {
+      id: '/bootstrap'
+      path: '/bootstrap'
+      fullPath: '/bootstrap'
+      preLoaderRoute: typeof BootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/run-canonical-topics-worker': {
-      id: '/api/run-canonical-topics-worker'
-      path: '/api/run-canonical-topics-worker'
-      fullPath: '/api/run-canonical-topics-worker'
-      preLoaderRoute: typeof ApiRunCanonicalTopicsWorkerRouteImport
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/run-conversation-suggestion-worker': {
-      id: '/api/run-conversation-suggestion-worker'
-      path: '/api/run-conversation-suggestion-worker'
-      fullPath: '/api/run-conversation-suggestion-worker'
-      preLoaderRoute: typeof ApiRunConversationSuggestionWorkerRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/run-cti-worker': {
-      id: '/api/run-cti-worker'
-      path: '/api/run-cti-worker'
-      fullPath: '/api/run-cti-worker'
-      preLoaderRoute: typeof ApiRunCtiWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/run-embedding-worker': {
-      id: '/api/run-embedding-worker'
-      path: '/api/run-embedding-worker'
-      fullPath: '/api/run-embedding-worker'
-      preLoaderRoute: typeof ApiRunEmbeddingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/run-page-chunking-worker': {
-      id: '/api/run-page-chunking-worker'
-      path: '/api/run-page-chunking-worker'
-      fullPath: '/api/run-page-chunking-worker'
-      preLoaderRoute: typeof ApiRunPageChunkingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/run-page-embedding-worker': {
-      id: '/api/run-page-embedding-worker'
-      path: '/api/run-page-embedding-worker'
-      fullPath: '/api/run-page-embedding-worker'
-      preLoaderRoute: typeof ApiRunPageEmbeddingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/run-page-semantic-worker': {
-      id: '/api/run-page-semantic-worker'
-      path: '/api/run-page-semantic-worker'
-      fullPath: '/api/run-page-semantic-worker'
-      preLoaderRoute: typeof ApiRunPageSemanticWorkerRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/run-purge-worker': {
@@ -549,11 +512,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRunPurgeWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/w/$workspaceId': {
-      id: '/_authenticated/w/$workspaceId'
-      path: '/w/$workspaceId'
-      fullPath: '/w/$workspaceId'
-      preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
+    '/api/run-page-semantic-worker': {
+      id: '/api/run-page-semantic-worker'
+      path: '/api/run-page-semantic-worker'
+      fullPath: '/api/run-page-semantic-worker'
+      preLoaderRoute: typeof ApiRunPageSemanticWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-page-embedding-worker': {
+      id: '/api/run-page-embedding-worker'
+      path: '/api/run-page-embedding-worker'
+      fullPath: '/api/run-page-embedding-worker'
+      preLoaderRoute: typeof ApiRunPageEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-page-chunking-worker': {
+      id: '/api/run-page-chunking-worker'
+      path: '/api/run-page-chunking-worker'
+      fullPath: '/api/run-page-chunking-worker'
+      preLoaderRoute: typeof ApiRunPageChunkingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-embedding-worker': {
+      id: '/api/run-embedding-worker'
+      path: '/api/run-embedding-worker'
+      fullPath: '/api/run-embedding-worker'
+      preLoaderRoute: typeof ApiRunEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-cti-worker': {
+      id: '/api/run-cti-worker'
+      path: '/api/run-cti-worker'
+      fullPath: '/api/run-cti-worker'
+      preLoaderRoute: typeof ApiRunCtiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-conversation-suggestion-worker': {
+      id: '/api/run-conversation-suggestion-worker'
+      path: '/api/run-conversation-suggestion-worker'
+      fullPath: '/api/run-conversation-suggestion-worker'
+      preLoaderRoute: typeof ApiRunConversationSuggestionWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-canonical-topics-worker': {
+      id: '/api/run-canonical-topics-worker'
+      path: '/api/run-canonical-topics-worker'
+      fullPath: '/api/run-canonical-topics-worker'
+      preLoaderRoute: typeof ApiRunCanonicalTopicsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-embeddings': {
+      id: '/api/generate-embeddings'
+      path: '/api/generate-embeddings'
+      fullPath: '/api/generate-embeddings'
+      preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/generate-workspace-invite': {
+      id: '/_authenticated/generate-workspace-invite'
+      path: '/generate-workspace-invite'
+      fullPath: '/generate-workspace-invite'
+      preLoaderRoute: typeof AuthenticatedGenerateWorkspaceInviteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/api/pages/save': {
@@ -563,60 +582,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPagesSaveRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/w/$workspaceId/settings': {
-      id: '/_authenticated/w/$workspaceId/settings'
-      path: '/settings'
-      fullPath: '/w/$workspaceId/settings'
-      preLoaderRoute: typeof AuthenticatedWWorkspaceIdSettingsRouteImport
-      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    '/_authenticated/w/$workspaceId': {
+      id: '/_authenticated/w/$workspaceId'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/internal/run-canonical-topics-worker': {
-      id: '/api/public/internal/run-canonical-topics-worker'
-      path: '/api/public/internal/run-canonical-topics-worker'
-      fullPath: '/api/public/internal/run-canonical-topics-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunCanonicalTopicsWorkerRouteImport
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/internal/run-conversation-suggestion-worker': {
-      id: '/api/public/internal/run-conversation-suggestion-worker'
-      path: '/api/public/internal/run-conversation-suggestion-worker'
-      fullPath: '/api/public/internal/run-conversation-suggestion-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunConversationSuggestionWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/internal/run-cti-worker': {
-      id: '/api/public/internal/run-cti-worker'
-      path: '/api/public/internal/run-cti-worker'
-      fullPath: '/api/public/internal/run-cti-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunCtiWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/internal/run-embedding-worker': {
-      id: '/api/public/internal/run-embedding-worker'
-      path: '/api/public/internal/run-embedding-worker'
-      fullPath: '/api/public/internal/run-embedding-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunEmbeddingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/internal/run-page-chunking-worker': {
-      id: '/api/public/internal/run-page-chunking-worker'
-      path: '/api/public/internal/run-page-chunking-worker'
-      fullPath: '/api/public/internal/run-page-chunking-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunPageChunkingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/internal/run-page-embedding-worker': {
-      id: '/api/public/internal/run-page-embedding-worker'
-      path: '/api/public/internal/run-page-embedding-worker'
-      fullPath: '/api/public/internal/run-page-embedding-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunPageEmbeddingWorkerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/internal/run-page-semantic-worker': {
-      id: '/api/public/internal/run-page-semantic-worker'
-      path: '/api/public/internal/run-page-semantic-worker'
-      fullPath: '/api/public/internal/run-page-semantic-worker'
-      preLoaderRoute: typeof ApiPublicInternalRunPageSemanticWorkerRouteImport
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/internal/run-purge-worker': {
@@ -626,11 +610,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalRunPurgeWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/w/$workspaceId/c/$conversationId': {
-      id: '/_authenticated/w/$workspaceId/c/$conversationId'
-      path: '/c/$conversationId'
-      fullPath: '/w/$workspaceId/c/$conversationId'
-      preLoaderRoute: typeof AuthenticatedWWorkspaceIdCConversationIdRouteImport
+    '/api/public/internal/run-page-semantic-worker': {
+      id: '/api/public/internal/run-page-semantic-worker'
+      path: '/api/public/internal/run-page-semantic-worker'
+      fullPath: '/api/public/internal/run-page-semantic-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunPageSemanticWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-page-embedding-worker': {
+      id: '/api/public/internal/run-page-embedding-worker'
+      path: '/api/public/internal/run-page-embedding-worker'
+      fullPath: '/api/public/internal/run-page-embedding-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunPageEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-page-chunking-worker': {
+      id: '/api/public/internal/run-page-chunking-worker'
+      path: '/api/public/internal/run-page-chunking-worker'
+      fullPath: '/api/public/internal/run-page-chunking-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunPageChunkingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-embedding-worker': {
+      id: '/api/public/internal/run-embedding-worker'
+      path: '/api/public/internal/run-embedding-worker'
+      fullPath: '/api/public/internal/run-embedding-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunEmbeddingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-cti-worker': {
+      id: '/api/public/internal/run-cti-worker'
+      path: '/api/public/internal/run-cti-worker'
+      fullPath: '/api/public/internal/run-cti-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunCtiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-conversation-suggestion-worker': {
+      id: '/api/public/internal/run-conversation-suggestion-worker'
+      path: '/api/public/internal/run-conversation-suggestion-worker'
+      fullPath: '/api/public/internal/run-conversation-suggestion-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunConversationSuggestionWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/run-canonical-topics-worker': {
+      id: '/api/public/internal/run-canonical-topics-worker'
+      path: '/api/public/internal/run-canonical-topics-worker'
+      fullPath: '/api/public/internal/run-canonical-topics-worker'
+      preLoaderRoute: typeof ApiPublicInternalRunCanonicalTopicsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/w/$workspaceId/settings': {
+      id: '/_authenticated/w/$workspaceId/settings'
+      path: '/settings'
+      fullPath: '/w/$workspaceId/settings'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdSettingsRouteImport
       parentRoute: typeof AuthenticatedWWorkspaceIdRoute
     }
     '/_authenticated/w/$workspaceId/p/$pageId': {
@@ -638,6 +671,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$pageId'
       fullPath: '/w/$workspaceId/p/$pageId'
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdPPageIdRouteImport
+      parentRoute: typeof AuthenticatedWWorkspaceIdRoute
+    }
+    '/_authenticated/w/$workspaceId/c/$conversationId': {
+      id: '/_authenticated/w/$workspaceId/c/$conversationId'
+      path: '/c/$conversationId'
+      fullPath: '/w/$workspaceId/c/$conversationId'
+      preLoaderRoute: typeof AuthenticatedWWorkspaceIdCConversationIdRouteImport
       parentRoute: typeof AuthenticatedWWorkspaceIdRoute
     }
   }
@@ -712,6 +752,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalRunPageSemanticWorkerRoute:
     ApiPublicInternalRunPageSemanticWorkerRoute,
   ApiPublicInternalRunPurgeWorkerRoute: ApiPublicInternalRunPurgeWorkerRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
