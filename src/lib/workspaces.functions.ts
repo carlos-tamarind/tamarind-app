@@ -26,7 +26,7 @@ export const listMyWorkspaces = createServerFn({ method: "GET" })
     }));
   });
 
-// Shared by bootstrapFirstWorkspace and the invite-based bootstrap flow
+// Shared by the self-serve and invite-based bootstrap flows
 // (workspace-bootstrap-invites.functions.ts): create a workspace and make
 // the given user its admin.
 export async function createWorkspaceAndAssignAdmin(name: string, userId: string): Promise<string> {
@@ -54,23 +54,6 @@ export async function createWorkspaceAndAssignAdmin(name: string, userId: string
   return ws.id as string;
 }
 
-// Bootstrap: create the very first workspace + admin membership for the
-// current user. Allowed only when zero workspaces exist in the database.
-export const bootstrapFirstWorkspace = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ name: z.string().min(1).max(120) }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { count, error: countErr } = await supabaseAdmin
-      .from("workspaces")
-      .select("id", { count: "exact", head: true });
-    if (countErr) throw new Error(countErr.message);
-    if ((count ?? 0) > 0) {
-      throw new Error("Bootstrap not allowed: workspaces already exist.");
-    }
-
-    const workspaceId = await createWorkspaceAndAssignAdmin(data.name, context.userId);
-    return { workspaceId };
-  });
 
 // Self-serve: a confirmed signup creates its own workspace. One per account
 // for now, so this refuses when the caller already belongs to a workspace.
@@ -93,14 +76,6 @@ export const createOwnWorkspace = createServerFn({ method: "POST" })
     return { workspaceId, alreadyExisted: false };
   });
 
-// Whether the system has any workspace at all (drives /bootstrap visibility).
-export const workspaceCountIsZero = createServerFn({ method: "GET" }).handler(async () => {
-  const { count, error } = await supabaseAdmin
-    .from("workspaces")
-    .select("id", { count: "exact", head: true });
-  if (error) throw new Error(error.message);
-  return { isZero: (count ?? 0) === 0 };
-});
 
 // Server-side gate. Throws FeatureGateError if the workspace plan doesn't grant
 // the feature. Wrap inside any protected server fn.
