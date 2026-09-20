@@ -188,12 +188,10 @@ function InviteBootstrapForm({ token }: { token: string }) {
   const [workspaceName, setWorkspaceName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Invalid, expired or already-used tokens are indistinguishable from a made-up
+  // URL: render the same 404 rather than confirming a token ever existed.
   if (isLoading) return <Centered>Loading invite…</Centered>;
-  if (!data || data.status === "not_found")
-    return <Centered>This invite link is invalid.</Centered>;
-  if (data.status === "expired")
-    return <Centered>This invite has expired. Ask the platform owner for a new link.</Centered>;
-  if (data.status === "used") return <Centered>This invite has already been used.</Centered>;
+  if (!data || data.status !== "valid") return <NotFound />;
 
   const lockedEmail = data.adminEmail;
   const effectiveEmail = lockedEmail ?? email;
