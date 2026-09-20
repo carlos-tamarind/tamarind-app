@@ -1,13 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
-import { bootstrapFirstWorkspace } from "@/lib/workspaces.functions";
+import {
+  bootstrapFirstWorkspace,
+  createOwnWorkspace,
+  listMyWorkspaces,
+} from "@/lib/workspaces.functions";
 import {
   bootstrapWorkspaceWithInvite,
   getWorkspaceBootstrapInviteByToken,
@@ -28,7 +32,116 @@ function BootstrapPage() {
   const { token } = Route.useSearch();
 
   if (token) return <InviteBootstrapForm token={token} />;
+  return <NoTokenBootstrap />;
+}
+
+/**
+ * Without a token there are two audiences: a brand-new install (nobody signed
+ * in, zero workspaces) and a self-serve signup who just confirmed their email
+ * and arrives here with a session but no workspace.
+ */
+function NoTokenBootstrap() {
+  const navigate = useNavigate();
+  const listWorkspaces = useServerFn(listMyWorkspaces);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["bootstrap-entry"],
+    queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return { signedIn: false as const, workspaceId: null };
+      const workspaces = await listWorkspaces().catch(() => []);
+      return {
+        signedIn: true as const,
+        workspaceId: workspaces.length > 0 ? workspaces[0].workspaceId : null,
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (data?.signedIn && data.workspaceId) {
+      navigate({ to: "/w/$workspaceId", params: { workspaceId: data.workspaceId } });
+    }
+  }, [data, navigate]);
+
+  if (isLoading) return <Centered>Loading…</Centered>;
+  if (data?.signedIn && data.workspaceId) return <Centered>Opening your workspace…</Centered>;
+  if (data?.signedIn) return <SelfServeBootstrapForm />;
   return <FirstWorkspaceBootstrapForm />;
+}
+
+/** Signed in via the signup confirmation link: pick a password, name the workspace. */
+function SelfServeBootstrapForm() {
+  const navigate = useNavigate();
+  const createWorkspace = useServerFn(createOwnWorkspace);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: pwErr } = await supabase.auth.updateUser({ password });
+      if (pwErr) throw pwErr;
+
+      const { workspaceId } = await createWorkspace({ data: { name: workspaceName } });
+      toast.success("Workspace created");
+      navigate({ to: "/w/$workspaceId", params: { workspaceId } });
+    } catch (err: any) {
+      toast.error(err.message ?? "Setup failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthLayout
+      title="Finish setting up"
+      subtitle="Choose a password and name your workspace."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="workspace">Workspace name</Label>
+          <Input
+            id="workspace"
+            value={workspaceName}
+            onChange={(e) => setWorkspaceName(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">Password</Label>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            show={showPassword}
+            onToggleShow={() => setShowPassword((s) => !s)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <PasswordInput
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            show={showConfirm}
+            onToggleShow={() => setShowConfirm((s) => !s)}
+          />
+        </div>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
+          {busy ? "Creating…" : "Create workspace"}
+        </Button>
+      </form>
+    </AuthLayout>
+  );
 }
 
 function PasswordInput({

@@ -22,6 +22,21 @@ flowchart TD
   Auth -->|yes| Workspace
 ```
 
+## Self-Serve Signup
+
+**Route:** `/signup` ([`src/routes/signup.tsx`](../../src/routes/signup.tsx))
+
+Public form: name (max 30 chars), email, and a required Terms & Conditions checkbox whose text opens in a dialog ([`src/components/terms-dialog.tsx`](../../src/components/terms-dialog.tsx)). Submitting always returns the same neutral "check your email" state, so the form cannot be used to enumerate registered addresses.
+
+Server function `requestSignup` in [`src/lib/signup.functions.ts`](../../src/lib/signup.functions.ts):
+
+1. Validates input with zod.
+2. Flags the attempt as suspicious when the domain is on the disposable list ([`disposable-email-domains.ts`](../../src/lib/disposable-email-domains.ts)) or when recent attempts from the same email/IP exceed the hourly thresholds — attempts are recorded as salted hashes in `public.signup_attempts` (service-role only, RLS on with no policies).
+3. Suspicious attempts must pass Cloudflare Turnstile (`TURNSTILE_SECRET_KEY` server-side, `VITE_TURNSTILE_SITE_KEY` for the widget). With no secret configured the check is skipped.
+4. Sends the confirmation email via `signInWithOtp({ shouldCreateUser: true })` with `emailRedirectTo = <request origin>/bootstrap`.
+
+The confirmation link lands on `/bootstrap`, where the signed-in user with no workspace sets a password and names their workspace. `createOwnWorkspace` ([`workspaces.functions.ts`](../../src/lib/workspaces.functions.ts)) enforces **one workspace per account**: if a membership already exists it returns that workspace instead of creating another.
+
 ## Bootstrap (First Workspace)
 
 **Route:** `/bootstrap`
