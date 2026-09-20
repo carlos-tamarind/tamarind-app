@@ -1,13 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
-import { bootstrapFirstWorkspace } from "@/lib/workspaces.functions";
+import {
+  bootstrapFirstWorkspace,
+  createOwnWorkspace,
+  listMyWorkspaces,
+} from "@/lib/workspaces.functions";
 import {
   bootstrapWorkspaceWithInvite,
   getWorkspaceBootstrapInviteByToken,
