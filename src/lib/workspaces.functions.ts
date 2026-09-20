@@ -72,6 +72,27 @@ export const bootstrapFirstWorkspace = createServerFn({ method: "POST" })
     return { workspaceId };
   });
 
+// Self-serve: a confirmed signup creates its own workspace. One per account
+// for now, so this refuses when the caller already belongs to a workspace.
+export const createOwnWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ name: z.string().trim().min(1).max(120) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: existing, error: existingErr } = await supabaseAdmin
+      .from("workspace_users")
+      .select("workspace_id")
+      .eq("user_id", context.userId)
+      .limit(1)
+      .maybeSingle();
+    if (existingErr) throw new Error(existingErr.message);
+    if (existing) {
+      return { workspaceId: existing.workspace_id as string, alreadyExisted: true };
+    }
+
+    const workspaceId = await createWorkspaceAndAssignAdmin(data.name, context.userId);
+    return { workspaceId, alreadyExisted: false };
+  });
+
 // Whether the system has any workspace at all (drives /bootstrap visibility).
 export const workspaceCountIsZero = createServerFn({ method: "GET" }).handler(async () => {
   const { count, error } = await supabaseAdmin
