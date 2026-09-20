@@ -10,16 +10,14 @@ Tamarind supports multiple paths for users to join the platform: first-workspace
 flowchart TD
   Root["/"]
   Auth{"Authenticated?"}
-  ZeroWS{"Zero workspaces?"}
   Login["/login"]
-  Bootstrap["/bootstrap"]
+  NoWS["No-workspace screen"]
   Workspace["/w/$firstWorkspaceId"]
 
   Root --> Auth
-  Auth -->|no| ZeroWS
-  ZeroWS -->|yes| Bootstrap
-  ZeroWS -->|no| Login
-  Auth -->|yes| Workspace
+  Auth -->|no| Login
+  Auth -->|yes, has workspace| Workspace
+  Auth -->|yes, no workspace| NoWS
 ```
 
 ## Self-Serve Signup
