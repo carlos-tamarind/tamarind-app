@@ -82,7 +82,7 @@ Roles are assigned at invite time or during bootstrap. Conversation-level roles 
 4. New users sign up; existing users with matching email auto-accept
 5. `acceptInvite` / `acceptInviteWithSignup` creates `workspace_users` row
 
-Bootstrap (first workspace) bypasses invites: [`src/routes/bootstrap.tsx`](../../src/routes/bootstrap.tsx) creates admin account + workspace when `workspaceCountIsZero()`.
+[`/bootstrap`](../../src/routes/bootstrap.tsx) is not a public entry point. It renders only for a valid platform bootstrap invite token (`?token=...`) or for a signed-in account with zero workspaces (a just-confirmed `/signup`). Every other case — anonymous visitor, invalid/expired/used token, or a user who already belongs to a workspace — renders a 404. The old zero-workspace "first workspace" form and `bootstrapFirstWorkspace` / `workspaceCountIsZero` server functions were removed.
 
 ## Authorization Layers
 

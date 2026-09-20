@@ -1,15 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
-import { listMyWorkspaces, workspaceCountIsZero } from "@/lib/workspaces.functions";
+import { listMyWorkspaces } from "@/lib/workspaces.functions";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data.user) {
-      const bootstrap = await workspaceCountIsZero().catch(() => ({ isZero: false }));
-      if (bootstrap?.isZero) throw redirect({ to: "/bootstrap" });
       throw redirect({ to: "/login" });
     }
 
