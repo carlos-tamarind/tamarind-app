@@ -1387,6 +1387,27 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_attempts: {
+        Row: {
+          created_at: string
+          email_hash: string
+          id: string
+          ip_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          id?: string
+          ip_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          id?: string
+          ip_hash?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           description: string | null

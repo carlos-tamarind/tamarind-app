@@ -130,9 +130,13 @@ function InvitesPanel({ workspaceId }: { workspaceId: string }) {
   const createMut = useMutation({
     mutationFn: (input: { email: string; roleKey: typeof role }) =>
       create({ data: { workspaceId, ...input } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       setEmail("");
-      toast.success("Invite created");
+      toast.success(
+        result?.emailSent
+          ? "Invite sent by email"
+          : "Invite created — email not delivered, share the link instead",
+      );
       qc.invalidateQueries({ queryKey: ["invites", workspaceId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to create invite"),

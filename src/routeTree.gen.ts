@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -28,6 +29,7 @@ import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate
 import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicInternalRunPurgeWorkerRouteImport } from './routes/api/public/internal/run-purge-worker'
@@ -42,6 +44,11 @@ import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/
 import { Route as AuthenticatedWWorkspaceIdPPageIdRouteImport } from './routes/_authenticated.w.$workspaceId.p.$pageId'
 import { Route as AuthenticatedWWorkspaceIdCConversationIdRouteImport } from './routes/_authenticated.w.$workspaceId.c.$conversationId'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -143,6 +150,12 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
   id: '/lovable/email/auth/webhook',
   path: '/lovable/email/auth/webhook',
@@ -227,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
@@ -250,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -260,6 +275,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
@@ -283,6 +299,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -295,6 +312,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/_authenticated/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
@@ -318,6 +336,7 @@ export interface FileRoutesById {
   '/api/public/internal/run-purge-worker': typeof ApiPublicInternalRunPurgeWorkerRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/_authenticated/w/$workspaceId/c/$conversationId': typeof AuthenticatedWWorkspaceIdCConversationIdRoute
   '/_authenticated/w/$workspaceId/p/$pageId': typeof AuthenticatedWWorkspaceIdPPageIdRoute
 }
@@ -330,6 +349,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/signup'
     | '/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
@@ -353,6 +373,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-purge-worker'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/lovable/email/transactional/preview'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -363,6 +384,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/signup'
     | '/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
@@ -386,6 +408,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-purge-worker'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/lovable/email/transactional/preview'
     | '/w/$workspaceId/c/$conversationId'
     | '/w/$workspaceId/p/$pageId'
   id:
@@ -397,6 +420,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/signup'
     | '/_authenticated/generate-workspace-invite'
     | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
@@ -420,6 +444,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/run-purge-worker'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/lovable/email/transactional/preview'
     | '/_authenticated/w/$workspaceId/c/$conversationId'
     | '/_authenticated/w/$workspaceId/p/$pageId'
   fileRoutesById: FileRoutesById
@@ -432,6 +457,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
   ApiRunCanonicalTopicsWorkerRoute: typeof ApiRunCanonicalTopicsWorkerRoute
   ApiRunConversationSuggestionWorkerRoute: typeof ApiRunConversationSuggestionWorkerRoute
@@ -452,10 +478,18 @@ export interface RootRouteChildren {
   ApiPublicInternalRunPurgeWorkerRoute: typeof ApiPublicInternalRunPurgeWorkerRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -588,6 +622,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/webhook': {
       id: '/lovable/email/auth/webhook'
@@ -727,6 +768,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
   ApiRunCanonicalTopicsWorkerRoute: ApiRunCanonicalTopicsWorkerRoute,
   ApiRunConversationSuggestionWorkerRoute:
@@ -754,6 +796,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalRunPurgeWorkerRoute: ApiPublicInternalRunPurgeWorkerRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

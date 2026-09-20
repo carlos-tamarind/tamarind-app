@@ -93,7 +93,7 @@ function LoginPage() {
   };
 
   return (
-    <AuthLayout title="Sign in to Tamarind" subtitle="Invite-only workspace.">
+    <AuthLayout title="Sign in to Tamarind">
       {mounted ? (
         <div className="space-y-5">
           <form onSubmit={handleEmailLogin} className="space-y-3">
@@ -121,9 +121,13 @@ function LoginPage() {
             Continue with Google
           </Button>
 
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="flex items-center justify-center gap-3 text-center text-xs text-muted-foreground">
             <Link to="/forgot-password" className="underline underline-offset-2 hover:text-foreground">
               Forgot password?
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/signup" className="underline underline-offset-2 hover:text-foreground">
+              Request access
             </Link>
           </p>
         </div>
