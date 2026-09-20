@@ -7,11 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
-import {
-  bootstrapFirstWorkspace,
-  createOwnWorkspace,
-  listMyWorkspaces,
-} from "@/lib/workspaces.functions";
+import { createOwnWorkspace, listMyWorkspaces } from "@/lib/workspaces.functions";
 import {
   bootstrapWorkspaceWithInvite,
   getWorkspaceBootstrapInviteByToken,
@@ -20,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/auth-layout";
+import { NotFound } from "@/components/not-found";
 
 const searchSchema = z.object({ token: z.string().min(8).max(128).optional() });
 
