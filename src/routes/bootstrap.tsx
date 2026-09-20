@@ -33,12 +33,12 @@ function BootstrapPage() {
 }
 
 /**
- * Without a token there are two audiences: a brand-new install (nobody signed
- * in, zero workspaces) and a self-serve signup who just confirmed their email
- * and arrives here with a session but no workspace.
+ * Without a token, the only legitimate audience is a self-serve signup who just
+ * confirmed their email: signed in, zero workspaces. Anything else (anonymous
+ * visitor, or a user who already has a workspace) gets a 404 — /bootstrap is
+ * not a public entry point.
  */
 function NoTokenBootstrap() {
-  const navigate = useNavigate();
   const listWorkspaces = useServerFn(listMyWorkspaces);
 
   const { data, isLoading } = useQuery({
@@ -54,16 +54,9 @@ function NoTokenBootstrap() {
     },
   });
 
-  useEffect(() => {
-    if (data?.signedIn && data.workspaceId) {
-      navigate({ to: "/w/$workspaceId", params: { workspaceId: data.workspaceId } });
-    }
-  }, [data, navigate]);
-
   if (isLoading) return <Centered>Loading…</Centered>;
-  if (data?.signedIn && data.workspaceId) return <Centered>Opening your workspace…</Centered>;
-  if (data?.signedIn) return <SelfServeBootstrapForm />;
-  return <FirstWorkspaceBootstrapForm />;
+  if (data?.signedIn && !data.workspaceId) return <SelfServeBootstrapForm />;
+  return <NotFound />;
 }
 
 /** Signed in via the signup confirmation link: pick a password, name the workspace. */
