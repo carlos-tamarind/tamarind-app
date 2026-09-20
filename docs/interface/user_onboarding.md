@@ -35,25 +35,26 @@ Server function `requestSignup` in [`src/lib/signup.functions.ts`](../../src/lib
 
 The confirmation link lands on `/bootstrap`, where the signed-in user with no workspace sets a password and names their workspace. `createOwnWorkspace` ([`workspaces.functions.ts`](../../src/lib/workspaces.functions.ts)) enforces **one workspace per account**: if a membership already exists it returns that workspace instead of creating another.
 
-## Bootstrap (First Workspace)
+## Bootstrap Access Gate
 
 **Route:** `/bootstrap`
 
 **File:** [`src/routes/bootstrap.tsx`](../../src/routes/bootstrap.tsx)
 
-When the database has zero workspaces, new users are directed here to:
+`/bootstrap` is not a public page. It renders in exactly two cases:
 
-1. Create an admin account (email/password)
-2. Create the first workspace
-3. Redirect to the new workspace
+| Case | Condition | Renders |
+|------|-----------|---------|
+| Platform invite | `?token=...` resolves to `status: "valid"` | Invite bootstrap form |
+| Confirmed signup | Active session **and** zero workspace memberships | Self-serve setup form (password + workspace name) |
 
-Server function: `bootstrapFirstWorkspace` in [`src/lib/workspaces.functions.ts`](../../src/lib/workspaces.functions.ts)
+Everything else — anonymous visitor with no token, invalid/expired/already-used token, or a signed-in user who already belongs to a workspace — renders the shared 404 page ([`src/components/not-found.tsx`](../../src/components/not-found.tsx)). Invalid, expired and used tokens are deliberately indistinguishable from a made-up URL.
 
-Uses `supabaseAdmin` to bypass RLS for initial setup.
+The legacy zero-workspace "first workspace" form was removed, along with the `bootstrapFirstWorkspace` and `workspaceCountIsZero` server functions; `/` no longer redirects anonymous visitors to `/bootstrap`. Self-serve signup fully replaces that path.
 
 ## Bootstrap via Invite (Additional Workspaces)
 
-Once workspace #1 exists, `/bootstrap` (no token) is permanently unreachable — the zero-workspace gate above never opens again. Spinning up workspace #2, #3, etc. instead goes through a platform-owner-issued, single-use, time-limited link:
+Spinning up workspace #2, #3, etc. goes through a platform-owner-issued, single-use, time-limited link:
 
 ```mermaid
 sequenceDiagram
@@ -71,7 +72,7 @@ sequenceDiagram
 
 **Generate a link:** `/generate-workspace-invite` ([`src/routes/_authenticated.generate-workspace-invite.tsx`](../../src/routes/_authenticated.generate-workspace-invite.tsx)) — restricted to the `PLATFORM_OWNER_EMAILS` allowlist (see [Deployment](../architecture/deployment.md)), a concept distinct from any per-workspace `admin` role. Lets the owner set an expiry, optionally lock the invite to a specific admin email (shown disabled on `/bootstrap` if set), and attach a personalized welcome message (shown as the page headline).
 
-**Redeem a link:** `/bootstrap?token=...` reuses the same page as the first-workspace flow, but on submit calls `bootstrapWorkspaceWithInvite` instead of `bootstrapFirstWorkspace`. One-time use is enforced atomically server-side (not just hidden in the UI), and an email lock, if set, is enforced server-side too.
+**Redeem a link:** `/bootstrap?token=...` submits to `bootstrapWorkspaceWithInvite`. One-time use is enforced atomically server-side (not just hidden in the UI), and an email lock, if set, is enforced server-side too.
 
 Server functions in [`src/lib/workspace-bootstrap-invites.functions.ts`](../../src/lib/workspace-bootstrap-invites.functions.ts):
 - `createWorkspaceBootstrapInvite` / `listWorkspaceBootstrapInvites` / `revokeWorkspaceBootstrapInvite` — owner-only management
