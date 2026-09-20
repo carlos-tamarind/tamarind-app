@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { AuthProvider } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { NotFound } from "@/components/not-found";
 import { Button } from "@/components/ui/button";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme-context";
 import { logVersionBanner } from "@/lib/log-version";
