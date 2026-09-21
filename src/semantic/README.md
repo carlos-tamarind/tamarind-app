@@ -72,8 +72,6 @@ There is no barrel `index.ts`. Import specific files directly.
 | `embedding/embeddingProvider.ts` | `embeddingProvider` | Generic embedding provider instance |
 | `embedding/canonicalTopicText.ts` | `canonicalTopicText` | Shared `{name}: {description}` embed string |
 | `llm/llmProvider.ts` | `llmProvider` | Generic LLM provider instance |
-| `embedding/providers/openai/embeddings.server.ts` | `embedBatchFromRaw` | Generic OpenAI embeddings helper |
-| `messages/message-embedding/generateMessageEmbeddings.ts` | `generateMessageEmbeddingsFromRaw` | Message-shaped HTTP adapter |
 | `pages/page-chunks/worker/runPageChunkingWorker.ts` | `runPageChunkingWorker` | Page chunking sweeper entry |
 | `pages/page-chunks/engine/config.ts` | `PAGE_CHUNK_CONFIG` | Debounce, pack sizes, embedding model |
 | `pages/page-embeddings/worker/runPageEmbeddingWorker.ts` | `runPageEmbeddingWorker` | Page embedding worker entry |
@@ -90,7 +88,6 @@ There is no barrel `index.ts`. Import specific files directly.
 | `src/routes/api/public/internal/run-embedding-worker.ts` | `runEmbeddingWorker` (cron) |
 | `src/routes/api/run-cti-worker.ts` | `runCtiWorker` (dev-only) |
 | `src/routes/api/public/internal/run-cti-worker.ts` | `runCtiWorker` (cron) |
-| `src/routes/api/generate-embeddings.ts` | `generateMessageEmbeddingsFromRaw` |
 | `src/routes/api/run-page-chunking-worker.ts` | `runPageChunkingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-chunking-worker.ts` | `runPageChunkingWorker` (cron) |
 | `src/routes/api/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (dev-only) |

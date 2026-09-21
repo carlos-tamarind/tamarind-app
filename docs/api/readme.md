@@ -7,7 +7,6 @@ Tamarind's primary backend interface is TanStack Start server functions (`create
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | POST | `/api/pages/save` | Bearer token in body | Beacon-based page autosave |
-| POST | `/api/generate-embeddings` | None (JSON schema) | OpenAI embedding proxy |
 | POST | `/api/run-embedding-worker` | Dev-only | Manual embedding worker trigger |
 | POST | `/api/public/internal/run-embedding-worker` | Secret header | Production embedding cron target |
 | POST | `/api/run-cti-worker` | Dev-only | Manual CTI worker trigger |
@@ -41,18 +40,6 @@ Flushes page content when the user closes or hides the browser tab. Uses the Bea
 - Returns `200 ok` on success
 
 **Called from:** [`page-window.tsx`](../../src/components/page/page-window.tsx) on `beforeunload` and `visibilitychange`.
-
-## POST /api/generate-embeddings
-
-**File:** [`src/routes/api/generate-embeddings.ts`](../../src/routes/api/generate-embeddings.ts)
-
-Direct proxy to the OpenAI embeddings API. Validates input with Zod schema and returns embedding vectors.
-
-**Request body:** Validated by `messageEmbeddingRequestSchema` in [`src/semantic/messages/message-embedding/types.ts`](../../src/semantic/messages/message-embedding/types.ts). Uses the message adapter [`generateMessageEmbeddingsFromRaw`](../../src/semantic/messages/message-embedding/generateMessageEmbeddings.ts), which delegates to the generic [`embeddingProvider`](../../src/semantic/embedding/embeddingProvider.ts).
-
-**Auth:** None. Input validation only.
-
-**Usage:** Utility endpoint for direct embedding generation, separate from the batch worker pipeline.
 
 ## POST /api/run-embedding-worker
 

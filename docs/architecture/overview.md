@@ -85,7 +85,6 @@ The workspace shell uses search params `?c=` and `?p=` to open conversations and
 | Path | Purpose |
 |------|---------|
 | `POST /api/pages/save` | Beacon-based page autosave on tab close |
-| `POST /api/generate-embeddings` | OpenAI embedding proxy |
 | `POST /api/run-embedding-worker` | Dev-only manual embedding worker trigger |
 | `POST /api/public/internal/run-embedding-worker` | Production cron target (secret-gated) |
 | `POST /api/run-page-chunking-worker` | Dev-only manual page chunking worker trigger |
