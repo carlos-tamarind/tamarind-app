@@ -18,7 +18,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
-import { Route as ApiGenerateEmbeddingsRouteImport } from './routes/api/generate-embeddings'
 import { Route as ApiRunCanonicalTopicsWorkerRouteImport } from './routes/api/run-canonical-topics-worker'
 import { Route as ApiRunConversationSuggestionWorkerRouteImport } from './routes/api/run-conversation-suggestion-worker'
 import { Route as ApiRunCtiWorkerRouteImport } from './routes/api/run-cti-worker'
@@ -89,11 +88,6 @@ const AuthenticatedGenerateWorkspaceInviteRoute =
     path: '/generate-workspace-invite',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiGenerateEmbeddingsRoute = ApiGenerateEmbeddingsRouteImport.update({
-  id: '/api/generate-embeddings',
-  path: '/api/generate-embeddings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiRunCanonicalTopicsWorkerRoute =
   ApiRunCanonicalTopicsWorkerRouteImport.update({
     id: '/api/run-canonical-topics-worker',
@@ -242,7 +236,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
-  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -277,7 +270,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
-  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -314,7 +306,6 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
-  '/api/generate-embeddings': typeof ApiGenerateEmbeddingsRoute
   '/api/run-canonical-topics-worker': typeof ApiRunCanonicalTopicsWorkerRoute
   '/api/run-conversation-suggestion-worker': typeof ApiRunConversationSuggestionWorkerRoute
   '/api/run-cti-worker': typeof ApiRunCtiWorkerRoute
@@ -351,7 +342,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/generate-workspace-invite'
-    | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -386,7 +376,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/generate-workspace-invite'
-    | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -422,7 +411,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/generate-workspace-invite'
-    | '/api/generate-embeddings'
     | '/api/run-canonical-topics-worker'
     | '/api/run-conversation-suggestion-worker'
     | '/api/run-cti-worker'
@@ -458,7 +446,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  ApiGenerateEmbeddingsRoute: typeof ApiGenerateEmbeddingsRoute
   ApiRunCanonicalTopicsWorkerRoute: typeof ApiRunCanonicalTopicsWorkerRoute
   ApiRunConversationSuggestionWorkerRoute: typeof ApiRunConversationSuggestionWorkerRoute
   ApiRunCtiWorkerRoute: typeof ApiRunCtiWorkerRoute
@@ -545,13 +532,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/generate-workspace-invite'
       preLoaderRoute: typeof AuthenticatedGenerateWorkspaceInviteRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/generate-embeddings': {
-      id: '/api/generate-embeddings'
-      path: '/api/generate-embeddings'
-      fullPath: '/api/generate-embeddings'
-      preLoaderRoute: typeof ApiGenerateEmbeddingsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/run-canonical-topics-worker': {
       id: '/api/run-canonical-topics-worker'
@@ -769,7 +749,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  ApiGenerateEmbeddingsRoute: ApiGenerateEmbeddingsRoute,
   ApiRunCanonicalTopicsWorkerRoute: ApiRunCanonicalTopicsWorkerRoute,
   ApiRunConversationSuggestionWorkerRoute:
     ApiRunConversationSuggestionWorkerRoute,
