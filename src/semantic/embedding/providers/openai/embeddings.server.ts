@@ -2,7 +2,6 @@ import { DebugLogger } from "@/lib/debugLogger";
 
 import type { EmbeddingProvider } from "../../types";
 import type { EmbedOutcome } from "../../types";
-import { embedBatchRequestSchema } from "../../types";
 
 import { mapOpenAiEmbeddingsToVectors } from "./mapper";
 import {
@@ -117,23 +116,6 @@ async function embedBatch(options: {
       usage: mapped.usage,
     },
   };
-}
-
-/** Validates a raw HTTP body and delegates to the OpenAI provider. */
-export async function embedBatchFromRaw(rawBody: unknown): Promise<EmbedOutcome> {
-  const parsed = embedBatchRequestSchema.safeParse(rawBody);
-  if (!parsed.success) {
-    return failure(
-      400,
-      `Invalid request payload: ${parsed.error.issues
-        .map((i) => `${i.path.join(".")} ${i.message}`)
-        .join("; ")}`,
-    );
-  }
-  return embedBatch({
-    texts: parsed.data.texts,
-    model: parsed.data.model ?? undefined,
-  });
 }
 
 export const openAiEmbeddingProvider: EmbeddingProvider = {

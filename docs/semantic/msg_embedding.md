@@ -106,7 +106,6 @@ Retry delay: `min(BASE_DELAY * 2^retryCount, MAX_DELAY_RETRY_MS)`
 |-------|------|---------|
 | `POST /api/public/internal/run-embedding-worker` | `x-embedding-worker-secret` header | Production cron target |
 | `POST /api/run-embedding-worker` | Dev-only (404 in prod) | Manual local testing |
-| `POST /api/generate-embeddings` | None (JSON schema only) | Message-shaped embedding proxy |
 
 See [API Routes](../api/readme.md) and [Cron & Background Jobs](../cron/readme.md).
 

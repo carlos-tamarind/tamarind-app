@@ -1,12 +1,3 @@
-import { z } from "zod";
-
-export const embedBatchRequestSchema = z.object({
-  model: z.string().nullish(),
-  texts: z.array(z.string()).min(1),
-});
-
-export type EmbedBatchRequest = z.infer<typeof embedBatchRequestSchema>;
-
 export type TextEmbedding = {
   embedding: number[];
   dimensions: number;
