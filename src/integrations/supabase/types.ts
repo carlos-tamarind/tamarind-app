@@ -2141,6 +2141,10 @@ export type Database = {
         }[]
       }
       tiptap_to_plaintext: { Args: { doc: Json }; Returns: string }
+      workspace_user_current_role_id: {
+        Args: { _workspace_user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       canonical_topic_job_status:
