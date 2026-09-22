@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { AuthProvider } from "@/lib/auth-context";
@@ -21,7 +22,7 @@ function NotFoundComponent() {
   return <NotFound />;
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset?: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
 
