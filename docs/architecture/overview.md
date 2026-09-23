@@ -85,13 +85,9 @@ The workspace shell uses search params `?c=` and `?p=` to open conversations and
 | Path | Purpose |
 |------|---------|
 | `POST /api/pages/save` | Beacon-based page autosave on tab close |
-| `POST /api/run-embedding-worker` | Dev-only manual embedding worker trigger |
 | `POST /api/public/internal/run-embedding-worker` | Production cron target (secret-gated) |
-| `POST /api/run-page-chunking-worker` | Dev-only manual page chunking worker trigger |
 | `POST /api/public/internal/run-page-chunking-worker` | Production page-chunking cron target (secret-gated) |
-| `POST /api/run-page-embedding-worker` | Dev-only manual page embedding worker trigger |
 | `POST /api/public/internal/run-page-embedding-worker` | Production page-embedding cron target (secret-gated) |
-| `POST /api/run-purge-worker` | Dev-only manual purge worker trigger |
 | `POST /api/public/internal/run-purge-worker` | Production purge cron target (secret-gated, hourly) |
 
 See [API Routes](../api/readme.md) for details.

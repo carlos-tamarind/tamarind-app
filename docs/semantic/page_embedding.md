@@ -77,7 +77,6 @@ Unlike message embeddings, exhausting retries never sets `FAILED` — the row la
 | Cron endpoint | `POST /api/public/internal/run-page-embedding-worker` |
 | Header | `x-page-embedding-worker-secret` |
 | Secret | `PAGE_EMBEDDING_WORKER_SECRET` (dedicated; not shared with message embeddings) |
-| Dev trigger | `POST /api/run-page-embedding-worker` |
 | Response | `{ claimed, embedded, skipped, failed, topicClaimed, topicEmbedded, topicSkipped, topicFailed, batchesProcessed }` |
 
 ## Related Docs

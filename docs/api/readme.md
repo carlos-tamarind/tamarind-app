@@ -7,13 +7,9 @@ Tamarind's primary backend interface is TanStack Start server functions (`create
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | POST | `/api/pages/save` | Bearer token in body | Beacon-based page autosave |
-| POST | `/api/run-embedding-worker` | Dev-only | Manual embedding worker trigger |
 | POST | `/api/public/internal/run-embedding-worker` | Secret header | Production embedding cron target |
-| POST | `/api/run-cti-worker` | Dev-only | Manual CTI worker trigger |
 | POST | `/api/public/internal/run-cti-worker` | Secret header | Production CTI cron target |
-| POST | `/api/run-page-chunking-worker` | Dev-only | Manual page chunking worker trigger |
 | POST | `/api/public/internal/run-page-chunking-worker` | Secret header | Production page chunking cron target |
-| POST | `/api/run-purge-worker` | Dev-only | Manual purge worker trigger |
 | POST | `/api/public/internal/run-purge-worker` | Secret header | Production purge cron target (hourly) |
 
 ## POST /api/pages/save
@@ -41,22 +37,9 @@ Flushes page content when the user closes or hides the browser tab. Uses the Bea
 
 **Called from:** [`page-window.tsx`](../../src/components/page/page-window.tsx) on `beforeunload` and `visibilitychange`.
 
-## POST /api/run-embedding-worker
-
-**File:** [`src/routes/api/run-embedding-worker.ts`](../../src/routes/api/run-embedding-worker.ts)
-
-Manual trigger for the embedding worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "batchesProcessed": 2,
-  "messagesProcessed": 45
-}
-```
+> **Local testing:** there are no unauthenticated dev trigger routes. Call the
+> secret-gated internal endpoints directly, e.g.
+> `curl -X POST http://localhost:8080/api/public/internal/run-embedding-worker -H "x-embedding-worker-secret: $EMBEDDING_WORKER_SECRET"`.
 
 ## POST /api/public/internal/run-embedding-worker
 
@@ -72,22 +55,6 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 {
   "batchesProcessed": 3,
   "messagesProcessed": 128
-}
-```
-
-## POST /api/run-cti-worker
-
-**File:** [`src/routes/api/run-cti-worker.ts`](../../src/routes/api/run-cti-worker.ts)
-
-Manual trigger for the CTI worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "jobsProcessed": 12
 }
 ```
 
@@ -107,28 +74,6 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 }
 ```
 
-## POST /api/run-page-chunking-worker
-
-**File:** [`src/routes/api/run-page-chunking-worker.ts`](../../src/routes/api/run-page-chunking-worker.ts)
-
-Manual trigger for the page chunking worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "pagesDue": 4,
-  "processed": 4,
-  "inserted": 12,
-  "deleted": 1,
-  "queued": 12,
-  "errors": 0,
-  "pageIds": ["uuid"]
-}
-```
-
 ## POST /api/public/internal/run-page-chunking-worker
 
 **File:** [`src/routes/api/public/internal/run-page-chunking-worker.ts`](../../src/routes/api/public/internal/run-page-chunking-worker.ts)
@@ -137,31 +82,7 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Auth:** Requires `x-page-chunking-worker-secret` header matching `PAGE_CHUNKING_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret.
 
-**Response:** Same shape as the dev endpoint.
-
-## POST /api/run-page-embedding-worker
-
-**File:** [`src/routes/api/run-page-embedding-worker.ts`](../../src/routes/api/run-page-embedding-worker.ts)
-
-Manual trigger for the page embedding worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "batchesProcessed": 1,
-  "claimed": 20,
-  "embedded": 19,
-  "skipped": 1,
-  "failed": 0,
-  "topicClaimed": 4,
-  "topicEmbedded": 4,
-  "topicSkipped": 0,
-  "topicFailed": 0
-}
-```
+**Response:** Worker tick summary JSON.
 
 ## POST /api/public/internal/run-page-embedding-worker
 
@@ -171,25 +92,7 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Auth:** Requires `x-page-embedding-worker-secret` header matching `PAGE_EMBEDDING_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret.
 
-**Response:** Same shape as the dev endpoint.
-
-## POST /api/run-page-semantic-worker
-
-**File:** [`src/routes/api/run-page-semantic-worker.ts`](../../src/routes/api/run-page-semantic-worker.ts)
-
-Manual trigger for the page semantic worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "analyzed": 2,
-  "skipped": 1,
-  "failed": 0
-}
-```
+**Response:** Worker tick summary JSON.
 
 ## POST /api/public/internal/run-page-semantic-worker
 
@@ -199,28 +102,7 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Auth:** Requires `x-page-semantic-worker-secret` header matching `PAGE_SEMANTIC_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
 
-**Response:** Same shape as the dev endpoint.
-
-## POST /api/run-conversation-suggestion-worker
-
-**File:** [`src/routes/api/run-conversation-suggestion-worker.ts`](../../src/routes/api/run-conversation-suggestion-worker.ts)
-
-Manual trigger for the conversation suggestion worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "enqueued": 0,
-  "processed": 0,
-  "suggested": 0,
-  "failed": 0
-}
-```
-
-Runs the conversation suggestion worker: sweep due pairs, claim jobs, LLM judge, persist.
+**Response:** Worker tick summary JSON.
 
 ## POST /api/public/internal/run-conversation-suggestion-worker
 
@@ -230,30 +112,7 @@ Production endpoint called by pg_cron via pg_net. See [Cron & Background Jobs](.
 
 **Auth:** Requires `x-conversation-suggestions-worker-secret` header matching `CONVERSATION_SUGGESTIONS_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
 
-**Response:** Same shape as the dev endpoint.
-
-
-
-
-
-
-
-## POST /api/run-purge-worker
-
-**File:** [`src/routes/api/run-purge-worker.ts`](../../src/routes/api/run-purge-worker.ts)
-
-Manual trigger for the purge worker during local development.
-
-**Auth:** Returns 404 in production unless `VITE_DEBUG_LOGS=true`.
-
-**Response:**
-
-```json
-{
-  "purged": 0,
-  "byType": {}
-}
-```
+**Response:** Worker tick summary JSON.
 
 ## POST /api/public/internal/run-purge-worker
 
@@ -263,7 +122,7 @@ Production endpoint called by pg_cron via pg_net, hourly. See [Cron & Background
 
 **Auth:** Requires `x-purge-worker-secret` header matching `PURGE_WORKER_SECRET` env var. Uses timing-safe comparison. Returns opaque 404 for invalid/missing secret, and 503 when the secret is unset.
 
-**Response:** Same shape as the dev endpoint.
+**Response:** Worker tick summary JSON.
 
 ## POST /api/public/internal/run-canonical-topics-worker
 

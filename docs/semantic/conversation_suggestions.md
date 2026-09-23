@@ -53,7 +53,6 @@ The frontend fetches pending suggestions on conversation open (path B, artificia
 | Cron endpoint | `POST /api/public/internal/run-conversation-suggestion-worker` |
 | Header | `x-conversation-suggestions-worker-secret` |
 | Secret | `CONVERSATION_SUGGESTIONS_WORKER_SECRET` |
-| Dev trigger | `POST /api/run-conversation-suggestion-worker` |
 | Response | `{ enqueued, processed, suggested, failed }` |
 
 ## Related Docs
