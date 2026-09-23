@@ -70,7 +70,6 @@ Jobs are independent per page. Transient waits on one page do not block others. 
 | Cron endpoint | `POST /api/public/internal/run-page-semantic-worker` |
 | Header | `x-page-semantic-worker-secret` |
 | Secret | `PAGE_SEMANTIC_WORKER_SECRET` |
-| Dev trigger | `POST /api/run-page-semantic-worker` |
 | Response | `{ analyzed, skipped, failed }` |
 
 ## Related Docs
