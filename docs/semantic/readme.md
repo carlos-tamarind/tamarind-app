@@ -74,13 +74,9 @@ Phase B is triggered externally:
 | Location | Trigger |
 |----------|---------|
 | [`src/routes/api/public/internal/run-embedding-worker.ts`](../../src/routes/api/public/internal/run-embedding-worker.ts) | pg_cron via pg_net (production) |
-| [`src/routes/api/run-embedding-worker.ts`](../../src/routes/api/run-embedding-worker.ts) | Manual trigger (dev-only) |
 | [`src/routes/api/public/internal/run-page-chunking-worker.ts`](../../src/routes/api/public/internal/run-page-chunking-worker.ts) | pg_cron via pg_net (production page chunking) |
-| [`src/routes/api/run-page-chunking-worker.ts`](../../src/routes/api/run-page-chunking-worker.ts) | Manual page chunking trigger (dev-only) |
 | [`src/routes/api/public/internal/run-page-embedding-worker.ts`](../../src/routes/api/public/internal/run-page-embedding-worker.ts) | pg_cron via pg_net (production page embedding) |
-| [`src/routes/api/run-page-embedding-worker.ts`](../../src/routes/api/run-page-embedding-worker.ts) | Manual page embedding trigger (dev-only) |
 | [`src/routes/api/public/internal/run-page-semantic-worker.ts`](../../src/routes/api/public/internal/run-page-semantic-worker.ts) | pg_cron via pg_net (production page semantics) |
-| [`src/routes/api/run-page-semantic-worker.ts`](../../src/routes/api/run-page-semantic-worker.ts) | Manual page semantic trigger (dev-only) |
 
 ## Database Tables
 

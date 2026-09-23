@@ -124,7 +124,6 @@ After each plan, `selectCurrentTopic` scores **established** topics with `topicS
 | Cron endpoint | `POST /api/public/internal/run-cti-worker` |
 | Header | `x-cti-worker-secret` |
 | Secret | `CTI_WORKER_SECRET` |
-| Dev trigger | `POST /api/run-cti-worker` |
 | Match RPC | `match_conversation_topics(conversation_id, message_id)` — service role only |
 
 ## Related docs

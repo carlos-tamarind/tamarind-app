@@ -84,17 +84,11 @@ There is no barrel `index.ts`. Import specific files directly.
 |----------|--------|
 | `src/lib/conversations.functions.ts` | `enqueueMessageSemanticsProcessing` (on message send) |
 | `src/lib/pages.server.ts` | `enqueueMessageSemanticsProcessing` (page share announcement) |
-| `src/routes/api/run-embedding-worker.ts` | `runEmbeddingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-embedding-worker.ts` | `runEmbeddingWorker` (cron) |
-| `src/routes/api/run-cti-worker.ts` | `runCtiWorker` (dev-only) |
 | `src/routes/api/public/internal/run-cti-worker.ts` | `runCtiWorker` (cron) |
-| `src/routes/api/run-page-chunking-worker.ts` | `runPageChunkingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-chunking-worker.ts` | `runPageChunkingWorker` (cron) |
-| `src/routes/api/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-embedding-worker.ts` | `runPageEmbeddingWorker` (cron) |
-| `src/routes/api/run-page-semantic-worker.ts` | `runPageSemanticWorker` (dev-only) |
 | `src/routes/api/public/internal/run-page-semantic-worker.ts` | `runPageSemanticWorker` (cron) |
-| `src/routes/api/run-conversation-suggestion-worker.ts` | `runConversationSuggestionWorker` (dev-only) |
 | `src/routes/api/public/internal/run-conversation-suggestion-worker.ts` | `runConversationSuggestionWorker` (cron) |
 
 ## Outbound Dependencies

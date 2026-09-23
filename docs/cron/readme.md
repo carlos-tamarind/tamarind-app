@@ -339,23 +339,21 @@ A pg_cron job (`run-canonical-topics-worker`) calls the canonical-topics endpoin
 
 Source changes enqueue `ADD`/`REMOVE` jobs through triggers on `page_topics` and `conversation_topics`. See [Canonical Topics](../semantic/canonical_topics.md) for the full engine design.
 
-## Dev Manual Triggers
+## Manual Triggers
 
-For local testing without pg_cron:
+There are no unauthenticated dev-only trigger routes. For local testing without
+pg_cron, call the secret-gated internal endpoint directly with its header:
 
 ```
-POST /api/run-embedding-worker
-POST /api/run-cti-worker
-POST /api/run-page-chunking-worker
-POST /api/run-page-embedding-worker
-POST /api/run-page-semantic-worker
-POST /api/run-conversation-suggestion-worker
-POST /api/run-purge-worker
-POST /api/run-canonical-topics-worker
+curl -X POST http://localhost:8080/api/public/internal/run-embedding-worker \
+  -H "x-embedding-worker-secret: $EMBEDDING_WORKER_SECRET"
 ```
 
-
-Available only in development mode (404 in production). See [API Routes](../api/readme.md).
+The same pattern applies to `run-cti-worker`, `run-page-chunking-worker`,
+`run-page-embedding-worker`, `run-page-semantic-worker`,
+`run-conversation-suggestion-worker`, `run-purge-worker` and
+`run-canonical-topics-worker`, each with its own secret header. See
+[API Routes](../api/readme.md).
 
 ## What Is Not Used
 
