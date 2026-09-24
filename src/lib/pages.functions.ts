@@ -400,7 +400,13 @@ export const sharePage = createServerFn({ method: "POST" })
       throw new Error("This page cannot be shared");
     }
 
-    const meWuId = await getCurrentWorkspaceUser(workspaceId, context.userId);
+    // Only callers allowed to edit the page may share it: owner for private
+    // pages; participants/collaborators for conversation pages.
+    const { assertCanEditPage } = await import("@/lib/pages.server");
+    const { workspaceUserId: meWuId } = await assertCanEditPage(
+      data.pageId,
+      context.userId,
+    );
 
     const { conversationIds: targetConvIds } = await shareToConversations({
       pageId: data.pageId,
