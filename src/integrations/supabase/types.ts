@@ -164,7 +164,9 @@ export type Database = {
           id: string
           last_evidence_at: string | null
           name: string
+          needs_regeneration: boolean
           regenerated_at: string | null
+          regeneration_requested_at: string | null
           updated_at: string
           workspace_id: string
         }
@@ -179,7 +181,9 @@ export type Database = {
           id?: string
           last_evidence_at?: string | null
           name: string
+          needs_regeneration?: boolean
           regenerated_at?: string | null
+          regeneration_requested_at?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -194,7 +198,9 @@ export type Database = {
           id?: string
           last_evidence_at?: string | null
           name?: string
+          needs_regeneration?: boolean
           regenerated_at?: string | null
+          regeneration_requested_at?: string | null
           updated_at?: string
           workspace_id?: string
         }

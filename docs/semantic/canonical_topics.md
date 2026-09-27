@@ -20,7 +20,7 @@ Read-only server functions (`src/lib/canonical-topics.functions.ts`) — `listCa
 | Table | Role |
 |-------|------|
 | `canonical_topic_source_types` | Registry: `source_type` (`page_topic`, `conversation_topic`), `table_name`, `owning_entity_column`, `owning_table_name`. Used by validation/enqueue triggers to resolve workspace and owning entity. |
-| `canonical_topics` | Workspace-wide topic node (`workspace_id`, `name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`). |
+| `canonical_topics` | Workspace-wide topic node (`workspace_id`, `name`, `description`, `embedding vector(1536)`, `embedding_model`, `evidence_count`, `generated_at`, `regenerated_at`, `generation_model`, `last_evidence_at`, `updated_at` (any row write), `needs_regeneration`, `regeneration_requested_at`). |
 | `canonical_topic_evidences` | One row per (canonical topic, source topic): `canonical_topic_id`, `source_type`, `source_id`, `owning_entity_id`, `similarity`. `source_id` is the source row's own primary key (`page_topics.id` / `conversation_topics.id`); `owning_entity_id` is the page or conversation. UNIQUE on `(canonical_topic_id, source_type, source_id)`. |
 | `canonical_topic_jobs` | Work queue: `workspace_id`, `source_type`, `source_id`, `job_type` (`ADD` / `REMOVE`), `status`, `attempts`, `next_retry_at`, `started_at`, `completed_at`, `last_error`, `result`. |
 
@@ -49,7 +49,11 @@ A partial unique index `uniq_canonical_topic_jobs_source_inflight` on `(source_t
 
 - **`apply_canonical_topic_add_and_commit(p_job_id, p_result)`** — takes a per-workspace advisory lock (`hashtextextended(workspace_id::text, 1)`), re-checks the job is still `PROCESSING`, re-runs a nearest-match check against the workspace's existing canonical topics (cosine similarity ≥ 0.92), and downgrades a `create` decision to `reinforce` if a match appeared meanwhile. It then inserts or updates the canonical topic, increments `evidence_count`, inserts the evidence row, and marks the job `COMPLETED`.
 
-- **`apply_canonical_topic_remove_and_commit(p_job_id)`** — deletes all evidence rows matching the job's `(source_type, source_id)`, decrements each affected topic's `evidence_count`, deletes topics that reach zero, and marks the job `COMPLETED`.
+- **`apply_canonical_topic_remove_and_commit(p_job_id)`** — deletes all evidence rows matching the job's `(source_type, source_id)`, decrements each affected topic's `evidence_count`, deletes topics that reach zero, flags surviving topics with `needs_regeneration = true` / `regeneration_requested_at = now()`, and marks the job `COMPLETED`.
+
+### Stale text after REMOVE
+
+A topic's name/description is written from its evidence at the time. After a REMOVE the text may still paraphrase the removed (possibly private) source, and the topic may now be visible to users who could not see it. REMOVE therefore flags survivors; `trg_canonical_topics_clear_regen_flag` clears the flag whenever `name` or `description` changes. **The worker does not consume the flag yet** — a follow-up must regenerate flagged topics from their remaining evidence (partial index `idx_canonical_topics_needs_regeneration` supports the sweep).
 
 ## Validation
 
