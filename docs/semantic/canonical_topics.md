@@ -57,9 +57,13 @@ A partial unique index `uniq_canonical_topic_jobs_source_inflight` on `(source_t
 
 ## Access Control
 
-- `canonical_topics` and `canonical_topic_evidences`: `authenticated` has `SELECT`, `service_role` has `ALL`. RLS restricts reads to workspace members.
+- `canonical_topics` and `canonical_topic_evidences`: `authenticated` has `SELECT`, `service_role` has `ALL`. RLS enforces the **visibility premise**: a topic is readable only by a workspace member who can read the owning entity of **every** one of its evidences; evidence rows are readable only through a readable topic. Both policies call `can_read_canonical_topic(topic_id)`.
+  - `can_read_evidence_owner(source_type, owning_entity_id)`: `page_topic` → `can_read_page(page)` AND `pages.purged_at IS NULL`; `conversation_topic` → `is_conversation_participant(conversation)`; any other source type → `false` (fail closed).
+  - All-or-nothing: one unreadable evidence hides the whole topic (and all its evidence) from that user.
+  - Both helpers are `SECURITY DEFINER` (no RLS recursion), executable by `authenticated` and `service_role` only.
 - `canonical_topic_source_types` and `canonical_topic_jobs`: `service_role` only, with a `USING (false)` policy.
 - All RPCs are `SECURITY DEFINER` and `GRANT EXECUTE` only to `service_role`.
+- `page_topics` DELETE trigger: when the parent page is already gone (hard delete cascade), the workspace is resolved from the existing evidence's canonical topic; if no evidence exists, no `REMOVE` job is enqueued.
 
 ## Related Docs
 
