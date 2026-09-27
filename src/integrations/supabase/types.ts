@@ -1691,6 +1691,14 @@ export type Database = {
         }
         Returns: string
       }
+      can_read_canonical_topic: {
+        Args: { _topic_id: string }
+        Returns: boolean
+      }
+      can_read_evidence_owner: {
+        Args: { _owning_entity_id: string; _source_type: string }
+        Returns: boolean
+      }
       can_read_page: { Args: { _page_id: string }; Returns: boolean }
       can_read_page_as: {
         Args: { _page_id: string; _workspace_user_id: string }

@@ -167,7 +167,7 @@ erDiagram
 
 **Job lifecycle.** Source changes enqueue `ADD` or `REMOVE` jobs on `canonical_topic_jobs`. `claim_canonical_topic_job` picks the oldest claimable job, but skips any source that already has a `PROCESSING` row. A partial unique index `uniq_canonical_topic_jobs_source_inflight` on `(source_type, source_id) WHERE status = 'PROCESSING'` enforces the same exclusivity at the DB level. `apply_canonical_topic_add_and_commit` takes a per-workspace advisory lock, re-runs a nearest-match check under the lock, and downgrades a `create` decision to `reinforce` if a matching topic appeared meanwhile. `apply_canonical_topic_remove_and_commit` deletes matching evidences, decrements each affected topic, and deletes topics whose `evidence_count` reaches zero.
 
-**Access.** `canonical_topics` and `canonical_topic_evidences` grant `SELECT` to `authenticated` and `ALL` to `service_role`; RLS allows reads only for workspace members. `canonical_topic_source_types` and `canonical_topic_jobs` are `service_role`-only with a `USING (false)` policy.
+**Access.** `canonical_topics` and `canonical_topic_evidences` grant `SELECT` to `authenticated` and `ALL` to `service_role`. RLS (`can_read_canonical_topic`) allows reading a topic only when the caller is a workspace member AND can read the owning entity of every evidence (`can_read_page` + not purged for pages, `is_conversation_participant` for conversations); evidence rows are readable only through a readable topic. `canonical_topic_source_types` and `canonical_topic_jobs` are `service_role`-only with a `USING (false)` policy.
 
 ### Pinned Entities
 
@@ -248,6 +248,7 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `idx_canonical_topics_embedding` | canonical_topics | HNSW cosine on `embedding` | `match_canonical_topics` nearest-match |
 | `idx_canonical_topic_evidences_source` | canonical_topic_evidences | `(source_type, source_id)` | Reverse lookup from a source topic |
 | `idx_canonical_topic_evidences_topic` | canonical_topic_evidences | `(canonical_topic_id)` | Evidence listing for a canonical topic |
+| `idx_canonical_topic_evidences_topic_owner` | canonical_topic_evidences | `(canonical_topic_id, source_type, owning_entity_id)` | Per-topic visibility check in RLS |
 | `idx_canonical_topic_jobs_claimable` | canonical_topic_jobs | Partial: `(status, next_retry_at, created_at, id) WHERE status IN ('QUEUED','RETRY_WAIT')` | Worker claim |
 | `uniq_canonical_topic_jobs_source_inflight` | canonical_topic_jobs | Partial UNIQUE: `(source_type, source_id) WHERE status = 'PROCESSING'` | One in-flight job per source |
 
@@ -288,6 +289,8 @@ Index: `idx_pinned_entities_workspace_user` on `(workspace_id, workspace_user_id
 | `apply_canonical_topic_add_and_commit(p_job_id, p_result)` | Atomic commit of an `ADD` job: per-workspace advisory lock, nearest-match downgrade, evidence insert, counter increment, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `apply_canonical_topic_remove_and_commit(p_job_id)` | Atomic commit of a `REMOVE` job: delete evidences, decrement topics, delete zero-count topics, mark `COMPLETED`. Returns `committed` / `not_processing` / `not_found` (service_role only) |
 | `validate_canonical_topic_evidence()` | Trigger on `canonical_topic_evidences`: resolves source row through the registry, enforces workspace match, fills `owning_entity_id` (service_role only) |
+| `can_read_evidence_owner(_source_type, _owning_entity_id)` | RLS helper: can the caller read this evidence's page (not purged) or conversation; unknown source types → `false` (authenticated, service_role) |
+| `can_read_canonical_topic(_topic_id)` | RLS helper for `canonical_topics` / `canonical_topic_evidences`: workspace member and every evidence owner readable (authenticated, service_role) |
 | `enqueue_page_topic_canonical_job()` | Trigger on `page_topics`: enqueues `ADD`/`REMOVE` canonical-topic jobs on insert/update/delete, with the topic row's `id` as `source_id` (service_role only) |
 | `enqueue_conversation_topic_canonical_job()` | Trigger on `conversation_topics`: INSERT is a no-op (rows start as candidates); DELETE enqueues `REMOVE` only for established topics; UPDATE enqueues `ADD` on promotion, `REMOVE` on demotion, and `REMOVE` then `ADD` on content drift of established topics (service_role only) |
 
