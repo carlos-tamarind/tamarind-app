@@ -25,15 +25,21 @@ One migration in `supabase/migrations/` (timestamped .sql, no Drizzle):
 
 Policies call security-definer helpers, so there is no RLS recursion between the two tables.
 
+6. Fix the `page_topics` DELETE trigger (`enqueue_page_topic_canonical_job`). When a page is hard-deleted, its topics are deleted along with it. By then the page row is already gone, so the workspace lookup returns NULL and the job insert hits the NOT NULL check, which likely blocks hard-deleting purged pages that have topics. Fix: if the page's workspace is NULL, get it from the canonical topic linked to an existing evidence row for `OLD.id`. If no evidence exists, skip enqueueing because there is nothing to remove.
+
 ## After migration
 - Regenerate Supabase types.
-- Update `docs/semantic/canonical_topics.md` (Access Control section) and the canonical-topics part of `docs/architecture/database.md` to describe the new rule and helpers.
-- Verify with SQL: as a member lacking access to one evidence's page/conversation, the topic and its evidence rows are hidden; as a member with access to all, visible; purged page hides the topic.
-- Bump version to 0.3.258 is an app change — skipped unless you want it.
+- Update `docs/semantic/canonical_topics.md` (Access Control + Job Lifecycle) and the canonical-topics section of `docs/architecture/database.md`.
+- Verify with SQL: a member who can't access one evidence's page/conversation cannot see the topic or its evidence rows. A member with full access sees both. A purged page hides the topic. Hard-deleting a page that has topics succeeds.
+- Version stays at 0.3.258 (set by the branch commit), no bump.
 
-## Flagged, not tackled (need app changes)
-- **Server functions bypass this.** `listCanonicalTopics` and `getCanonicalTopicEvidence` read with the admin client and only check workspace membership, so they still return every topic. They should switch to the caller's client (`context.supabase`) so RLS applies — required before the Knowledge Base UI uses them.
-- **`getCanonicalTopicEvidence` snapshot lookups** read `conversation_topics` / `page_topics` via admin; even after the switch these need a per-source visibility check.
-- **All-or-nothing rule hides widely-shared topics**: one private evidence hides the whole topic from everyone else. Intended per the premise, but the KB may later want a "partial view" (show topic, hide unreadable evidence) — a product decision.
-- **`can_read_page` ignores `purged_at`** everywhere else too (pages, chunks). Fixing it globally is outside this task; worth a separate review.
-- **Performance**: the check is evaluated per row; listing large workspaces may need a set-based RPC later.
+## Status of previously flagged app gaps (checked against de58f67)
+- Commit `de58f67` (merge of `claude/knowledge-base`) makes the change as described. `listCanonicalTopics` and `getCanonicalTopicEvidence` now read through the caller's own session, and purged pages are skipped in the evidence previews. Version reads 0.3.258.
+- **This commit is not in the project yet.** The current project is still at 0.3.257 and still uses the admin client. It needs to be synced or merged into this project before or alongside this migration. The combination only works when both are present.
+- After both are in: the database rule and the server functions enforce the same visibility, so both flagged gaps are closed.
+
+## Still flagged, not tackled (need app changes or a separate decision)
+- `assertWorkspaceMember` still uses the admin client. This is harmless because it only checks membership, but it is redundant once RLS applies.
+- **All-or-nothing rule**: one private evidence hides the whole topic from everyone else. This follows the premise, but the Knowledge Base may later want a partial view. That is a product decision.
+- **`can_read_page` ignores `purged_at`** for pages, chunks and topics generally. This is outside this task and worth a separate review.
+- **Performance**: the check runs per row, so large workspaces may later need a set-based RPC.
