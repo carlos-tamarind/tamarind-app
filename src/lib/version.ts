@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.3.258";
+export const APP_VERSION = "0.3.259";
 
 declare const __APP_BUILT_AT__: string | undefined;
 declare const __APP_COMMIT_HASH__: string | undefined;
@@ -15,8 +15,8 @@ export const ENVIRONMENT = resolveEnvironment();
 export const LAST_COMMIT =
   typeof __APP_COMMIT_HASH__ !== "undefined" ? __APP_COMMIT_HASH__ : "";
 
-function formatBuildTime(iso: string | undefined): string {
   const d = iso ? new Date(iso) : new Date();
+function formatBuildTime(iso: string | undefined): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
