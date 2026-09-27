@@ -39,7 +39,7 @@ export const listCanonicalTopics = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<CanonicalTopicView[]> => {
     await assertWorkspaceMember(data.workspaceId, context.userId);
 
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await context.supabase
       .from("canonical_topics")
       .select("id, name, description, evidence_count, updated_at")
       .eq("workspace_id", data.workspaceId)
@@ -64,7 +64,7 @@ export const getCanonicalTopicEvidence = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<CanonicalTopicEvidenceView[]> => {
     await assertWorkspaceMember(data.workspaceId, context.userId);
 
-    const { data: topic, error: topicError } = await supabaseAdmin
+    const { data: topic, error: topicError } = await context.supabase
       .from("canonical_topics")
       .select("id, workspace_id")
       .eq("id", data.canonicalTopicId)
@@ -74,7 +74,7 @@ export const getCanonicalTopicEvidence = createServerFn({ method: "GET" })
       throw new Error("Canonical topic not found");
     }
 
-    const { data: evidenceRows, error: evidenceError } = await supabaseAdmin
+    const { data: evidenceRows, error: evidenceError } = await context.supabase
       .from("canonical_topic_evidences")
       .select("id, source_type, source_id, similarity, created_at")
       .eq("canonical_topic_id", data.canonicalTopicId)
@@ -92,7 +92,7 @@ export const getCanonicalTopicEvidence = createServerFn({ method: "GET" })
     const snapshotById = new Map<string, string>();
 
     if (conversationTopicIds.length > 0) {
-      const { data: rows, error } = await supabaseAdmin
+      const { data: rows, error } = await context.supabase
         .from("conversation_topics")
         .select("id, name, description")
         .in("id", conversationTopicIds);
@@ -104,12 +104,13 @@ export const getCanonicalTopicEvidence = createServerFn({ method: "GET" })
     }
 
     if (pageTopicIds.length > 0) {
-      const { data: rows, error } = await supabaseAdmin
+      const { data: rows, error } = await context.supabase
         .from("page_topics")
-        .select("id, topic_name, topic_description")
+        .select("id, topic_name, topic_description, pages(purged_at)")
         .in("id", pageTopicIds);
       if (error) throw new Error(error.message);
       for (const row of rows ?? []) {
+        if (row.pages?.purged_at) continue;
         const text = `${row.topic_name}: ${row.topic_description}`;
         snapshotById.set(row.id, extractSnippet(text, ""));
       }
