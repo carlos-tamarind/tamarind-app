@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790620265585,
+      "tag": "0000_canonical_topic_graph_for_user",
+      "breakpoints": true
+    }
+  ]
+}
