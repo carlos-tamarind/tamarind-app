@@ -69,6 +69,16 @@ A topic's name/description is written from its evidence at the time. After a REM
 - All RPCs are `SECURITY DEFINER` and `GRANT EXECUTE` only to `service_role`.
 - `page_topics` DELETE trigger: when the parent page is already gone (hard delete cascade), the workspace is resolved from the existing evidence's canonical topic; if no evidence exists, no `REMOVE` job is enqueued.
 
+## Graph RPC (Knowledge Base)
+
+`get_canonical_topic_graph_for_user(p_workspace_user_id, p_workspace_id, p_max_nodes, p_neighbors, p_min_similarity)` returns the whole graph for one viewer in a single SQL snapshot, so the server never pulls all evidences or embeddings:
+
+- **nodes** — visible topics (same premise as RLS, evaluated for the given workspace user via `is_conversation_participant_as` / `can_read_page_as` + `purged_at IS NULL`, fail closed), top `p_max_nodes` by `evidence_count DESC, id`: `id, name, description, evidence_count, last_activity_at = COALESCE(last_evidence_at, updated_at)`.
+- **context_edges** — kept-topic pairs sharing an owning conversation or page: `source, target, kind, weight` (distinct shared owners).
+- **semantic_links** — for each kept topic, its top `p_neighbors` by cosine similarity within the kept set (brute force, ≤ cap²), filtered by `p_min_similarity`, deduplicated.
+
+`canonical_topic_visible_for_user(p_workspace_user_id, p_topic_id)` exposes the same premise for single-topic checks. Both are `SECURITY DEFINER`, executable by `service_role` only; the caller must resolve the workspace user server-side, never from client input. No app code calls them yet.
+
 ## Related Docs
 
 - [Database Schema](../architecture/database.md) — Full schema, indexes, and RPC reference

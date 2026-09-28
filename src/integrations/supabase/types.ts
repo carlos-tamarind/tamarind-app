@@ -1710,6 +1710,10 @@ export type Database = {
         Args: { _page_id: string; _workspace_user_id: string }
         Returns: boolean
       }
+      canonical_topic_visible_for_user: {
+        Args: { p_topic_id: string; p_workspace_user_id: string }
+        Returns: boolean
+      }
       claim_canonical_topic_job: {
         Args: { p_stale_after?: string }
         Returns: {
@@ -1912,6 +1916,16 @@ export type Database = {
       finalize_embedded_message: {
         Args: { p_message_semantics_id: string }
         Returns: undefined
+      }
+      get_canonical_topic_graph_for_user: {
+        Args: {
+          p_max_nodes?: number
+          p_min_similarity?: number
+          p_neighbors?: number
+          p_workspace_id: string
+          p_workspace_user_id: string
+        }
+        Returns: Json
       }
       get_unread_conversation_summary_for_user: {
         Args: { p_workspace_id: string; p_workspace_user_id: string }

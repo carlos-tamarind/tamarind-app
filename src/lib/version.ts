@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.3.259";
+export const APP_VERSION = "0.3.260";
 
 declare const __APP_BUILT_AT__: string | undefined;
 declare const __APP_COMMIT_HASH__: string | undefined;
