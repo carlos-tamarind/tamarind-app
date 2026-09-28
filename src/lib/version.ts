@@ -15,8 +15,9 @@ export const ENVIRONMENT = resolveEnvironment();
 export const LAST_COMMIT =
   typeof __APP_COMMIT_HASH__ !== "undefined" ? __APP_COMMIT_HASH__ : "";
 
-  const d = iso ? new Date(iso) : new Date();
+  
 function formatBuildTime(iso: string | undefined): string {
+  const d = iso ? new Date(iso) : new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
