@@ -56,6 +56,7 @@ User-facing UI, routing, and feature areas.
 | [User Onboarding](interface/user_onboarding.md) | Bootstrap, login, invites |
 | [Conversations](interface/conversations.md) | Chat UI, composer, session drafts |
 | [Pages](interface/pages.md) | TipTap editor, sharing, autosave |
+| [Knowledge Base](interface/knowledge-base.md) | Canonical-topic graph, evidence panel, deep links |
 
 ### API, Background Jobs & Deployment
 

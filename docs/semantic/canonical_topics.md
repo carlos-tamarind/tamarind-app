@@ -2,7 +2,7 @@
 
 Canonical Topics are workspace-wide topic nodes that unify topic-like output from two separate semantic pipelines: `page_topics` (per-page LLM topic name/description) and `conversation_topics` (per-conversation CTI topics). Each `canonical_topics` row represents one idea inside a workspace; `canonical_topic_evidences` records which source topics support it.
 
-This layer is groundwork for a future Knowledge Base graph tool. The canonicalization worker (`src/semantic/canonical-topics/`) is the only application code that reads or writes these tables — see the Worker section below.
+This layer feeds the [Knowledge Base](../interface/knowledge-base.md) graph. The canonicalization worker (`src/semantic/canonical-topics/`) is the only application code that writes these tables — see the Worker section below.
 
 ## Worker
 
@@ -13,7 +13,7 @@ This layer is groundwork for a future Knowledge Base graph tool. The canonicaliz
 
 Error handling follows the CTI pattern: permanent errors quarantine the job (`QUARANTINED`), transient errors retry with exponential backoff, and exceeding `MAX_TRANSIENT_BACKOFFS` parks the job on a 24h cooldown (`RETRY_WAIT`) rather than quarantining it.
 
-Read-only server functions (`src/lib/canonical-topics.functions.ts`) — `listCanonicalTopics` and `getCanonicalTopicEvidence` — expose the result for future UI use; no UI consumes them yet.
+Read-only server functions in `src/lib/canonical-topics.functions.ts` serve the Knowledge Base: `getKnowledgeGraph` calls `get_canonical_topic_graph_for_user` and cross-checks every node against RLS, and `getKnowledgeTopicEvidence` reads a topic's evidence through RLS only. See [Knowledge Base → Visibility](../interface/knowledge-base.md#visibility).
 
 ## Tables
 

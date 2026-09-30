@@ -17,6 +17,7 @@ The interface layer is the user-facing React application. It handles routing, th
 | Icons | Lucide React |
 | Toasts | Sonner |
 | Layout | `react-resizable-panels` |
+| Graph canvas | React Flow (`@xyflow/react`) + `d3-force` layout (knowledge base) |
 
 Root font size is **115%** so rem-based Tailwind utilities scale together.
 
@@ -32,6 +33,7 @@ src/
 │   ├── page/                  # Page feature (editor, share, duplicate, settings)
 │   ├── editor/                # Shared TipTap extensions (mentions, slash commands)
 │   ├── search/                # Search overlay modal
+│   ├── knowledge-base/        # KB graph canvas, topic node, nav evidence section
 │   ├── profile/               # Profile dialog
 │   ├── command-palette.tsx
 │   ├── status-bar.tsx
@@ -100,6 +102,7 @@ All other data flows through server functions.
 | [User Onboarding](user_onboarding.md) | Bootstrap, login, invites |
 | [Conversations](conversations.md) | Chat UI, composer, drafts |
 | [Pages](pages.md) | TipTap editor, sharing, autosave |
+| [Knowledge Base](knowledge-base.md) | Canonical-topic graph, evidence panel, deep links, visibility |
 
 ## Related Docs
 

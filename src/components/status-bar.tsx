@@ -3,6 +3,7 @@ import {
   Check,
   FileLock,
   FileText,
+  LibraryBig,
   Loader2,
   MessageSquareLock,
   Monitor,
@@ -115,12 +116,13 @@ function VersionSegment() {
 }
 
 export type StatusContextItem = {
-  kind: "conversation" | "page";
+  kind: "conversation" | "page" | "knowledge";
   title: string;
   subtype?: string | null;
 };
 
 function contextIcon(item: StatusContextItem): LucideIcon {
+  if (item.kind === "knowledge") return LibraryBig;
   if (item.kind === "conversation") {
     return item.subtype === "group" || item.subtype === "channel" ? Users : UserIcon;
   }

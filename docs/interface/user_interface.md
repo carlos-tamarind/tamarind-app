@@ -21,8 +21,8 @@ flowchart TB
 | Band | Role |
 |------|------|
 | Workspace rail | Switch workspaces; settings at the bottom. Uses `--surface-workspace` so it reads darker than the nav. Width `--nav-rail` (3.75rem). Hidden until opened. |
-| Nav panel | Conversations / pages / knowledge lists plus a matching icon rail. Folded and unfolded icon strips share the same `--nav-rail` width. |
-| Main area | Empty state, conversation, page, or split view |
+| Nav panel | Conversations / pages lists, the knowledge-base evidence panel, and a matching icon rail. Folded and unfolded icon strips share the same `--nav-rail` width. |
+| Main area | Empty state, conversation, page, knowledge base, or split view |
 | Status bar | Workspace name, open asset(s) with icons, save status, version, theme, ⌘K |
 
 ### Workspace rail
@@ -38,8 +38,10 @@ Resizable, collapsible. Icon rail (always visible when the panel is open or fold
 | Conversations | Open conversations section; carries an unread dot (see below) |
 | Pages | Open pages section |
 | Search | Open search overlay (⌘F) |
-| Knowledge base | Placeholder (“coming soon”) |
+| Knowledge base | Open the [Knowledge Base](knowledge-base.md) graph in the main area; the section lists the selected topic's evidence |
 | Create | New conversation / new page |
+
+The Knowledge base section follows the KB: it becomes active whenever the KB opens (rail, palette or URL) or a node is selected.
 
 Sections use uppercase labels (`Section` in [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx)). The pages list includes Private library, From conversations, Public pages, and Deleted (owner-trashed pages only). Fold and open-section state persist in `localStorage`.
 
@@ -69,10 +71,14 @@ Displays one or both content windows based on URL search params:
 | `?p=$pageId` | `PageWindow` | TipTap page editor |
 | `?m=$messageId` | (with `c`) | Scrolls to and flashes that message after load |
 | `?k=$chunkId` | (with `p`) | Scrolls to and flashes that page passage after load |
+| `?kb=true` | `KnowledgeBaseWindow` | Knowledge base graph |
+| `?t=$canonicalTopicId` | (with `kb`) | Selected knowledge-base topic |
 
 Both conversation and page can be open in a split-pane layout (`ResizablePanelGroup`). Example: `/w/abc123?c=conv-uuid&p=page-uuid`
 
-**Close-on-drag:** if a pane is dragged below ~20% width, that asset is closed (`c`+`m` or `p`+`k` cleared). While dragging toward that threshold, [`CloseHintOverlay`](../../src/components/close-hint-overlay.tsx) shows a progressive blur/scrim and **Close conversation** / **Close page**.
+The knowledge base shares the main area with at most one entity: conversation on the left, KB on the right, or KB on the left, page on the right. Opening the KB clears `c` and `p`; opening both a conversation and a page drops `kb`. See [Knowledge Base → Layout rules](knowledge-base.md#layout-rules).
+
+**Close-on-drag:** if a pane is dragged below ~20% width, that asset is closed (`c`+`m`, `p`+`k`, or `kb` cleared). While dragging toward that threshold, [`CloseHintOverlay`](../../src/components/close-hint-overlay.tsx) shows a progressive blur/scrim and **Close conversation** / **Close page** / **Close knowledge base**.
 
 ## Navigation Model
 
@@ -83,6 +89,10 @@ Both conversation and page can be open in a split-pane layout (`ResizablePanelGr
 /w/$workspaceId?p=uuid             → page
 /w/$workspaceId?p=uuid&k=uuid      → page, focused passage
 /w/$workspaceId?c=uuid&p=uuid      → split view
+/w/$workspaceId?kb=true            → knowledge base
+/w/$workspaceId?kb=true&t=uuid     → knowledge base, selected topic
+/w/$workspaceId?kb=true&c=uuid     → conversation · knowledge base
+/w/$workspaceId?kb=true&p=uuid     → knowledge base · page
 ```
 
 Legacy nested routes redirect to search params:
@@ -92,7 +102,7 @@ Legacy nested routes redirect to search params:
 
 ## Empty State
 
-[`EmptyStateHome`](../../src/components/empty-state-home.tsx) when neither `c` nor `p` is set:
+[`EmptyStateHome`](../../src/components/empty-state-home.tsx) when neither `c` nor `p` is set and the knowledge base is closed:
 
 - Headline: **Welcome to Tamarind** (wordmark)
 - If the user has authored messages or edited pages: quiet heading **Pick up where you left:** above a boxed list (up to 4 items from [`listRecentActivity`](../../src/lib/activity.functions.ts))
@@ -101,13 +111,13 @@ Legacy nested routes redirect to search params:
 
 ## Status Bar
 
-[`status-bar.tsx`](../../src/components/status-bar.tsx) sits in document flow (24px-class height plus 2px). Left: workspace name, then conversation/page titles with the same icons as the nav. Right: save/sync (from [`SaveStatusProvider`](../../src/lib/save-status-context.tsx)), version + environment, theme toggle, Commands ⌘K.
+[`status-bar.tsx`](../../src/components/status-bar.tsx) sits in document flow (24px-class height plus 2px). Left: workspace name, then conversation/page titles with the same icons as the nav, and **Knowledge base** (`LibraryBig`) in its on-screen position while the KB is open. Right: save/sync (from [`SaveStatusProvider`](../../src/lib/save-status-context.tsx)), version + environment, theme toggle, Commands ⌘K.
 
 ## Command Palette
 
 [`command-palette.tsx`](../../src/components/command-palette.tsx) (`cmdk`). Open with **⌘K**. Groups:
 
-- **Actions** — new conversation, new page, search everything
+- **Actions** — new conversation, new page, search everything, open knowledge base
 - **Conversations / Pages** — last-modified first; 3 shown, **Show more** up to 30; typing the filter shows up to 30 immediately
 - **Navigation** — toggle nav (⌘\\), toggle workspaces (⌘⇧\\), settings (⌘,), profile (⌘.), logout, switch workspace
 - **Theme** — light / dark / system
@@ -126,7 +136,8 @@ Canonical bindings: [`src/hooks/use-hotkeys.ts`](../../src/hooks/use-hotkeys.ts)
 | ⌘. | User profile |
 | ⌘⇧L | Clear search query and results (search overlay open) |
 | ⌘↵ | Send message (composer) |
-| Esc | Clear conversation message selection |
+| Esc | Clear conversation message selection; clear the knowledge-base selection (cursor mode) |
+| ⌘ (hold) | Knowledge base canvas: temporarily swap cursor and hand modes |
 
 Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
 
@@ -137,6 +148,8 @@ Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
 | `NavigationPanel` | [`navigation-panel.tsx`](../../src/components/navigation-panel.tsx) | Icon rail + lists, including unread indicators |
 | `ConversationWindow` | [`conversation-window.tsx`](../../src/components/conversation/conversation-window.tsx) | Chat UI |
 | `PageWindow` | [`page-window.tsx`](../../src/components/page/page-window.tsx) | Page editor |
+| `KnowledgeBaseWindow` | [`knowledge-base-window.tsx`](../../src/components/knowledge-base/knowledge-base-window.tsx) | Knowledge base graph canvas |
+| `KnowledgeNavSection` | [`knowledge-nav-section.tsx`](../../src/components/knowledge-base/knowledge-nav-section.tsx) | Selected topic's evidence in the nav panel |
 | `EmptyStateHome` | [`empty-state-home.tsx`](../../src/components/empty-state-home.tsx) | Home empty state |
 | `StatusBar` | [`status-bar.tsx`](../../src/components/status-bar.tsx) | Bottom ambient bar |
 | `CommandPalette` | [`command-palette.tsx`](../../src/components/command-palette.tsx) | ⌘K palette |
@@ -157,4 +170,5 @@ Hints use the [`Kbd`](../../src/components/ui/kbd.tsx) primitive.
 - [User Search](../search/user_search.md) — Search overlay and result interaction
 - [Conversations](conversations.md) — Chat UI details
 - [Pages](pages.md) — Page editor details
+- [Knowledge Base](knowledge-base.md) — Topic graph, evidence panel, visibility
 - [Workspaces & Permissions](workspaces_permissions.md) — Multi-workspace switching

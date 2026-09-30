@@ -6,7 +6,7 @@ This file is a **current-state brief** of Tamarind (https://www.tamarind.so, app
 
 **Problem it solves:** teams generate knowledge in chats, reviews, and ad-hoc discussion; most of it evaporates. Tamarind keeps that knowledge in-workspace, ranked by quality, retrievable by keyword *and* meaning, and beginning to surface related memory proactively.
 
-**Stage:** post-core-MVP, pre-knowledge-graph UI. Collaboration (workspaces, chat, pages, search, pins, trash) is live. The semantic layer is substantially built (indexing, topics, hybrid search, conversation nudges). Several next-layer surfaces (knowledge base, AI-authored pages, decision tracking, “what next”) are schema- or pipeline-ready but not productized.
+**Stage:** post-core-MVP, first knowledge-graph UI. Collaboration (workspaces, chat, pages, search, pins, trash) is live. The semantic layer is substantially built (indexing, topics, canonical topics, hybrid search, conversation nudges) and now surfaces as a knowledge-base topic graph. Several next-layer surfaces (AI-authored pages, decision tracking, “what next”) are schema- or pipeline-ready but not productized.
 
 ---
 
@@ -110,8 +110,8 @@ Tamarind is a **workspace shell**, closer to a knowledge IDE than a chat app or 
 **Chrome**
 
 - **Workspace rail** (⌘⇧\\): switch tenants; settings.
-- **Nav panel** (⌘\\): icon rail + lists. Conversations, Pages, Search (⌘F), Knowledge base (placeholder), Create.
-- **Main area:** empty home, a conversation, a page, or a **split pane** of both (`?c=` and `?p=`). Drag a pane below ~20% width to close it.
+- **Nav panel** (⌘\\): icon rail + lists. Conversations, Pages, Search (⌘F), Knowledge base, Create.
+- **Main area:** empty home, a conversation, a page, the knowledge base (`?kb=true`), or a **split pane** of two of them — conversation left, page right, the KB taking the free half. Drag a pane below ~20% width to close it.
 - **Status bar:** workspace + open assets, save/sync, version, theme, ⌘K.
 - **Command palette (⌘K):** new conversation/page, search, jump to recent assets, nav toggles, theme, logout, switch workspace.
 - Theme: light / dark / system.
@@ -144,7 +144,12 @@ Tamarind is a **workspace shell**, closer to a knowledge IDE than a chat app or 
 - Scope chips: All / Conversations & messages / Pages / Users & conversations.
 - Hybrid: keyword (trigram) + semantic (vectors) in parallel, merged and grouped. Cap 20 results. Selecting a row navigates (pages can land on a chunk; messages land on the parent thread at that message).
 
-**Knowledge base rail item:** UI stub (“coming soon”). The data to fill it is largely already being produced in the background.
+**Knowledge base (graph over canonical topics)**
+
+- The rail item opens a pan/zoom graph in the whole main area. Nodes are workspace-wide canonical topics (size = evidence, transparency = recency, position = semantic similarity); links mean two topics share a conversation.
+- Floating keyword filter; toolbar for recenter, cursor/hand modes (⌘ swaps) and zoom; legend.
+- Selecting a node expands it (description, last activity) and lists its evidence in the nav panel: supporting messages and pages, each deep-linking beside the KB (conversation left, page right).
+- A user only sees topics whose evidence comes entirely from conversations and pages they can read, enforced by RLS and cross-checked against the graph RPC.
 
 ---
 
@@ -174,6 +179,7 @@ Tamarind is a **workspace shell**, closer to a knowledge IDE than a chat app or 
 - Hybrid workspace search (keyword + semantic overlay).
 - Message and page-chunk deep links from search.
 - Recent activity on the empty home.
+- Knowledge base: canonical-topic graph with filter, selection and evidence deep links, ACL-aware.
 
 ### Durability / ops surfaces users feel
 
@@ -183,7 +189,6 @@ Tamarind is a **workspace shell**, closer to a knowledge IDE than a chat app or 
 
 ### Explicitly not productized yet (do not claim as shipped UX)
 
-- Knowledge base section (placeholder).
 - Live co-editing of pages.
 - External page sharing / public internet links.
 - Page templates picker; import origin; AI-generated page origin.
@@ -275,9 +280,9 @@ These exist in migrations and/or workers. Treat them as **leverage for upcoming 
 
 These are **not a committed roadmap**. They are the next product moves an agent should assume are plausible, high-leverage, and aligned with this kind of SaaS. Prefer work that **consumes the semantic layer already being computed** rather than new greenfield models.
 
-### 7.1 Knowledge base (nav stub → real product)
+### 7.1 Knowledge base (graph shipped → richer explorer)
 
-Turn the placeholder into a workspace memory explorer:
+The first version shipped as a canonical-topic graph with an evidence panel (see [Knowledge Base](interface/knowledge-base.md)). Next steps for a fuller workspace memory explorer:
 
 - Browse **conversation topics** and **page topics** as first-class objects (name, description, recency, evidence count).
 - Jump from a topic to evidence messages (`?m=`) and page passages (`?k=`).
@@ -347,6 +352,6 @@ Generic “add ChatGPT in a sidebar” without retrieval + ACL is off-brand. Tam
 - Realtime chat + rich-text knowledge docs (TipTap) in a split-pane, keyboard-centric workspace UI.
 - Proactive, per-user, ACL-aware suggestions with an LLM relevance gate and explicit feedback loop.
 
-**Do not claim as launched:** knowledge-base product, billing, live co-authoring, public page sharing, graph UI, in-page AI, or a general “what next” copilot. Those are the natural sequel, and the substrate is already in the database.
+**Do not claim as launched:** billing, live co-authoring, public page sharing, a graph UI over `entity_relations` (the shipped knowledge-base graph is over canonical topics), in-page AI, or a general “what next” copilot. Those are the natural sequel, and the substrate is already in the database.
 
 **Story arc for highlights:** *Built the collaboration surface (workspaces, realtime conversations, documents) and the memory system underneath it (normalize → score → embed → topic → retrieve → nudge), with the next product layer being a knowledge base and a semantic-layer copilot rather than a greenfield chatbot.*
