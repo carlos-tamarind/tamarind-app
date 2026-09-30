@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import { FilterInput } from "@/components/filter-input";
+import { KnowledgeNavSection } from "@/components/knowledge-base/knowledge-nav-section";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -92,6 +93,12 @@ type Props = {
   onMarkConversationRead?: (conversationId: string) => void;
   activeConversationId?: string;
   activePageId?: string;
+  /** The KB is visible in the main area, alone or beside an entity. */
+  knowledgeBaseOpen?: boolean;
+  /** The KB owns the whole main area (no conversation or page beside it). */
+  knowledgeBaseFull?: boolean;
+  selectedTopicId?: string;
+  onOpenKnowledgeBase: () => void;
   profile?: {
     workspaceUserId?: string | null;
     displayName?: string | null;
@@ -281,6 +288,10 @@ export function NavigationPanel({
   onMarkConversationRead,
   activeConversationId,
   activePageId,
+  knowledgeBaseOpen = false,
+  knowledgeBaseFull = false,
+  selectedTopicId,
+  onOpenKnowledgeBase,
   profile,
   onNewConversation,
   onNewPage,
@@ -288,7 +299,10 @@ export function NavigationPanel({
   onOpenSearch,
   onLogout,
 }: Props) {
-  const [section, setSection] = useState<NavSection>("conversations");
+  // A KB opened from the URL wins over the remembered section.
+  const [section, setSection] = useState<NavSection>(
+    knowledgeBaseOpen ? "knowledge" : "conversations",
+  );
   const [filterQuery, setFilterQuery] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(),
@@ -304,7 +318,7 @@ export function NavigationPanel({
     try {
       const stored = window.localStorage.getItem(SECTION_STORAGE_KEY);
       if (stored === "conversations" || stored === "pages" || stored === "knowledge") {
-        setSection(stored);
+        setSection((current) => (current === "knowledge" ? current : stored));
       }
     } catch {
       // Storage unavailable — defaults are fine.
@@ -314,6 +328,15 @@ export function NavigationPanel({
   useEffect(() => {
     setFilterQuery("");
   }, [section]);
+
+  // The KB section hosts the selected topic's evidence, so follow the KB when it
+  // opens (rail, palette, URL) and whenever a new node is selected.
+  const kbSyncKey = knowledgeBaseOpen ? `open:${selectedTopicId ?? ""}` : "closed";
+  const [lastKbSyncKey, setLastKbSyncKey] = useState(kbSyncKey);
+  if (kbSyncKey !== lastKbSyncKey) {
+    setLastKbSyncKey(kbSyncKey);
+    if (knowledgeBaseOpen) setSection("knowledge");
+  }
 
   const selectSection = useCallback((next: NavSection) => {
     setSection(next);
@@ -440,6 +463,18 @@ export function NavigationPanel({
     filteredDeletedPages.length > 0;
 
   const handleRailSelect = (next: NavSection) => {
+    if (next === "knowledge") {
+      // Re-clicking only folds the panel once the KB already owns the main area;
+      // otherwise the KB takes it over.
+      if (!folded && section === "knowledge" && knowledgeBaseFull) {
+        panelRef.current?.collapse();
+        return;
+      }
+      selectSection(next);
+      if (folded) panelRef.current?.expand();
+      onOpenKnowledgeBase();
+      return;
+    }
     if (folded) {
       selectSection(next);
       panelRef.current?.expand();
@@ -855,7 +890,11 @@ export function NavigationPanel({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2 pt-1 text-sm">
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto text-sm ${
+              section === "knowledge" ? "" : "px-1.5 pb-2 pt-1"
+            }`}
+          >
             {section === "conversations" ? (
               <div className="space-y-2">
                 {isFiltering && !hasConversationMatches ? (
@@ -1082,9 +1121,14 @@ export function NavigationPanel({
                 )}
               </div>
             ) : (
-              <p className="px-2 py-2 text-sm text-muted-foreground">
-                Knowledge base coming soon.
-              </p>
+              <KnowledgeNavSection
+                workspaceId={workspaceId}
+                selectedTopicId={selectedTopicId}
+                conversations={conversations}
+                pages={pages}
+                activeConversationId={activeConversationId}
+                activePageId={activePageId}
+              />
             )}
           </div>
 

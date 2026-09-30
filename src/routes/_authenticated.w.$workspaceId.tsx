@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/resizable";
 import { ConversationWindow } from "@/components/conversation/conversation-window";
 import { PageWindow } from "@/components/page/page-window";
+import { KnowledgeBaseWindow } from "@/components/knowledge-base/knowledge-base-window";
 import { NavigationPanel } from "@/components/navigation-panel";
 import { SearchOverlay } from "@/components/search/search-overlay";
 import { CommandPalette } from "@/components/command-palette";
@@ -48,6 +49,8 @@ import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
 import {
   workspaceSearchSchema,
   withConversation,
+  withKnowledgeBase,
+  withoutKnowledgeBase,
   withPage,
 } from "@/lib/workspace-search";
 
@@ -57,6 +60,9 @@ export const Route = createFileRoute("/_authenticated/w/$workspaceId")({
 });
 
 const COLLAPSE_THRESHOLD = 20;
+
+const SPLIT_PANE_IDS = ["conv", "kb", "page"] as const;
+type SplitPaneId = (typeof SPLIT_PANE_IDS)[number];
 const CLOSE_HINT_START = 32;
 
 function closeHintIntensity(size: number | undefined) {
@@ -77,7 +83,7 @@ function WorkspaceShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [folded, setFolded] = useState(false);
   const [closeHint, setCloseHint] = useState<{
-    target: "conv" | "page";
+    target: SplitPaneId;
     intensity: number;
   } | null>(null);
   const navPanelRef = useRef<PanelImperativeHandle>(null);
@@ -137,6 +143,13 @@ function WorkspaceShell() {
   const handleNewConversation = useCallback(() => setConvDialogOpen(true), []);
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const handleOpenProfile = useCallback(() => setProfileOpen(true), []);
+  const handleOpenKnowledgeBase = useCallback(() => {
+    void navigate({
+      to: "/w/$workspaceId",
+      params: { workspaceId },
+      search: (prev) => withKnowledgeBase(prev),
+    });
+  }, [navigate, workspaceId]);
 
   const toggleNavPanel = useCallback(() => {
     const panel = navPanelRef.current;
@@ -169,9 +182,16 @@ function WorkspaceShell() {
   const hasConversation = !!conversationId;
   const hasPage = !!pageId;
   const bothOpen = hasConversation && hasPage;
+  // The KB shares the main area with at most one entity.
+  const showKb = !!search.kb && !bothOpen;
+  const kbSplit = showKb && (hasConversation || hasPage);
+  const selectedTopicId = search.t;
 
   const statusContext = useMemo((): StatusContextItem[] => {
     const items: StatusContextItem[] = [];
+    const kbItem: StatusContextItem = { kind: "knowledge", title: "Knowledge base" };
+    // Listed in on-screen order: conversation, KB, page.
+    if (showKb && !conversationId) items.push(kbItem);
     if (conversationId) {
       const conv = sortedConversations.find((c) => c.id === conversationId);
       if (conv) {
@@ -181,6 +201,7 @@ function WorkspaceShell() {
           subtype: conv.type,
         });
       }
+      if (showKb) items.push(kbItem);
     }
     if (pageId) {
       const page = sortedPages.find((p) => p.id === pageId);
@@ -193,26 +214,34 @@ function WorkspaceShell() {
       }
     }
     return items;
-  }, [conversationId, pageId, sortedConversations, sortedPages]);
+  }, [conversationId, pageId, showKb, sortedConversations, sortedPages]);
 
   const handleSplitLayoutChange = useCallback((layout: Record<string, number>) => {
-    const convIntensity = closeHintIntensity(layout.conv);
-    const pageIntensity = closeHintIntensity(layout.page);
-    if (convIntensity > 0 && convIntensity >= pageIntensity) {
-      setCloseHint({ target: "conv", intensity: convIntensity });
-    } else if (pageIntensity > 0) {
-      setCloseHint({ target: "page", intensity: pageIntensity });
-    } else {
-      setCloseHint(null);
+    let strongest: { target: SplitPaneId; intensity: number } | null = null;
+    for (const target of SPLIT_PANE_IDS) {
+      const intensity = closeHintIntensity(layout[target]);
+      if (intensity > 0 && (!strongest || intensity > strongest.intensity)) {
+        strongest = { target, intensity };
+      }
     }
+    setCloseHint(strongest);
   }, []);
 
   const handleMainLayout = useCallback(
     (layout: Record<string, number>) => {
-      if (!bothOpen) return;
+      if (!bothOpen && !kbSplit) return;
       const convSize = layout.conv;
       const pageSize = layout.page;
-      if (convSize !== undefined && convSize < COLLAPSE_THRESHOLD) {
+      const kbSize = layout.kb;
+      if (kbSize !== undefined && kbSize < COLLAPSE_THRESHOLD) {
+        setCloseHint(null);
+        navigate({
+          to: "/w/$workspaceId",
+          params: { workspaceId },
+          search: (prev) => withoutKnowledgeBase(prev),
+          replace: true,
+        });
+      } else if (convSize !== undefined && convSize < COLLAPSE_THRESHOLD) {
         setCloseHint(null);
         navigate({
           to: "/w/$workspaceId",
@@ -232,8 +261,22 @@ function WorkspaceShell() {
         setCloseHint(null);
       }
     },
-    [bothOpen, navigate, workspaceId],
+    [bothOpen, kbSplit, navigate, workspaceId],
   );
+
+  const conversationWindow = conversationId ? (
+    <ConversationWindow
+      key={conversationId}
+      workspaceId={workspaceId}
+      conversationId={conversationId}
+      unreadEntry={unread.byConversationId.get(conversationId) ?? null}
+      onMarkRead={() => unread.markConversationRead(conversationId)}
+    />
+  ) : null;
+
+  const pageWindow = pageId ? (
+    <PageWindow key={pageId} workspaceId={workspaceId} pageId={pageId} />
+  ) : null;
 
   const handleLogout = async () => {
     clearComposerDrafts();
@@ -358,6 +401,10 @@ function WorkspaceShell() {
                   }}
                   activeConversationId={conversationId}
                   activePageId={pageId}
+                  knowledgeBaseOpen={showKb}
+                  knowledgeBaseFull={showKb && !kbSplit}
+                  selectedTopicId={selectedTopicId}
+                  onOpenKnowledgeBase={handleOpenKnowledgeBase}
                   profile={profile}
                   onNewConversation={handleNewConversation}
                   onNewPage={handleNewPage}
@@ -371,81 +418,76 @@ function WorkspaceShell() {
 
               <ResizablePanel id="main" minSize="40%">
                 <main className="h-full overflow-hidden">
-                  {!hasConversation && !hasPage ? (
+                  {showKb && !kbSplit ? (
+                    <KnowledgeBaseWindow
+                      workspaceId={workspaceId}
+                      selectedTopicId={selectedTopicId}
+                    />
+                  ) : !hasConversation && !hasPage ? (
                     <EmptyStateHome
                       workspaceId={workspaceId}
                       onNewConversation={handleNewConversation}
                       onNewPage={handleNewPage}
                       onOpenSearch={handleOpenSearch}
                     />
-                  ) : bothOpen ? (
+                  ) : bothOpen || kbSplit ? (
+                    // Conversations sit on the left, pages on the right, and the KB
+                    // takes whichever side is free.
                     <ResizablePanelGroup
                       orientation="horizontal"
                       onLayoutChange={handleSplitLayoutChange}
                       onLayoutChanged={handleMainLayout}
-                      key={`split-${conversationId}-${pageId}`}
+                      key={`split-${conversationId ?? "kb"}-${pageId ?? "kb"}`}
                     >
-                      <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
-                        <div className="relative h-full">
-                          <ConversationWindow
-                            key={conversationId}
-                            workspaceId={workspaceId}
-                            conversationId={conversationId!}
-                            unreadEntry={
-                              conversationId
-                                ? (unread.byConversationId.get(conversationId) ?? null)
-                                : null
-                            }
-                            onMarkRead={() =>
-                              conversationId &&
-                              unread.markConversationRead(conversationId)
-                            }
-                          />
-                          {closeHint?.target === "conv" ? (
-                            <CloseHintOverlay
-                              intensity={closeHint.intensity}
-                              label="Close conversation"
+                      {hasConversation ? (
+                        <ResizablePanel id="conv" defaultSize="50%" minSize="10%">
+                          <div className="relative h-full">
+                            {conversationWindow}
+                            {closeHint?.target === "conv" ? (
+                              <CloseHintOverlay
+                                intensity={closeHint.intensity}
+                                label="Close conversation"
+                              />
+                            ) : null}
+                          </div>
+                        </ResizablePanel>
+                      ) : null}
+                      {hasConversation ? <ResizableHandle /> : null}
+                      {kbSplit ? (
+                        <ResizablePanel id="kb" defaultSize="50%" minSize="10%">
+                          <div className="relative h-full">
+                            <KnowledgeBaseWindow
+                              workspaceId={workspaceId}
+                              selectedTopicId={selectedTopicId}
                             />
-                          ) : null}
-                        </div>
-                      </ResizablePanel>
-                      <ResizableHandle />
-                      <ResizablePanel id="page" defaultSize="50%" minSize="10%">
-                        <div className="relative h-full">
-                          <PageWindow
-                            key={pageId}
-                            workspaceId={workspaceId}
-                            pageId={pageId!}
-                          />
-                          {closeHint?.target === "page" ? (
-                            <CloseHintOverlay
-                              intensity={closeHint.intensity}
-                              label="Close page"
-                            />
-                          ) : null}
-                        </div>
-                      </ResizablePanel>
+                            {closeHint?.target === "kb" ? (
+                              <CloseHintOverlay
+                                intensity={closeHint.intensity}
+                                label="Close knowledge base"
+                              />
+                            ) : null}
+                          </div>
+                        </ResizablePanel>
+                      ) : null}
+                      {hasPage && kbSplit ? <ResizableHandle /> : null}
+                      {hasPage ? (
+                        <ResizablePanel id="page" defaultSize="50%" minSize="10%">
+                          <div className="relative h-full">
+                            {pageWindow}
+                            {closeHint?.target === "page" ? (
+                              <CloseHintOverlay
+                                intensity={closeHint.intensity}
+                                label="Close page"
+                              />
+                            ) : null}
+                          </div>
+                        </ResizablePanel>
+                      ) : null}
                     </ResizablePanelGroup>
                   ) : hasConversation ? (
-                    <ConversationWindow
-                      key={conversationId}
-                      workspaceId={workspaceId}
-                      conversationId={conversationId!}
-                      unreadEntry={
-                        conversationId
-                          ? (unread.byConversationId.get(conversationId) ?? null)
-                          : null
-                      }
-                      onMarkRead={() =>
-                        conversationId && unread.markConversationRead(conversationId)
-                      }
-                    />
+                    conversationWindow
                   ) : (
-                    <PageWindow
-                      key={pageId}
-                      workspaceId={workspaceId}
-                      pageId={pageId!}
-                    />
+                    pageWindow
                   )}
                 </main>
               </ResizablePanel>
@@ -494,6 +536,7 @@ function WorkspaceShell() {
             onNewPage={handleNewPage}
             onOpenProfile={handleOpenProfile}
             onOpenSearch={handleOpenSearch}
+            onOpenKnowledgeBase={handleOpenKnowledgeBase}
             onToggleNav={toggleNavPanel}
             onToggleWorkspaces={toggleRail}
             onLogout={() => {

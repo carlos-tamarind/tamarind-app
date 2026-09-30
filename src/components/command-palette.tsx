@@ -6,6 +6,7 @@ import {
   FileLock,
   FilePlusCorner,
   FileText,
+  LibraryBig,
   LogOut,
   Menu,
   Monitor,
@@ -64,6 +65,7 @@ export function CommandPalette({
   onNewPage,
   onOpenProfile,
   onOpenSearch,
+  onOpenKnowledgeBase,
   onToggleNav,
   onToggleWorkspaces,
   onLogout,
@@ -79,6 +81,7 @@ export function CommandPalette({
   onNewPage: () => void;
   onOpenProfile: () => void;
   onOpenSearch: () => void;
+  onOpenKnowledgeBase: () => void;
   onToggleNav: () => void;
   onToggleWorkspaces: () => void;
   onLogout: () => void;
@@ -174,6 +177,13 @@ export function CommandPalette({
             <CommandShortcut>
               <Kbd>{searchLabel}</Kbd>
             </CommandShortcut>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => run(onOpenKnowledgeBase)}
+            keywords={["kb", "graph", "topics", "knowledge"]}
+          >
+            <LibraryBig />
+            Open knowledge base
           </CommandItem>
         </CommandGroup>
 

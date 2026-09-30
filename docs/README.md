@@ -16,6 +16,7 @@ Core system design, data model, and cross-cutting concerns.
 | [Database](architecture/database.md) | Schema, tables, relationships, RLS, indexes |
 | [Auth](architecture/auth.md) | Authentication, authorization, workspaces, invites |
 | [Realtime](architecture/realtime.md) | Supabase Realtime subscriptions and presence |
+| [Tests](architecture/tests.md) | Unit test location (`tests/`), coverage, and how to run them |
 
 ### Semantic Pipeline
 
@@ -56,6 +57,7 @@ User-facing UI, routing, and feature areas.
 | [User Onboarding](interface/user_onboarding.md) | Bootstrap, login, invites |
 | [Conversations](interface/conversations.md) | Chat UI, composer, session drafts |
 | [Pages](interface/pages.md) | TipTap editor, sharing, autosave |
+| [Knowledge Base](interface/knowledge-base.md) | Canonical-topic graph, evidence panel, deep links |
 
 ### API, Background Jobs & Deployment
 
@@ -79,6 +81,8 @@ src/
 
 supabase/
 └── migrations/       # PostgreSQL schema (source of truth for database.md)
+
+tests/                # Unit tests, mirroring src/ (see architecture/tests.md)
 ```
 
 ## Tech Stack Summary

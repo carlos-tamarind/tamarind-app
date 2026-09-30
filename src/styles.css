@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@xyflow/react/dist/base.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -542,6 +543,26 @@
 @keyframes msg-flash-anim {
   0% { background-color: color-mix(in oklab, var(--primary) 30%, transparent); }
   100% { background-color: transparent; }
+}
+
+/* Knowledge base graph (React Flow). Colours come from the app tokens so the
+   canvas follows light and dark themes. */
+.kb-canvas .react-flow {
+  --xy-background-color: transparent;
+  --xy-edge-stroke: var(--border-strong);
+  --xy-attribution-background-color: transparent;
+}
+.kb-canvas .react-flow__attribution a {
+  color: var(--muted-foreground);
+}
+.kb-canvas[data-mode="cursor"] .react-flow__pane {
+  cursor: default;
+}
+.kb-canvas[data-mode="hand"] .react-flow__pane {
+  cursor: grab;
+}
+.kb-canvas[data-mode="hand"] .react-flow__pane.dragging {
+  cursor: grabbing;
 }
 
 @media (prefers-reduced-motion: reduce) {
