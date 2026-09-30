@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { reconcileGraphWithReadable } from "./graph-reconcile";
-import type { KnowledgeGraph } from "./types";
+import { reconcileGraphWithReadable } from "@/lib/knowledge-base/graph-reconcile";
+import type { KnowledgeGraph } from "@/lib/knowledge-base/types";
 
 function node(id: string) {
   return { id, name: id, description: id, evidenceCount: 1, lastActivityAt: "2026-09-27" };

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { layoutKnowledgeGraph } from "./layout";
+import { layoutKnowledgeGraph } from "@/lib/knowledge-base/layout";
 
 const input = {
   nodes: ["a", "b", "c", "d", "lonely"].map((id) => ({ id, width: 180, height: 44 })),

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { KB_CONFIG } from "./config";
-import { alphaFor, sizeFor } from "./visuals";
+import { KB_CONFIG } from "@/lib/knowledge-base/config";
+import { alphaFor, sizeFor } from "@/lib/knowledge-base/visuals";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

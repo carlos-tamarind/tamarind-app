@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { MatchedConversationTopic } from "../types/match";
-import { classifyMatches } from "./classifyMatches";
+import type { MatchedConversationTopic } from "@/semantic/conversation-topics/types/match";
+import { classifyMatches } from "@/semantic/conversation-topics/engine/classifyMatches";
 
 function match(
-  overrides: Partial<MatchedConversationTopic> & Pick<MatchedConversationTopic, "id" | "similarity" | "is_candidate">,
+  overrides: Partial<MatchedConversationTopic> &
+    Pick<MatchedConversationTopic, "id" | "similarity" | "is_candidate">,
 ): MatchedConversationTopic {
   return {
     conversation_id: "conv-1",
@@ -51,9 +52,7 @@ describe("classifyMatches", () => {
   });
 
   it("routes medium-only candidates to tier 2", () => {
-    const route = classifyMatches([
-      match({ id: "cand-1", similarity: 0.45, is_candidate: true }),
-    ]);
+    const route = classifyMatches([match({ id: "cand-1", similarity: 0.45, is_candidate: true })]);
     assert.equal(route.tier, 2);
     if (route.tier !== 2) return;
     assert.equal(route.mediumEstablished, null);
@@ -61,23 +60,17 @@ describe("classifyMatches", () => {
   });
 
   it("routes below lower threshold to tier 3", () => {
-    const route = classifyMatches([
-      match({ id: "cand-1", similarity: 0.39, is_candidate: true }),
-    ]);
+    const route = classifyMatches([match({ id: "cand-1", similarity: 0.39, is_candidate: true })]);
     assert.deepEqual(route, { tier: 3 });
   });
 
   it("treats upper threshold as tier 1", () => {
-    const route = classifyMatches([
-      match({ id: "cand-1", similarity: 0.6, is_candidate: true }),
-    ]);
+    const route = classifyMatches([match({ id: "cand-1", similarity: 0.6, is_candidate: true })]);
     assert.equal(route.tier, 1);
   });
 
   it("treats similarity just below upper as tier 2 medium", () => {
-    const route = classifyMatches([
-      match({ id: "cand-1", similarity: 0.59, is_candidate: true }),
-    ]);
+    const route = classifyMatches([match({ id: "cand-1", similarity: 0.59, is_candidate: true })]);
     assert.equal(route.tier, 2);
   });
 });

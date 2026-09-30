@@ -7,7 +7,7 @@ import {
   withKnowledgeEvidence,
   withPage,
   withTopic,
-} from "./workspace-search";
+} from "@/lib/workspace-search";
 
 const C = "00000000-0000-4000-8000-00000000000c";
 const P = "00000000-0000-4000-8000-00000000000d";

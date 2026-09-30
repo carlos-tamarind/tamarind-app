@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { KnowledgeGraphResponseError, parseKnowledgeGraphResponse } from "./graph-schema";
+import {
+  KnowledgeGraphResponseError,
+  parseKnowledgeGraphResponse,
+} from "@/lib/knowledge-base/graph-schema";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
