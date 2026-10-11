@@ -104,7 +104,7 @@
         "prettier": "^3.7.3",
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.67.0",
-        "vite": "^7.3.1",
+        "vite": "^8.3.4",
       },
     },
   },
@@ -185,57 +185,57 @@
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@emnapi/wasi-threads/-/wasi-threads-1.2.3.tgz", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g=="],
 
-    "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz", { "os": "aix", "cpu": "ppc64" }, "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ=="],
+    "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz", { "os": "aix", "cpu": "ppc64" }, "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ=="],
 
-    "@esbuild/android-arm": ["@esbuild/android-arm@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm/-/android-arm-0.28.2.tgz", { "os": "android", "cpu": "arm" }, "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg=="],
+    "@esbuild/android-arm": ["@esbuild/android-arm@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm/-/android-arm-0.28.1.tgz", { "os": "android", "cpu": "arm" }, "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ=="],
 
-    "@esbuild/android-arm64": ["@esbuild/android-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz", { "os": "android", "cpu": "arm64" }, "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A=="],
+    "@esbuild/android-arm64": ["@esbuild/android-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz", { "os": "android", "cpu": "arm64" }, "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg=="],
 
-    "@esbuild/android-x64": ["@esbuild/android-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-x64/-/android-x64-0.28.2.tgz", { "os": "android", "cpu": "x64" }, "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q=="],
+    "@esbuild/android-x64": ["@esbuild/android-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-x64/-/android-x64-0.28.1.tgz", { "os": "android", "cpu": "x64" }, "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng=="],
 
-    "@esbuild/darwin-arm64": ["@esbuild/darwin-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw=="],
+    "@esbuild/darwin-arm64": ["@esbuild/darwin-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q=="],
 
-    "@esbuild/darwin-x64": ["@esbuild/darwin-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw=="],
+    "@esbuild/darwin-x64": ["@esbuild/darwin-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ=="],
 
-    "@esbuild/freebsd-arm64": ["@esbuild/freebsd-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz", { "os": "freebsd", "cpu": "arm64" }, "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw=="],
+    "@esbuild/freebsd-arm64": ["@esbuild/freebsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz", { "os": "freebsd", "cpu": "arm64" }, "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw=="],
 
-    "@esbuild/freebsd-x64": ["@esbuild/freebsd-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg=="],
+    "@esbuild/freebsd-x64": ["@esbuild/freebsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ=="],
 
-    "@esbuild/linux-arm": ["@esbuild/linux-arm@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz", { "os": "linux", "cpu": "arm" }, "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w=="],
+    "@esbuild/linux-arm": ["@esbuild/linux-arm@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz", { "os": "linux", "cpu": "arm" }, "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ=="],
 
-    "@esbuild/linux-arm64": ["@esbuild/linux-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug=="],
+    "@esbuild/linux-arm64": ["@esbuild/linux-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g=="],
 
-    "@esbuild/linux-ia32": ["@esbuild/linux-ia32@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz", { "os": "linux", "cpu": "ia32" }, "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ=="],
+    "@esbuild/linux-ia32": ["@esbuild/linux-ia32@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz", { "os": "linux", "cpu": "ia32" }, "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w=="],
 
-    "@esbuild/linux-loong64": ["@esbuild/linux-loong64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ=="],
+    "@esbuild/linux-loong64": ["@esbuild/linux-loong64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg=="],
 
-    "@esbuild/linux-mips64el": ["@esbuild/linux-mips64el@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA=="],
+    "@esbuild/linux-mips64el": ["@esbuild/linux-mips64el@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ=="],
 
-    "@esbuild/linux-ppc64": ["@esbuild/linux-ppc64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ=="],
+    "@esbuild/linux-ppc64": ["@esbuild/linux-ppc64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ=="],
 
-    "@esbuild/linux-riscv64": ["@esbuild/linux-riscv64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz", { "os": "linux", "cpu": "none" }, "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA=="],
+    "@esbuild/linux-riscv64": ["@esbuild/linux-riscv64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ=="],
 
-    "@esbuild/linux-s390x": ["@esbuild/linux-s390x@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg=="],
+    "@esbuild/linux-s390x": ["@esbuild/linux-s390x@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag=="],
 
-    "@esbuild/linux-x64": ["@esbuild/linux-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz", { "os": "linux", "cpu": "x64" }, "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ=="],
+    "@esbuild/linux-x64": ["@esbuild/linux-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz", { "os": "linux", "cpu": "x64" }, "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA=="],
 
-    "@esbuild/netbsd-arm64": ["@esbuild/netbsd-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz", { "os": "none", "cpu": "arm64" }, "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw=="],
+    "@esbuild/netbsd-arm64": ["@esbuild/netbsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz", { "os": "none", "cpu": "arm64" }, "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw=="],
 
-    "@esbuild/netbsd-x64": ["@esbuild/netbsd-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz", { "os": "none", "cpu": "x64" }, "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw=="],
+    "@esbuild/netbsd-x64": ["@esbuild/netbsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz", { "os": "none", "cpu": "x64" }, "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg=="],
 
-    "@esbuild/openbsd-arm64": ["@esbuild/openbsd-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz", { "os": "openbsd", "cpu": "arm64" }, "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ=="],
+    "@esbuild/openbsd-arm64": ["@esbuild/openbsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz", { "os": "openbsd", "cpu": "arm64" }, "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q=="],
 
-    "@esbuild/openbsd-x64": ["@esbuild/openbsd-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz", { "os": "openbsd", "cpu": "x64" }, "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw=="],
+    "@esbuild/openbsd-x64": ["@esbuild/openbsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz", { "os": "openbsd", "cpu": "x64" }, "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw=="],
 
-    "@esbuild/openharmony-arm64": ["@esbuild/openharmony-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz", { "os": "none", "cpu": "arm64" }, "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q=="],
+    "@esbuild/openharmony-arm64": ["@esbuild/openharmony-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz", { "os": "none", "cpu": "arm64" }, "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg=="],
 
-    "@esbuild/sunos-x64": ["@esbuild/sunos-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz", { "os": "sunos", "cpu": "x64" }, "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g=="],
+    "@esbuild/sunos-x64": ["@esbuild/sunos-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz", { "os": "sunos", "cpu": "x64" }, "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ=="],
 
-    "@esbuild/win32-arm64": ["@esbuild/win32-arm64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ=="],
+    "@esbuild/win32-arm64": ["@esbuild/win32-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA=="],
 
-    "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz", { "os": "win32", "cpu": "ia32" }, "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA=="],
+    "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz", { "os": "win32", "cpu": "ia32" }, "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg=="],
 
-    "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
+    "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz", { "os": "win32", "cpu": "x64" }, "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A=="],
 
     "@eslint-community/eslint-utils": ["@eslint-community/eslint-utils@4.10.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@eslint-community/eslint-utils/-/eslint-utils-4.10.1.tgz", { "dependencies": { "eslint-visitor-keys": "^3.4.3" }, "peerDependencies": { "eslint": "^6.0.0 || ^7.0.0 || >=8.0.0" } }, "sha512-cuadcxVFE8sDK6iWJbs8Sn0av2Nrh2QSGQhVlBW9AaAHqHwjWsZHT8LJ4hFGPh7ASBV2deFdM7H/DPjulmh8rg=="],
 
@@ -349,8 +349,6 @@
 
     "@lovable.dev/webhooks-js": ["@lovable.dev/webhooks-js@0.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@lovable.dev/webhooks-js/-/webhooks-js-0.0.1.tgz", {}, "sha512-TdaXXNszX2r9VAWdHpxgpF7cb/aLvejfkVD5S6jTCmH0ArUjAMPkkTlFnG52kkOdWlD5dtW2sNWvqptqVJYVIg=="],
 
-    "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@napi-rs/lzma-linux-x64-gnu/-/lzma-linux-x64-gnu-1.5.1.tgz", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
-
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@napi-rs/wasm-runtime/-/wasm-runtime-1.2.4.tgz", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.4", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.4" } }, "sha512-AJxoUD2/15ESHbvpcyjU274nsAPLuOtPHCk0vKJM5pj//Fg/B1FXNWjPnXTT9PymCYYiHo4zPj0ZomXBKhoy7g=="],
 
     "@oozcitak/dom": ["@oozcitak/dom@2.0.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@oozcitak/dom/-/dom-2.0.2.tgz", { "dependencies": { "@oozcitak/infra": "^2.0.2", "@oozcitak/url": "^3.0.0", "@oozcitak/util": "^10.0.0" } }, "sha512-GjpKhkSYC3Mj4+lfwEyI1dqnsKTgwGy48ytZEhm4A/xnH/8z9M3ZVXKr/YGQi3uCLs1AEBS+x5T2JPiueEDW8w=="],
@@ -401,7 +399,7 @@
 
     "@oxc-parser/binding-win32-x64-msvc": ["@oxc-parser/binding-win32-x64-msvc@0.120.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@oxc-parser/binding-win32-x64-msvc/-/binding-win32-x64-msvc-0.120.0.tgz", { "os": "win32", "cpu": "x64" }, "sha512-ys+upfqNtSu58huAhJMBKl3XCkGzyVFBlMlGPzHeFKgpFF/OdgNs1MMf8oaJIbgMH8ZxgGF7qfue39eJohmKIg=="],
 
-    "@oxc-project/types": ["@oxc-project/types@0.150.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@oxc-project/types/-/types-0.150.0.tgz", {}, "sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw=="],
+    "@oxc-project/types": ["@oxc-project/types@0.153.0", "", {}, "sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw=="],
 
     "@pkgr/core": ["@pkgr/core@0.3.6", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@pkgr/core/-/core-0.3.6.tgz", {}, "sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA=="],
 
@@ -561,87 +559,37 @@
 
     "@react-email/text": ["@react-email/text@0.1.6", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@react-email/text/-/text-0.1.6.tgz", { "peerDependencies": { "react": "^18.0 || ^19.0 || ^19.0.0-rc" } }, "sha512-TYqkioRS45wTR5il3dYk/SbUjjEdhSwh9BtRNB99qNH1pXAwA45H7rAuxehiu8iJQJH0IyIr+6n62gBz9ezmsw=="],
 
-    "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.9.tgz", { "os": "android", "cpu": "arm" }, "sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw=="],
+    "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.13", "", { "os": "android", "cpu": "arm" }, "sha512-Vu/NICrgdRvUOeaJZIyB2FP63s6fO/4ud5l8dXmxDx9yDyn+mN0y+gsvsVviSli+T361Aqo0h46EuMoobrwawA=="],
 
-    "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.9.tgz", { "os": "android", "cpu": "arm64" }, "sha512-YC8YsI30o606GTZi0VyzYlsDKFP8W61i/QzayHDkLbNEz/IShqAmTa+hsJRj13xTHA0H+6fk4b2UmGn+Q/cMlg=="],
+    "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.2.13", "", { "os": "android", "cpu": "arm64" }, "sha512-6LEoIrGy5vvCd2boNnv2soPSUZj/PRvhp8R/t9KlX+mIZxThIE/ZqxrGXxmuNX0FuvQFvLdZr7S4HrYpYBVhEQ=="],
 
-    "@rolldown/binding-darwin-arm64": ["@rolldown/binding-darwin-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.9.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-IwhlH3qK5urrY8hZiEgGkHKEFN901p/p2bjxCxJlr4GyNnF7wYpUvK+Y43uaRYuC4hpfjzbR3SJC3arX1jGvmw=="],
+    "@rolldown/binding-darwin-arm64": ["@rolldown/binding-darwin-arm64@1.2.13", "", { "os": "darwin", "cpu": "arm64" }, "sha512-CaJSRzlQ6Q+zkDMVA9OkVxBjVoPRCDEE3v0FSJ9kIQBgRjFApA3Si4ijhbNVUji7ZJt+PfO0e46qy4nPInHUPA=="],
 
-    "@rolldown/binding-darwin-x64": ["@rolldown/binding-darwin-x64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.9.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-XxpJfVzFh+jilRxIXUqcfYAYcunIc/XEzIizsOL1fcJee5Sf7H3mH8WlLmfHfluz5amqR88QQo9izKtmMlavAw=="],
+    "@rolldown/binding-darwin-x64": ["@rolldown/binding-darwin-x64@1.2.13", "", { "os": "darwin", "cpu": "x64" }, "sha512-e4r340I5hxSzJkD3YJBxgzq/rJ3wwxwdLLb2FPt1Zpyem20nrQPT11DDEEkazwxaHumH8wpglsp/Ozgj/wT6mw=="],
 
-    "@rolldown/binding-freebsd-x64": ["@rolldown/binding-freebsd-x64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.9.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-kSfvhmgeWyfkbT3p/1s5vSgboogoah2zkm9fX2zjg2hHxSV7T4KhMWRUUaRk4OXNqoD3QAUeRqLcs1aZOK4U1g=="],
+    "@rolldown/binding-freebsd-x64": ["@rolldown/binding-freebsd-x64@1.2.13", "", { "os": "freebsd", "cpu": "x64" }, "sha512-hoBWDZ4/K/mJKVMbsgUd1jfpA2DiOrJ54mpegObU9TBHBBrtX4FLIXJJQRDPZ/2Dn91GvPob+Z2hwKJzf4E5SQ=="],
 
-    "@rolldown/binding-linux-arm-gnueabihf": ["@rolldown/binding-linux-arm-gnueabihf@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.9.tgz", { "os": "linux", "cpu": "arm" }, "sha512-1RVzG17pxqbTfYLC352JlLt6kKLG+6Hr30n8DlIJqsnV5luUDd2Qdx9Ayw1Cabfyb1K9k0jXEZ7evxkRoT+uiw=="],
+    "@rolldown/binding-linux-arm-gnueabihf": ["@rolldown/binding-linux-arm-gnueabihf@1.2.13", "", { "os": "linux", "cpu": "arm" }, "sha512-oF9fZu3vTWnTiVAkDFxU9PJLt1nh20K9RRpuHsR7ZnE2L7XookBbDBVLojCVSLGbvtSlxeUNnjAj6DbNsKyzbg=="],
 
-    "@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-BXqPvZ2drqVD+/Z8UpKwcs4Mp7grM+eGFku4CAEKrEtcbAsUpzREphK1sogCRZGreVPiMkiiBtw0n3TPteuqvw=="],
+    "@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.2.13", "", { "os": "linux", "cpu": "arm64" }, "sha512-DTpb/+jMiqWMPgphn4ksW1zW+XLJ6dJJ9FMvnIk9I291LhCctMPhMYJrP5t9p6C9qa3KXadDdUEZHBaPh3kNxQ=="],
 
-    "@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.9.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-11vWvo8YDwLzukt27J3aYDWU+gg2P7J+ZOmiJ0hkF5BXZDW7pVya7r40MXDy6ya0i9KamoENSVKIugvJNgFXIA=="],
+    "@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.2.13", "", { "os": "linux", "cpu": "arm64" }, "sha512-xU+Kvv9N2A3SY35zFh1FWWNjxbadE/BKeqnkXe7vScU4GZsw757BlVmDLITZEq8DPpk6m7uoDYkK7P+x/uU5Ow=="],
 
-    "@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-a1tijMkdwsIARtc0F39ApURROkf3NwqinI6TOiSSWCTR7dT96dffNvMUtDHnq64wKNTIZOIlzKrFvvFUznJiyw=="],
+    "@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.2.13", "", { "os": "linux", "cpu": "ppc64" }, "sha512-XMk/hnhh25oQ756Lclb1Q11h4ll0xC0Esa5w4Vzp+mAE2S3AGJgeM0SonrIgY8fHhjarb6hcoTuwoFG0VVP2ig=="],
 
-    "@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.9.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-x6SQNdAvv4c3hWqTMaWuawzMX9myaCs/yEmlGsxJzkdClnHW7FbrjQuSiRDhuSYzEYoEMhsaJy9qHG/XNemJPQ=="],
+    "@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.2.13", "", { "os": "linux", "cpu": "s390x" }, "sha512-U1BoTHYmlywE2n3HUWjzZ+8EQsKr+OwpxYuDWaubx42tUL8QSL7nOqRz/NVHanibbFP3M1Rxuprz/wNcbMKjqw=="],
 
-    "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "x64" }, "sha512-9s0AZ8BFK5/n7B/TBoa2yJE3gI3KURrbXcPBlsAsvjU4VeJKgE90y1YtNxyEUIcHPQkg6/yfF3qihUrcM/Kf0Q=="],
+    "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.2.13", "", { "os": "linux", "cpu": "x64" }, "sha512-J4cm80Pc6wEwV5AZ42o62sIQgDk+Y7R2s646jIwuvO+4V46QB58N4vVuMPWCBaNgursXLpmUWJV//WQAkPvHBQ=="],
 
-    "@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.9.tgz", { "os": "linux", "cpu": "x64" }, "sha512-P7VWAmV+WdJluH7ovnRGoiv2i8To7GAZ+kGzfGup635cyL7SyYl3lSUaA3Gp5THf0n/Co5EyEqb2zbqq+nMOHQ=="],
+    "@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.2.13", "", { "os": "linux", "cpu": "x64" }, "sha512-W0euZS40U4V6JkmEnVCIX9mcsL6cbXQ4X8c2w+MMOIjFg68TXUW+u3RT+2e1t1pv9mg/EP3pDtK3POXdQ7Rxyw=="],
 
-    "@rolldown/binding-openharmony-arm64": ["@rolldown/binding-openharmony-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.9.tgz", { "os": "none", "cpu": "arm64" }, "sha512-1qixtsE4BK8h+yS3BfmZ09UhA7O/N4IACva6YBr7EBvCJraByTuRcgOTaiA62Tm0vey3UcKXLOaoGHtYmNGEVg=="],
+    "@rolldown/binding-openharmony-arm64": ["@rolldown/binding-openharmony-arm64@1.2.13", "", { "os": "none", "cpu": "arm64" }, "sha512-do/AF/4n9MRshia3a5aXoy8xM2c6mgfT6D7H/dY6my5z+hfCIR4ab7mk4IRj++nsEQpKy39kd0DQnDq+r692tw=="],
 
-    "@rolldown/binding-win32-arm64-msvc": ["@rolldown/binding-win32-arm64-msvc@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.9.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-ok8IQjcEPs1AKZfuEUznVBrJw+gK4soq+bx8b1X2XoMqVClarc1q5JDmVtWXY1xfr6ZuHTAsPXHTgTrqKTZeww=="],
+    "@rolldown/binding-win32-arm64-msvc": ["@rolldown/binding-win32-arm64-msvc@1.2.13", "", { "os": "win32", "cpu": "arm64" }, "sha512-6FtUf2cJZobutJdxnGYX8z0vtbgqU0b2v8vfBhkXb9wp2MppMFtkunE+IaOntyi01rkIQoPW2GHABtfzsC0BRQ=="],
 
-    "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.9.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Ip2mXoU0hM0boq3Rf+ekuT653OROSo6aSYcPT1VHE4q52KvyxgFkQgrgb/IEsxOuvQ2fZZbs8khJAyCEPM24/g=="],
+    "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.2.13", "", { "os": "win32", "cpu": "x64" }, "sha512-UKhFaZTeTcbKrb3iU82m17jVcPEAoqDkCN5MBqgPyZSwp/cQmib21crTS0DdH7T1B7wZRWEI89YQAOJMet5yhg=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-rc.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/pluginutils/-/pluginutils-1.0.0-rc.3.tgz", {}, "sha512-eybk3TjzzzV97Dlj5c+XrBFW57eTNhzod66y9HrBlzJ6NsCrWCp/2kaPS3K9wJmurBC0Tdw4yPjXKZqlznim3Q=="],
-
-    "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.63.4.tgz", { "os": "android", "cpu": "arm" }, "sha512-I+BSHzTAhKN2n7ZwGZsegGcZjDpLqFOMAtJz/u6uFGe0pUFbq56dEHjqJV/ZUdRJtNXNxA+hREUatZBvMR3Oiw=="],
-
-    "@rollup/rollup-android-arm64": ["@rollup/rollup-android-arm64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.63.4.tgz", { "os": "android", "cpu": "arm64" }, "sha512-pu3BdjS2LtEzRu2elmGzS3fIeWSZy4BMDIaLNwjorO76+k2d0LMluijhsDx3KQyQBQ/lLUZCQA9/s6csvUfuhw=="],
-
-    "@rollup/rollup-darwin-arm64": ["@rollup/rollup-darwin-arm64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.63.4.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-xfSrj9MHnWK9GaSqT9U0ImHtH/N8WZlHLx4cZHiuLcqs640hvZ3hLPd5UR2AZS57FaE8HrRUSpltbZdWRxHiDA=="],
-
-    "@rollup/rollup-darwin-x64": ["@rollup/rollup-darwin-x64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.63.4.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-bqU99PLJb/dqb3S0GIMdeuyAEETSUgZBoqXYd3Sd+WCsV+MmPhnN6JrotWyir31+QgH7EvvE5/mwGJlEoci8Fw=="],
-
-    "@rollup/rollup-freebsd-arm64": ["@rollup/rollup-freebsd-arm64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.63.4.tgz", { "os": "freebsd", "cpu": "arm64" }, "sha512-JinsFZ5G40oXQb+sUuiA5x689vhr6dDYK0H0NL+rwKdL6CqnmYN8PE4ZwfRSoIjrCxqTQG/SLfTtSvHeGxoVlw=="],
-
-    "@rollup/rollup-freebsd-x64": ["@rollup/rollup-freebsd-x64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.63.4.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-GAdA4UxpiNm27cLHr2GqXBpAD0x9FqwYBY7/YSP0Ss0/PNi4k8gbviqpIpYbVSRBaS2ZcegXEzgTQMbRNCwxCw=="],
-
-    "@rollup/rollup-linux-arm-gnueabihf": ["@rollup/rollup-linux-arm-gnueabihf@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.63.4.tgz", { "os": "linux", "cpu": "arm" }, "sha512-qDd6NoA1znaLjp4jR5U/KWCdLAKDJNB8W9ChbbDaKbo0xA+Atln5HK6LFCZ4oJQpemtRZA288DCirFRjrspptw=="],
-
-    "@rollup/rollup-linux-arm-musleabihf": ["@rollup/rollup-linux-arm-musleabihf@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.63.4.tgz", { "os": "linux", "cpu": "arm" }, "sha512-WtB5Tz5KTNINb8ZA+8sQ7bmjuS1JrRT7YverYIhUGdWWDlpzVWmIwuZE+jidkEXUn1l0zrEkaIMa8dHF3NGcsA=="],
-
-    "@rollup/rollup-linux-arm64-gnu": ["@rollup/rollup-linux-arm64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.63.4.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-VcQ3L1tjnkKzWjryAVaFhHEWcqOfICX9uxVVoDzm2t0DpgKRHd2zOpVrJc0xsWeBZcBFyYROCIBdyR/fS174pg=="],
-
-    "@rollup/rollup-linux-arm64-musl": ["@rollup/rollup-linux-arm64-musl@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.63.4.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-6+ZQX6P5s0cMDN2Ypb8Lbm2+/sZYmZjdaYny992ujUU9UKi/4CWoJWsl1pNvjWJHNHGK51m+jKGLlh1ylb2ifQ=="],
-
-    "@rollup/rollup-linux-loong64-gnu": ["@rollup/rollup-linux-loong64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.63.4.tgz", { "os": "linux", "cpu": "none" }, "sha512-D72ZnvkFkBXOfzMMQLcwfPLyGkKb7HZ9/mf97B7v6/P5Lbv4oFOtSY/uHbS8lH6uKUOxoKiuokdb50XZSzzbJw=="],
-
-    "@rollup/rollup-linux-loong64-musl": ["@rollup/rollup-linux-loong64-musl@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.63.4.tgz", { "os": "linux", "cpu": "none" }, "sha512-piU6BxeqA3O9KSu3kRCIQQtNqFFaTu21SEV4FwaRZowpnj3bLaWPZHw+xFqCs0XlJ+aOH3PTRWGoglH+mKA/OA=="],
-
-    "@rollup/rollup-linux-ppc64-gnu": ["@rollup/rollup-linux-ppc64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.63.4.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-/5PGpHwqt2EEEOUs1XwzubE/ucr0dWDQ+to3zqi4Ds7EWpwtQ79wXc4JBoxqj/OwpawTsKWzJxHfSuBOq3DrWA=="],
-
-    "@rollup/rollup-linux-ppc64-musl": ["@rollup/rollup-linux-ppc64-musl@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.63.4.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-cX3beZDLWt7G2oJF+nhChiT+qtaihs+S2xi7ziGmVB+2pwPng6D0Ed0HmElQOgv2UsUmSJJLGwpBao/3TDx3VA=="],
-
-    "@rollup/rollup-linux-riscv64-gnu": ["@rollup/rollup-linux-riscv64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.63.4.tgz", { "os": "linux", "cpu": "none" }, "sha512-1uz2mGWHyptR7DgHHrlbdRAjXK7v7elGZ9lMja910/RP+ZYbX6xAmCiU9UZSX4hqmgtHMv6lr5l3kq1HIOpcag=="],
-
-    "@rollup/rollup-linux-riscv64-musl": ["@rollup/rollup-linux-riscv64-musl@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.63.4.tgz", { "os": "linux", "cpu": "none" }, "sha512-nLS8topojxyz7SRpKR2IODRpQ0XPZ+xaOXvT3+hqK/Uy8Lo5HFgkkIBiIrCu5tL5YqzTvgovGw55PwpahTAGig=="],
-
-    "@rollup/rollup-linux-s390x-gnu": ["@rollup/rollup-linux-s390x-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.63.4.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-gs7DRKotr3l3q+jGPQBjH0ng1FjlEDm5ueQrkw5JtQvtLyEIcLASqAEaor56BhkKRzk+IcQzrcanBdb/bBQn8g=="],
-
-    "@rollup/rollup-linux-x64-gnu": ["@rollup/rollup-linux-x64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.63.4.tgz", { "os": "linux", "cpu": "x64" }, "sha512-791ET7W17NnScOZM7h4dX5hYspxE28htPFsb1awY/NRR8+PRNkS53e475rDdxXXDrP+kwnCcNWg9CX5ztn/Aqw=="],
-
-    "@rollup/rollup-linux-x64-musl": ["@rollup/rollup-linux-x64-musl@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.63.4.tgz", { "os": "linux", "cpu": "x64" }, "sha512-iwZQRcmj7g88g3tzefIrQY7qvmuA/cfYwhrDtTBhsmukO4U2huVO5W+86XacUMRvdSFVAc6kZUZy21JaRwiB9w=="],
-
-    "@rollup/rollup-openbsd-x64": ["@rollup/rollup-openbsd-x64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.63.4.tgz", { "os": "openbsd", "cpu": "x64" }, "sha512-dVHFp9gRWrdTpnqQuGfCwd7hOQDatK1VCP2iWhLY/cGrOQs/ucFzJ6A5SRqbXX12ZDI8EUuejSM5kwg+ja7Png=="],
-
-    "@rollup/rollup-openharmony-arm64": ["@rollup/rollup-openharmony-arm64@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.63.4.tgz", { "os": "none", "cpu": "arm64" }, "sha512-t3NlauOW6gxZVVFcBEnO62Cb4wbyDFL416gTg1uFI/2tgqYQlf69FbSE115Ajre9I+c26Lk4mcmdFUsS/DGifQ=="],
-
-    "@rollup/rollup-win32-arm64-msvc": ["@rollup/rollup-win32-arm64-msvc@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.63.4.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-xWuIaSye5FWZF8+UYtVEcHtRJDN5kN9Kfgxx3Kq8XIov9KSKbc1fiqQCm90SKrgQbUXZelbnUhnlUJmfSE7P9A=="],
-
-    "@rollup/rollup-win32-ia32-msvc": ["@rollup/rollup-win32-ia32-msvc@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.63.4.tgz", { "os": "win32", "cpu": "ia32" }, "sha512-9ALJJUOg/ZflMJepVo2PlgsGxSaxN7SQ4Z8GoZfVlarWr6r3rkHUNsd/zAio7p4YMtChSMXPionxej4Hkf6CXQ=="],
-
-    "@rollup/rollup-win32-x64-gnu": ["@rollup/rollup-win32-x64-gnu@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.63.4.tgz", { "os": "win32", "cpu": "x64" }, "sha512-blj9z5qx/Pv4WU0W1NMFDB97e0JH5ed+aZGywW8WCvp/NhWX/4PFAq5uu6Q0AebNn+Vo6KzUYDT++JzTT5ojlQ=="],
-
-    "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.63.4.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Erx822VRBwLa124shbj+wNXe//BOgMEctDV0m1aqTQdNO1S69DgNUCFKC1RCeZfixs1J31l6igk1ziyXErbigQ=="],
 
     "@selderee/plugin-htmlparser2": ["@selderee/plugin-htmlparser2@0.11.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@selderee/plugin-htmlparser2/-/plugin-htmlparser2-0.11.0.tgz", { "dependencies": { "domhandler": "^5.0.3", "selderee": "^0.11.0" } }, "sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ=="],
 
@@ -1023,7 +971,7 @@
 
     "error-stack-parser-es": ["error-stack-parser-es@1.0.5", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/error-stack-parser-es/-/error-stack-parser-es-1.0.5.tgz", {}, "sha512-5qucVt2XcuGMcEGgWI7i+yZpmpByQ8J1lHhcL7PwqCwu9FPP3VUXzT4ltHe5i2z9dePwEHcDVOAfSnHsOlCXRA=="],
 
-    "esbuild": ["esbuild@0.28.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/esbuild/-/esbuild-0.28.2.tgz", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
+    "esbuild": ["esbuild@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/esbuild/-/esbuild-0.28.1.tgz", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.1", "@esbuild/android-arm": "0.28.1", "@esbuild/android-arm64": "0.28.1", "@esbuild/android-x64": "0.28.1", "@esbuild/darwin-arm64": "0.28.1", "@esbuild/darwin-x64": "0.28.1", "@esbuild/freebsd-arm64": "0.28.1", "@esbuild/freebsd-x64": "0.28.1", "@esbuild/linux-arm": "0.28.1", "@esbuild/linux-arm64": "0.28.1", "@esbuild/linux-ia32": "0.28.1", "@esbuild/linux-loong64": "0.28.1", "@esbuild/linux-mips64el": "0.28.1", "@esbuild/linux-ppc64": "0.28.1", "@esbuild/linux-riscv64": "0.28.1", "@esbuild/linux-s390x": "0.28.1", "@esbuild/linux-x64": "0.28.1", "@esbuild/netbsd-arm64": "0.28.1", "@esbuild/netbsd-x64": "0.28.1", "@esbuild/openbsd-arm64": "0.28.1", "@esbuild/openbsd-x64": "0.28.1", "@esbuild/openharmony-arm64": "0.28.1", "@esbuild/sunos-x64": "0.28.1", "@esbuild/win32-arm64": "0.28.1", "@esbuild/win32-ia32": "0.28.1", "@esbuild/win32-x64": "0.28.1" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw=="],
 
     "escalade": ["escalade@3.2.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/escalade/-/escalade-3.2.0.tgz", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
 
@@ -1249,7 +1197,7 @@
 
     "picomatch": ["picomatch@4.0.7", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/picomatch/-/picomatch-4.0.7.tgz", {}, "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="],
 
-    "postcss": ["postcss@8.5.28", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/postcss/-/postcss-8.5.28.tgz", { "dependencies": { "nanoid": "^3.3.18", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A=="],
+    "postcss": ["postcss@8.5.29", "", { "dependencies": { "nanoid": "^3.3.19", "picocolors": "^1.1.1", "source-map-js": "^1.2.2" } }, "sha512-49cGhUbXj8Qenv0iTMxA1cFBzxXoctpC9Ujd77t1WcbJIr6nF/eI7g/8MgxrYldFRuAXvja7xQRwavoW7kgrxQ=="],
 
     "postgres": ["postgres@3.4.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/postgres/-/postgres-3.4.9.tgz", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
@@ -1323,9 +1271,7 @@
 
     "recharts-scale": ["recharts-scale@0.4.5", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/recharts-scale/-/recharts-scale-0.4.5.tgz", { "dependencies": { "decimal.js-light": "^2.4.1" } }, "sha512-kivNFO+0OcUNu7jQquLXAxz1FIwZj8nrj+YkOKc5694NbjCvcT6aSZiIzNzd2Kul4o4rTto8QVR9lMNtxD4G1w=="],
 
-    "rolldown": ["rolldown@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/rolldown/-/rolldown-1.2.9.tgz", { "dependencies": { "@oxc-project/types": "=0.150.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm-eabi": "1.2.9", "@rolldown/binding-android-arm64": "1.2.9", "@rolldown/binding-darwin-arm64": "1.2.9", "@rolldown/binding-darwin-x64": "1.2.9", "@rolldown/binding-freebsd-x64": "1.2.9", "@rolldown/binding-linux-arm-gnueabihf": "1.2.9", "@rolldown/binding-linux-arm64-gnu": "1.2.9", "@rolldown/binding-linux-arm64-musl": "1.2.9", "@rolldown/binding-linux-ppc64-gnu": "1.2.9", "@rolldown/binding-linux-s390x-gnu": "1.2.9", "@rolldown/binding-linux-x64-gnu": "1.2.9", "@rolldown/binding-linux-x64-musl": "1.2.9", "@rolldown/binding-openharmony-arm64": "1.2.9", "@rolldown/binding-win32-arm64-msvc": "1.2.9", "@rolldown/binding-win32-x64-msvc": "1.2.9" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-hx/Pv0N1haXRb11qkfnK5MXB/iqr7i0yjWQqmO9uHqZpBgQSqzc8UsSnEpalsh+j1I8qQ2CkXAkJC8Br3dKSlg=="],
-
-    "rollup": ["rollup@4.63.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/rollup/-/rollup-4.63.4.tgz", { "dependencies": { "@types/estree": "1.0.9" }, "optionalDependencies": { "@napi-rs/lzma-linux-x64-gnu": "1.5.1", "@rollup/rollup-android-arm-eabi": "4.63.4", "@rollup/rollup-android-arm64": "4.63.4", "@rollup/rollup-darwin-arm64": "4.63.4", "@rollup/rollup-darwin-x64": "4.63.4", "@rollup/rollup-freebsd-arm64": "4.63.4", "@rollup/rollup-freebsd-x64": "4.63.4", "@rollup/rollup-linux-arm-gnueabihf": "4.63.4", "@rollup/rollup-linux-arm-musleabihf": "4.63.4", "@rollup/rollup-linux-arm64-gnu": "4.63.4", "@rollup/rollup-linux-arm64-musl": "4.63.4", "@rollup/rollup-linux-loong64-gnu": "4.63.4", "@rollup/rollup-linux-loong64-musl": "4.63.4", "@rollup/rollup-linux-ppc64-gnu": "4.63.4", "@rollup/rollup-linux-ppc64-musl": "4.63.4", "@rollup/rollup-linux-riscv64-gnu": "4.63.4", "@rollup/rollup-linux-riscv64-musl": "4.63.4", "@rollup/rollup-linux-s390x-gnu": "4.63.4", "@rollup/rollup-linux-x64-gnu": "4.63.4", "@rollup/rollup-linux-x64-musl": "4.63.4", "@rollup/rollup-openbsd-x64": "4.63.4", "@rollup/rollup-openharmony-arm64": "4.63.4", "@rollup/rollup-win32-arm64-msvc": "4.63.4", "@rollup/rollup-win32-ia32-msvc": "4.63.4", "@rollup/rollup-win32-x64-gnu": "4.63.4", "@rollup/rollup-win32-x64-msvc": "4.63.4", "fsevents": "~2.3.2" }, "bin": { "rollup": "dist/bin/rollup" } }, "sha512-4U0liVayNIoLp3GFl1FcI8561WepLnZ1rqfraGh7S9B3Ur5F9S283y8Futii7RUU2C/97tOBmBy7nYvhoiOpbQ=="],
+    "rolldown": ["rolldown@1.2.13", "", { "dependencies": { "@oxc-project/types": "=0.153.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm-eabi": "1.2.13", "@rolldown/binding-android-arm64": "1.2.13", "@rolldown/binding-darwin-arm64": "1.2.13", "@rolldown/binding-darwin-x64": "1.2.13", "@rolldown/binding-freebsd-x64": "1.2.13", "@rolldown/binding-linux-arm-gnueabihf": "1.2.13", "@rolldown/binding-linux-arm64-gnu": "1.2.13", "@rolldown/binding-linux-arm64-musl": "1.2.13", "@rolldown/binding-linux-ppc64-gnu": "1.2.13", "@rolldown/binding-linux-s390x-gnu": "1.2.13", "@rolldown/binding-linux-x64-gnu": "1.2.13", "@rolldown/binding-linux-x64-musl": "1.2.13", "@rolldown/binding-openharmony-arm64": "1.2.13", "@rolldown/binding-win32-arm64-msvc": "1.2.13", "@rolldown/binding-win32-x64-msvc": "1.2.13" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-/5apOkwWxtACcQtZ5WlrAsKS4JwXVThQPJZ3RqIruRY9UG9M8e0VlXN068xum/JRKA4aIUoJ13ghe/kGCvidiQ=="],
 
     "rope-sequence": ["rope-sequence@1.3.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/rope-sequence/-/rope-sequence-1.3.4.tgz", {}, "sha512-UT5EDe2cu2E/6O4igUr5PSFs23nvvukicWHx6GnOPlHAiiYbzNuCRQCuiUdHJQcqKalLKlrYJnjY0ySGsXNQXQ=="],
 
@@ -1353,7 +1299,7 @@
 
     "source-map": ["source-map@0.7.6", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/source-map/-/source-map-0.7.6.tgz", {}, "sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ=="],
 
-    "source-map-js": ["source-map-js@1.2.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/source-map-js/-/source-map-js-1.2.1.tgz", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
+    "source-map-js": ["source-map-js@1.2.2", "", {}, "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="],
 
     "srvx": ["srvx@0.11.22", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/srvx/-/srvx-0.11.22.tgz", { "bin": { "srvx": "bin/srvx.mjs" } }, "sha512-LqZxxBDMKuMAZzFzJnDCkFOrs9MZQZr0LvHiO/SuSZVdQaXD7xQ5UWTUxheJrQPve1qk9MG2B/yttUvJxw8egQ=="],
 
@@ -1413,7 +1359,7 @@
 
     "victory-vendor": ["victory-vendor@36.9.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/victory-vendor/-/victory-vendor-36.9.2.tgz", { "dependencies": { "@types/d3-array": "^3.0.3", "@types/d3-ease": "^3.0.0", "@types/d3-interpolate": "^3.0.1", "@types/d3-scale": "^4.0.2", "@types/d3-shape": "^3.1.0", "@types/d3-time": "^3.0.0", "@types/d3-timer": "^3.0.0", "d3-array": "^3.1.6", "d3-ease": "^3.0.1", "d3-interpolate": "^3.0.1", "d3-scale": "^4.0.2", "d3-shape": "^3.1.0", "d3-time": "^3.0.0", "d3-timer": "^3.0.1" } }, "sha512-PnpQQMuxlwYdocC8fIJqVXvkeViHYzotI+NJrCuav0ZYFoq912ZHBk3mCeuj+5/VpodOjPe1z0Fk2ihgzlXqjQ=="],
 
-    "vite": ["vite@7.3.6", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/vite/-/vite-7.3.6.tgz", { "dependencies": { "esbuild": "^0.27.0 || ^0.28.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg=="],
+    "vite": ["vite@8.3.4", "", { "dependencies": { "lightningcss": "^1.33.0", "picomatch": "^4.0.7", "postcss": "^8.5.29", "rolldown": "~1.2.12", "tinyglobby": "^0.2.17" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.7.1", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-IftLE8phJhdNRIGNEV4JCCvfNScoZQVfcXaN8TQropWGJtOHcu+iAB9pHcuGvmEb/kddw0LBe/jS8ztdC6xdiQ=="],
 
     "vite-tsconfig-paths": ["vite-tsconfig-paths@6.1.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/vite-tsconfig-paths/-/vite-tsconfig-paths-6.1.1.tgz", { "dependencies": { "debug": "^4.1.1", "globrex": "^0.1.2", "tsconfck": "^3.0.3" }, "peerDependencies": { "vite": "*" } }, "sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg=="],
 
@@ -1463,6 +1409,8 @@
 
     "@tailwindcss/node/lightningcss": ["lightningcss@1.32.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/lightningcss/-/lightningcss-1.32.0.tgz", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.32.0", "lightningcss-darwin-arm64": "1.32.0", "lightningcss-darwin-x64": "1.32.0", "lightningcss-freebsd-x64": "1.32.0", "lightningcss-linux-arm-gnueabihf": "1.32.0", "lightningcss-linux-arm64-gnu": "1.32.0", "lightningcss-linux-arm64-musl": "1.32.0", "lightningcss-linux-x64-gnu": "1.32.0", "lightningcss-linux-x64-musl": "1.32.0", "lightningcss-win32-arm64-msvc": "1.32.0", "lightningcss-win32-x64-msvc": "1.32.0" } }, "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ=="],
 
+    "@tailwindcss/node/source-map-js": ["source-map-js@1.2.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/source-map-js/-/source-map-js-1.2.1.tgz", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
+
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.11.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@emnapi/core/-/core-1.11.3.tgz", { "dependencies": { "@emnapi/wasi-threads": "1.2.3", "tslib": "^2.4.0" }, "bundled": true }, "sha512-zLpS5asjEb7lq8jYLq37N6XKaE41DIexlY1rF/z4/tIl3wo13Sqm28fRyfIsKZD+NZ8mM5RoKkpW/rBcuoSZSg=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/runtime": ["@emnapi/runtime@1.11.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@emnapi/runtime/-/runtime-1.11.3.tgz", { "dependencies": { "tslib": "^2.4.0" }, "bundled": true }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
@@ -1491,6 +1439,8 @@
 
     "miniflare/ws": ["ws@8.21.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/ws/-/ws-8.21.0.tgz", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g=="],
 
+    "nitro/rolldown": ["rolldown@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/rolldown/-/rolldown-1.2.9.tgz", { "dependencies": { "@oxc-project/types": "=0.150.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm-eabi": "1.2.9", "@rolldown/binding-android-arm64": "1.2.9", "@rolldown/binding-darwin-arm64": "1.2.9", "@rolldown/binding-darwin-x64": "1.2.9", "@rolldown/binding-freebsd-x64": "1.2.9", "@rolldown/binding-linux-arm-gnueabihf": "1.2.9", "@rolldown/binding-linux-arm64-gnu": "1.2.9", "@rolldown/binding-linux-arm64-musl": "1.2.9", "@rolldown/binding-linux-ppc64-gnu": "1.2.9", "@rolldown/binding-linux-s390x-gnu": "1.2.9", "@rolldown/binding-linux-x64-gnu": "1.2.9", "@rolldown/binding-linux-x64-musl": "1.2.9", "@rolldown/binding-openharmony-arm64": "1.2.9", "@rolldown/binding-win32-arm64-msvc": "1.2.9", "@rolldown/binding-win32-x64-msvc": "1.2.9" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-hx/Pv0N1haXRb11qkfnK5MXB/iqr7i0yjWQqmO9uHqZpBgQSqzc8UsSnEpalsh+j1I8qQ2CkXAkJC8Br3dKSlg=="],
+
     "oxc-parser/@oxc-project/types": ["@oxc-project/types@0.120.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@oxc-project/types/-/types-0.120.0.tgz", {}, "sha512-k1YNu55DuvAip/MGE1FTsIuU3FUCn6v/ujG9V7Nq5Df/kX2CWb13hhwD0lmJGMGqE+bE1MXvv9SZVnMzEXlWcg=="],
 
     "prop-types/react-is": ["react-is@16.13.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/react-is/-/react-is-16.13.1.tgz", {}, "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="],
@@ -1498,8 +1448,6 @@
     "qified/hookified": ["hookified@2.2.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/hookified/-/hookified-2.2.0.tgz", {}, "sha512-p/LgFzRN5FeoD3DLS6bkUapeye6E4SI6yJs6KetENd18S+FBthqYq2amJUWpt5z0EQwwHemidjY5OqJGEKm5uA=="],
 
     "rolldown/@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
-
-    "wrangler/esbuild": ["esbuild@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/esbuild/-/esbuild-0.28.1.tgz", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.1", "@esbuild/android-arm": "0.28.1", "@esbuild/android-arm64": "0.28.1", "@esbuild/android-x64": "0.28.1", "@esbuild/darwin-arm64": "0.28.1", "@esbuild/darwin-x64": "0.28.1", "@esbuild/freebsd-arm64": "0.28.1", "@esbuild/freebsd-x64": "0.28.1", "@esbuild/linux-arm": "0.28.1", "@esbuild/linux-arm64": "0.28.1", "@esbuild/linux-ia32": "0.28.1", "@esbuild/linux-loong64": "0.28.1", "@esbuild/linux-mips64el": "0.28.1", "@esbuild/linux-ppc64": "0.28.1", "@esbuild/linux-riscv64": "0.28.1", "@esbuild/linux-s390x": "0.28.1", "@esbuild/linux-x64": "0.28.1", "@esbuild/netbsd-arm64": "0.28.1", "@esbuild/netbsd-x64": "0.28.1", "@esbuild/openbsd-arm64": "0.28.1", "@esbuild/openbsd-x64": "0.28.1", "@esbuild/openharmony-arm64": "0.28.1", "@esbuild/sunos-x64": "0.28.1", "@esbuild/win32-arm64": "0.28.1", "@esbuild/win32-ia32": "0.28.1", "@esbuild/win32-x64": "0.28.1" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw=="],
 
     "xmlbuilder2/js-yaml": ["js-yaml@4.3.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/js-yaml/-/js-yaml-4.3.2.tgz", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA=="],
 
@@ -1525,56 +1473,38 @@
 
     "@tailwindcss/node/lightningcss/lightningcss-win32-x64-msvc": ["lightningcss-win32-x64-msvc@1.32.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.32.0.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q=="],
 
-    "wrangler/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz", { "os": "aix", "cpu": "ppc64" }, "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ=="],
+    "nitro/rolldown/@oxc-project/types": ["@oxc-project/types@0.150.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@oxc-project/types/-/types-0.150.0.tgz", {}, "sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw=="],
 
-    "wrangler/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm/-/android-arm-0.28.1.tgz", { "os": "android", "cpu": "arm" }, "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ=="],
+    "nitro/rolldown/@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.9.tgz", { "os": "android", "cpu": "arm" }, "sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw=="],
 
-    "wrangler/esbuild/@esbuild/android-arm64": ["@esbuild/android-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz", { "os": "android", "cpu": "arm64" }, "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg=="],
+    "nitro/rolldown/@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.9.tgz", { "os": "android", "cpu": "arm64" }, "sha512-YC8YsI30o606GTZi0VyzYlsDKFP8W61i/QzayHDkLbNEz/IShqAmTa+hsJRj13xTHA0H+6fk4b2UmGn+Q/cMlg=="],
 
-    "wrangler/esbuild/@esbuild/android-x64": ["@esbuild/android-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/android-x64/-/android-x64-0.28.1.tgz", { "os": "android", "cpu": "x64" }, "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng=="],
+    "nitro/rolldown/@rolldown/binding-darwin-arm64": ["@rolldown/binding-darwin-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.9.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-IwhlH3qK5urrY8hZiEgGkHKEFN901p/p2bjxCxJlr4GyNnF7wYpUvK+Y43uaRYuC4hpfjzbR3SJC3arX1jGvmw=="],
 
-    "wrangler/esbuild/@esbuild/darwin-arm64": ["@esbuild/darwin-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q=="],
+    "nitro/rolldown/@rolldown/binding-darwin-x64": ["@rolldown/binding-darwin-x64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.9.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-XxpJfVzFh+jilRxIXUqcfYAYcunIc/XEzIizsOL1fcJee5Sf7H3mH8WlLmfHfluz5amqR88QQo9izKtmMlavAw=="],
 
-    "wrangler/esbuild/@esbuild/darwin-x64": ["@esbuild/darwin-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ=="],
+    "nitro/rolldown/@rolldown/binding-freebsd-x64": ["@rolldown/binding-freebsd-x64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.9.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-kSfvhmgeWyfkbT3p/1s5vSgboogoah2zkm9fX2zjg2hHxSV7T4KhMWRUUaRk4OXNqoD3QAUeRqLcs1aZOK4U1g=="],
 
-    "wrangler/esbuild/@esbuild/freebsd-arm64": ["@esbuild/freebsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz", { "os": "freebsd", "cpu": "arm64" }, "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw=="],
+    "nitro/rolldown/@rolldown/binding-linux-arm-gnueabihf": ["@rolldown/binding-linux-arm-gnueabihf@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.9.tgz", { "os": "linux", "cpu": "arm" }, "sha512-1RVzG17pxqbTfYLC352JlLt6kKLG+6Hr30n8DlIJqsnV5luUDd2Qdx9Ayw1Cabfyb1K9k0jXEZ7evxkRoT+uiw=="],
 
-    "wrangler/esbuild/@esbuild/freebsd-x64": ["@esbuild/freebsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ=="],
+    "nitro/rolldown/@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-BXqPvZ2drqVD+/Z8UpKwcs4Mp7grM+eGFku4CAEKrEtcbAsUpzREphK1sogCRZGreVPiMkiiBtw0n3TPteuqvw=="],
 
-    "wrangler/esbuild/@esbuild/linux-arm": ["@esbuild/linux-arm@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz", { "os": "linux", "cpu": "arm" }, "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ=="],
+    "nitro/rolldown/@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.9.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-11vWvo8YDwLzukt27J3aYDWU+gg2P7J+ZOmiJ0hkF5BXZDW7pVya7r40MXDy6ya0i9KamoENSVKIugvJNgFXIA=="],
 
-    "wrangler/esbuild/@esbuild/linux-arm64": ["@esbuild/linux-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g=="],
+    "nitro/rolldown/@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-a1tijMkdwsIARtc0F39ApURROkf3NwqinI6TOiSSWCTR7dT96dffNvMUtDHnq64wKNTIZOIlzKrFvvFUznJiyw=="],
 
-    "wrangler/esbuild/@esbuild/linux-ia32": ["@esbuild/linux-ia32@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz", { "os": "linux", "cpu": "ia32" }, "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w=="],
+    "nitro/rolldown/@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.9.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-x6SQNdAvv4c3hWqTMaWuawzMX9myaCs/yEmlGsxJzkdClnHW7FbrjQuSiRDhuSYzEYoEMhsaJy9qHG/XNemJPQ=="],
 
-    "wrangler/esbuild/@esbuild/linux-loong64": ["@esbuild/linux-loong64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg=="],
+    "nitro/rolldown/@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.9.tgz", { "os": "linux", "cpu": "x64" }, "sha512-9s0AZ8BFK5/n7B/TBoa2yJE3gI3KURrbXcPBlsAsvjU4VeJKgE90y1YtNxyEUIcHPQkg6/yfF3qihUrcM/Kf0Q=="],
 
-    "wrangler/esbuild/@esbuild/linux-mips64el": ["@esbuild/linux-mips64el@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ=="],
+    "nitro/rolldown/@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.9.tgz", { "os": "linux", "cpu": "x64" }, "sha512-P7VWAmV+WdJluH7ovnRGoiv2i8To7GAZ+kGzfGup635cyL7SyYl3lSUaA3Gp5THf0n/Co5EyEqb2zbqq+nMOHQ=="],
 
-    "wrangler/esbuild/@esbuild/linux-ppc64": ["@esbuild/linux-ppc64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ=="],
+    "nitro/rolldown/@rolldown/binding-openharmony-arm64": ["@rolldown/binding-openharmony-arm64@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.9.tgz", { "os": "none", "cpu": "arm64" }, "sha512-1qixtsE4BK8h+yS3BfmZ09UhA7O/N4IACva6YBr7EBvCJraByTuRcgOTaiA62Tm0vey3UcKXLOaoGHtYmNGEVg=="],
 
-    "wrangler/esbuild/@esbuild/linux-riscv64": ["@esbuild/linux-riscv64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz", { "os": "linux", "cpu": "none" }, "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ=="],
+    "nitro/rolldown/@rolldown/binding-win32-arm64-msvc": ["@rolldown/binding-win32-arm64-msvc@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.9.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-ok8IQjcEPs1AKZfuEUznVBrJw+gK4soq+bx8b1X2XoMqVClarc1q5JDmVtWXY1xfr6ZuHTAsPXHTgTrqKTZeww=="],
 
-    "wrangler/esbuild/@esbuild/linux-s390x": ["@esbuild/linux-s390x@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag=="],
+    "nitro/rolldown/@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.2.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.9.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Ip2mXoU0hM0boq3Rf+ekuT653OROSo6aSYcPT1VHE4q52KvyxgFkQgrgb/IEsxOuvQ2fZZbs8khJAyCEPM24/g=="],
 
-    "wrangler/esbuild/@esbuild/linux-x64": ["@esbuild/linux-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz", { "os": "linux", "cpu": "x64" }, "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA=="],
-
-    "wrangler/esbuild/@esbuild/netbsd-arm64": ["@esbuild/netbsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz", { "os": "none", "cpu": "arm64" }, "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw=="],
-
-    "wrangler/esbuild/@esbuild/netbsd-x64": ["@esbuild/netbsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz", { "os": "none", "cpu": "x64" }, "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg=="],
-
-    "wrangler/esbuild/@esbuild/openbsd-arm64": ["@esbuild/openbsd-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz", { "os": "openbsd", "cpu": "arm64" }, "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q=="],
-
-    "wrangler/esbuild/@esbuild/openbsd-x64": ["@esbuild/openbsd-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz", { "os": "openbsd", "cpu": "x64" }, "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw=="],
-
-    "wrangler/esbuild/@esbuild/openharmony-arm64": ["@esbuild/openharmony-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz", { "os": "none", "cpu": "arm64" }, "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg=="],
-
-    "wrangler/esbuild/@esbuild/sunos-x64": ["@esbuild/sunos-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz", { "os": "sunos", "cpu": "x64" }, "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ=="],
-
-    "wrangler/esbuild/@esbuild/win32-arm64": ["@esbuild/win32-arm64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA=="],
-
-    "wrangler/esbuild/@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz", { "os": "win32", "cpu": "ia32" }, "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg=="],
-
-    "wrangler/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz", { "os": "win32", "cpu": "x64" }, "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A=="],
+    "nitro/rolldown/@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
   }
 }
