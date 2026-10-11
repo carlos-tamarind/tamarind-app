@@ -1,22 +1,13 @@
 # Demo data for "second workspace" (Method A: real app + background jobs)
 
 ## Current state
-- Workspace `4b132e23-…` has 2 members: **Peter** (admin) and **Tommy** (member).
-- It has 0 conversations and 0 pages, so we start clean.
+- Workspace `4b132e23-…` has 4 members, all with confirmed access. It has no conversations or pages yet.
 
-## Do you need more users?
-2 users is enough for it to work, but **4 makes a much better demo**:
-- Group channels with 3–4 people read as real team chat, not a back-and-forth.
-- Private pages and direct messages show visibility rules better: what one person sees, another doesn't.
-- More cross-team conversations give more shared links between topics, so the graph has more lines.
-
-Suggested cast (you send the invites, they accept, then I write as them):
-- Peter: Engineering Manager (existing admin)
-- Tommy: Backend Engineer (existing)
-- Maya: Product Manager (new)
-- Luis: DevOps / Platform Engineer (new)
-
-If you'd rather stay at 2, everything below still works, just with only direct conversations.
+## Cast (4 users, enough for a realistic demo)
+- Peter: Engineering Manager (admin)
+- Sonia: Backend Engineer
+- Anna: Product Manager
+- Calvin: DevOps / Platform Engineer
 
 ## Story (one fictional product: "Atlas" billing platform)
 Five themes, each one becoming a conversation topic and then a knowledge-base node:
