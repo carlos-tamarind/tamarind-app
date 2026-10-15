@@ -62,8 +62,13 @@ Supabase Project
 | `PURGE_WORKER_SECRET` | Purge (trash erase) cron endpoint authentication |
 | `CANONICAL_TOPICS_WORKER_SECRET` | Canonical-topics worker cron endpoint authentication |
 | `PLATFORM_OWNER_EMAILS` | Comma-separated, lowercase allowlist of platform-owner emails permitted to issue workspace bootstrap invites. Server-only; never stored in the database |
+| `TAMARIND_AGENT_SEARCH_ENABLED` | Exactly `true` enables the platform-owner/workspace-admin MCP tab and hosted agent endpoints; default off |
 
 Set server-side variables as Cloudflare Worker secrets. Client-side variables are embedded at build time.
+
+## Local MCP adapter configuration
+
+Deploy the agent endpoints and Settings tab through the normal hosted workflow before live use. The local adapter does not run inside the Worker and does not need local Supabase connectivity. Its ignored `.env.mcp.local` contains `TAMARIND_APP_URL=https://app.tamarind.so` and optionally `TAMARIND_MCP_PAIRING_PORT=43127`. These configure the local process; the feature flag above belongs to the hosted server. Do not configure an access token: the authenticated browser supplies it after explicit pairing approval. See [Local MCP Search](mcp.md) for full setup and the Inspector walkthrough.
 
 ## Build & Deploy Scripts
 
@@ -110,7 +115,7 @@ Required in `.env.local`:
 2. Run migrations from [`supabase/migrations/`](../../supabase/migrations/)
 3. Enable Realtime publication for `messages` and `pages` (configured in initial migration)
 4. Enable pg_cron and pg_net extensions (migration `20260730075844`)
-5. Schedule the embedding worker cron job (see [Cron & Background Jobs](cron/readme.md))
+5. Schedule the embedding worker cron job (see [Cron & Background Jobs](../cron/readme.md))
 
 ## Embedding Worker Cron
 
@@ -310,6 +315,6 @@ TypeScript types are generated from the schema into [`src/integrations/supabase/
 
 ## Related Docs
 
-- [Architecture Overview](architecture/overview.md) — System layers
-- [Cron & Background Jobs](cron/readme.md) — Worker scheduling
-- [API Routes](api/readme.md) — HTTP endpoints
+- [Architecture Overview](overview.md) — System layers
+- [Cron & Background Jobs](../cron/readme.md) — Worker scheduling
+- [API Routes](../api/readme.md) — HTTP endpoints

@@ -7,10 +7,24 @@ Tamarind's primary backend interface is TanStack Start server functions (`create
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | POST | `/api/pages/save` | Bearer token in body | Beacon-based page autosave |
+| POST | `/api/agents/session` | User Bearer header + platform owner + workspace admin | Verify local MCP pairing eligibility (feature-gated) |
+| POST | `/api/agents/search` | User Bearer header + platform owner + workspace admin | Read-only existing search for the paired MCP process (feature-gated) |
 | POST | `/api/public/internal/run-embedding-worker` | Secret header | Production embedding cron target |
 | POST | `/api/public/internal/run-cti-worker` | Secret header | Production CTI cron target |
 | POST | `/api/public/internal/run-page-chunking-worker` | Secret header | Production page chunking cron target |
 | POST | `/api/public/internal/run-purge-worker` | Secret header | Production purge cron target (hourly) |
+
+## Agent MCP endpoints
+
+Both agent endpoints require hosted `TAMARIND_AGENT_SEARCH_ENABLED=true`; otherwise they return 404. The browser shares a user token with the local process only after pairing and approval in **Workspace settings → MCP Server**. No token is supplied as a tool argument or stored in local configuration.
+
+`POST /api/agents/session` accepts `{ workspaceId }` and returns verified `userId`, `email`, `workspaceId`, and `expiresAt` in Unix milliseconds. It runs no search and creates no database record.
+
+`POST /api/agents/search` accepts `{ workspaceId, query, scope? }`: UUID workspace, nonblank query up to 2,000 characters, and `all` (default), `pages`, `conversations` or `users`. Unknown fields are rejected. It returns `{ workspaceId, scope, results }`, with at most 20 merged/ranked entries containing `id`, `sourceType`, `title`, `snippet`, and absolute Tamarind `url`.
+
+Identity is validated using a user-scoped Supabase client; authoritative email allowlisting and workspace-admin membership are rechecked per request. Retrieval uses existing search RPCs under RLS, without service-role access. Responses are JSON with `Cache-Control: no-store`: 400 invalid input, 401 invalid/expired authentication, 403 insufficient access, 404 disabled, 405 wrong method, or sanitized 500. Existing strategy degradation may still return empty/partial HTTP 200 results.
+
+See [Local MCP Search](../architecture/mcp.md) for complete configuration, contracts, browser pairing, Inspector testing and limitations.
 
 ## POST /api/pages/save
 

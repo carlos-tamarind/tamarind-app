@@ -19,6 +19,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthenticatedGenerateWorkspaceInviteRouteImport } from './routes/_authenticated.generate-workspace-invite'
 import { Route as AuthenticatedWWorkspaceIdRouteImport } from './routes/_authenticated.w.$workspaceId'
+import { Route as ApiAgentsSearchRouteImport } from './routes/api/agents/search'
+import { Route as ApiAgentsSessionRouteImport } from './routes/api/agents/session'
 import { Route as ApiPagesSaveRouteImport } from './routes/api/pages.save'
 import { Route as AuthenticatedWWorkspaceIdSettingsRouteImport } from './routes/_authenticated.w.$workspaceId.settings'
 import { Route as ApiPublicInternalRunCanonicalTopicsWorkerRouteImport } from './routes/api/public/internal/run-canonical-topics-worker'
@@ -86,6 +88,16 @@ const AuthenticatedWWorkspaceIdRoute =
     path: '/w/$workspaceId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiAgentsSearchRoute = ApiAgentsSearchRouteImport.update({
+  id: '/api/agents/search',
+  path: '/api/agents/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAgentsSessionRoute = ApiAgentsSessionRouteImport.update({
+  id: '/api/agents/session',
+  path: '/api/agents/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPagesSaveRoute = ApiPagesSaveRouteImport.update({
   id: '/api/pages/save',
   path: '/api/pages/save',
@@ -184,6 +196,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/agents/search': typeof ApiAgentsSearchRoute
+  '/api/agents/session': typeof ApiAgentsSessionRoute
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
@@ -210,6 +224,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/agents/search': typeof ApiAgentsSearchRoute
+  '/api/agents/session': typeof ApiAgentsSessionRoute
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
@@ -238,6 +254,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/generate-workspace-invite': typeof AuthenticatedGenerateWorkspaceInviteRoute
   '/_authenticated/w/$workspaceId': typeof AuthenticatedWWorkspaceIdRouteWithChildren
+  '/api/agents/search': typeof ApiAgentsSearchRoute
+  '/api/agents/session': typeof ApiAgentsSessionRoute
   '/api/pages/save': typeof ApiPagesSaveRoute
   '/_authenticated/w/$workspaceId/settings': typeof AuthenticatedWWorkspaceIdSettingsRoute
   '/api/public/internal/run-canonical-topics-worker': typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
@@ -266,6 +284,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/generate-workspace-invite'
     | '/w/$workspaceId'
+    | '/api/agents/search'
+    | '/api/agents/session'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
     | '/api/public/internal/run-canonical-topics-worker'
@@ -292,6 +312,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/generate-workspace-invite'
     | '/w/$workspaceId'
+    | '/api/agents/search'
+    | '/api/agents/session'
     | '/api/pages/save'
     | '/w/$workspaceId/settings'
     | '/api/public/internal/run-canonical-topics-worker'
@@ -319,6 +341,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/generate-workspace-invite'
     | '/_authenticated/w/$workspaceId'
+    | '/api/agents/search'
+    | '/api/agents/session'
     | '/api/pages/save'
     | '/_authenticated/w/$workspaceId/settings'
     | '/api/public/internal/run-canonical-topics-worker'
@@ -345,6 +369,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ApiAgentsSearchRoute: typeof ApiAgentsSearchRoute
+  ApiAgentsSessionRoute: typeof ApiAgentsSessionRoute
   ApiPagesSaveRoute: typeof ApiPagesSaveRoute
   ApiPublicInternalRunCanonicalTopicsWorkerRoute: typeof ApiPublicInternalRunCanonicalTopicsWorkerRoute
   ApiPublicInternalRunConversationSuggestionWorkerRoute: typeof ApiPublicInternalRunConversationSuggestionWorkerRoute
@@ -430,6 +456,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof AuthenticatedWWorkspaceIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/agents/search': {
+      id: '/api/agents/search'
+      path: '/api/agents/search'
+      fullPath: '/api/agents/search'
+      preLoaderRoute: typeof ApiAgentsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/agents/session': {
+      id: '/api/agents/session'
+      path: '/api/agents/session'
+      fullPath: '/api/agents/session'
+      preLoaderRoute: typeof ApiAgentsSessionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/pages/save': {
       id: '/api/pages/save'
@@ -584,6 +624,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ApiAgentsSearchRoute: ApiAgentsSearchRoute,
+  ApiAgentsSessionRoute: ApiAgentsSessionRoute,
   ApiPagesSaveRoute: ApiPagesSaveRoute,
   ApiPublicInternalRunCanonicalTopicsWorkerRoute:
     ApiPublicInternalRunCanonicalTopicsWorkerRoute,

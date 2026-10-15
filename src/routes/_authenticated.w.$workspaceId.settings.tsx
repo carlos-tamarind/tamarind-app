@@ -21,6 +21,8 @@ import { createInvite, listInvites, revokeInvite } from "@/lib/invites.functions
 import { getMyWorkspaceProfile } from "@/lib/profile.functions";
 import { getIsPlatformOwner } from "@/lib/workspace-bootstrap-invites.functions";
 import { workspaceSearchSchema } from "@/lib/workspace-search";
+import { getMcpSettingsState } from "@/lib/mcp.functions";
+import { McpSettingsPanel } from "@/components/mcp/mcp-settings-panel";
 
 export const Route = createFileRoute("/_authenticated/w/$workspaceId/settings")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
@@ -32,6 +34,7 @@ function SettingsModal() {
   const navigate = useNavigate();
   const fetchProfile = useServerFn(getMyWorkspaceProfile);
   const fetchIsOwner = useServerFn(getIsPlatformOwner);
+  const fetchMcpState = useServerFn(getMcpSettingsState);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["my-profile", workspaceId],
@@ -47,6 +50,12 @@ function SettingsModal() {
 
   const isAdmin = profile?.roleKey === "admin";
   const isPlatformOwner = ownerCheck?.isOwner ?? false;
+  const { data: mcpState } = useQuery({
+    queryKey: ["mcp-settings", workspaceId],
+    queryFn: () => fetchMcpState({ data: { workspaceId } }),
+    enabled: isAdmin && isPlatformOwner,
+  });
+  const canUseMcp = isAdmin && isPlatformOwner && mcpState?.enabled && mcpState?.eligible;
 
   useEffect(() => {
     if (isLoading || !profile) return;
@@ -84,10 +93,16 @@ function SettingsModal() {
               General
             </TabsTrigger>
             {isPlatformOwner && <TabsTrigger value="platform">Platform</TabsTrigger>}
+            {canUseMcp && <TabsTrigger value="mcp">MCP Server</TabsTrigger>}
           </TabsList>
           <TabsContent value="invites" className="mt-4">
             <InvitesPanel workspaceId={workspaceId} />
           </TabsContent>
+          {canUseMcp && (
+            <TabsContent value="mcp" className="mt-4">
+              <McpSettingsPanel workspaceId={workspaceId} />
+            </TabsContent>
+          )}
           {isPlatformOwner && (
             <TabsContent value="platform" className="mt-4">
               <PlatformOwnerPanel />

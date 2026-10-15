@@ -15,6 +15,7 @@ Core system design, data model, and cross-cutting concerns.
 | [Overview](architecture/overview.md) | Stack, entry points, routing, server functions |
 | [Database](architecture/database.md) | Schema, tables, relationships, RLS, indexes |
 | [Auth](architecture/auth.md) | Authentication, authorization, workspaces, invites |
+| [Local MCP Search](architecture/mcp.md) | Complete hosted setup, platform-admin browser pairing, session lifecycle, and Inspector walkthrough |
 | [Realtime](architecture/realtime.md) | Supabase Realtime subscriptions and presence |
 | [Tests](architecture/tests.md) | Unit test location (`tests/`), coverage, and how to run them |
 
@@ -65,7 +66,7 @@ User-facing UI, routing, and feature areas.
 |----------|-------------|
 | [API Routes](api/readme.md) | REST endpoints distinct from server functions |
 | [Cron & Background Jobs](cron/readme.md) | Inline semantics processing and embedding worker |
-| [Deployment](deployment.md) | Cloudflare Workers, Supabase, environment variables |
+| [Deployment](architecture/deployment.md) | Cloudflare Workers, Supabase, environment variables |
 
 ## Key Directories
 
@@ -76,7 +77,7 @@ src/
 ├── lib/              # Server functions, auth, theme, features
 ├── search/           # Search orchestration, strategies, request building
 ├── semantic/         # Message normalization, scoring, embedding pipeline
-├── integrations/     # Supabase and Lovable OAuth clients
+├── integrations/     # Supabase/Lovable clients and standalone local MCP adapter
 └── server.ts         # Cloudflare Worker entry point
 
 supabase/

@@ -5,20 +5,12 @@ import { randomBytes } from "crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createWorkspaceAndAssignAdmin } from "./workspaces.functions";
+import { isPlatformOwnerEmail as isPlatformOwner } from "./platform-owner.server";
 
 async function getAuthoritativeEmail(userId: string): Promise<string | null> {
   const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
   if (error || !data.user?.email) return null;
   return data.user.email.toLowerCase();
-}
-
-function isPlatformOwner(email: string | null): boolean {
-  if (!email) return false;
-  const allowlist = (process.env.PLATFORM_OWNER_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return allowlist.includes(email);
 }
 
 async function assertPlatformOwner(userId: string) {

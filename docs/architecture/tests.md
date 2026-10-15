@@ -49,7 +49,15 @@ Tests are not wired into `package.json` scripts or CI; run them by hand before o
 | `lib/knowledge-base/visuals.test.ts` | Node size (evidence) and transparency (recency) stay within configured bounds |
 | `semantic/conversation-topics/engine/classifyMatches.test.ts` | [CTI](../semantic/conversation_topics.md) similarity-tier routing (tiers 1–4) |
 
-**Not covered:** server functions, database functions and RLS policies, React components, and end-to-end flows. Those need a Supabase project with the service-role key and a signed-in user, and are verified manually (see each feature doc).
+**Not covered:** live database functions/RLS, real browser flows and deployed end-to-end behavior. Those require an authenticated environment and are verified manually (see each feature doc).
+
+## MCP offline tests
+
+`tests/search/agents.test.ts` covers agent contracts/links, authorization-before-search, platform-owner plus workspace-admin eligibility, authentication failures and JSON HTTP behavior using injected clients. `tests/integrations/mcp/` covers browser-message filtering/approval, pairing/replay/expiry, token renewal, connection leases, mocked hosted HTTP, real loopback protections, MCP tool discovery/calls, and spawned stdio shutdown.
+
+Run `bun test tests/search tests/integrations/mcp` or `bun test` for the entire suite. Tests use synthetic sessions and mocked hosted responses: no real Supabase access or login is needed. The transport tests bind only loopback; restricted sandboxes may require permission for that operation. These targeted boundary tests supplement the original pure-logic suite without changing its runner.
+
+An offline pass does not establish deployed RLS or Chrome popup/header compatibility. The deferred hosted acceptance sequence and complete manual Inspector walkthrough are in [Local MCP Search](mcp.md).
 
 ## Writing a new test
 

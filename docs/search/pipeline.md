@@ -1,6 +1,6 @@
 # Search Pipeline
 
-The search pipeline transforms a user's query into ranked, merged results. It runs entirely server-side via TanStack Start server functions, with the client responsible for debouncing and display.
+The search pipeline transforms a user's query into ranked, merged results. It runs entirely server-side. UI server functions and the optional hosted agent HTTP route delegate to `workspaceSearch` in `src/search/search.server.ts`, which authorizes membership before building or executing a request. The UI remains responsible for debouncing and display.
 
 ## End-to-End Flow
 
@@ -61,10 +61,12 @@ The hook calls `executeSearch` and renders **`mergedResults` only**. Per-strateg
 **Server function:** [`executeSearch`](../../src/lib/search.functions.ts)
 
 1. `requireSupabaseAuth` middleware validates the JWT and injects a user-scoped Supabase client
-2. `getCurrentWorkspaceUser` verifies the caller is a member of the requested workspace via `workspace_users`
+2. The shared search wrapper verifies membership in `workspace_users` using that same user-scoped client, without an admin lookup
 3. All search RPCs run as `SECURITY INVOKER` under RLS — users only see assets they can access
 
 A companion function `prepareSearchRequest` builds the request without executing strategies. The UI does not call it today.
+
+The feature-gated agent route additionally verifies the authoritative account email against `PLATFORM_OWNER_EMAILS` and requires workspace-admin status on every request. It returns only merged results with bounded snippets and source links. These agent-only gates do not apply to human UI search. Pairing and complete setup are documented in [Local MCP Search](../architecture/mcp.md).
 
 ## Stage 3: Query Preprocessing
 

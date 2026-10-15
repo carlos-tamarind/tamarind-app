@@ -139,6 +139,14 @@ Additional assertions in business logic:
 - Page collaborator tracking
 - Semantic pipeline (normalization, embedding)
 
+## Opt-in local MCP session sharing
+
+The disabled-by-default MCP integration requires **both** platform-owner allowlisting and admin membership in the selected workspace. The same email-allowlist comparison is shared with bootstrap invites; the hosted agent path retrieves the authoritative user through user-scoped Supabase Auth and never uses a service-role database client for search or authorization.
+
+The Settings tab pairs a loopback process through a single-use code and an explicit approval step. Only current access tokens are handed off; refresh tokens remain in the existing browser session. The local adapter holds credentials in memory, pins one workspace, and requires browser heartbeats. HTTP authentication/permissions are checked on every agent request. Disconnect clears that process's credentials, not the Supabase token globally. The user token itself still carries normal account privileges.
+
+See [Local MCP Search](mcp.md) for the full trust boundary, hosted/local configuration, token updates, expiry and verification limitations.
+
 ## Related Docs
 
 - [Database](database.md) — RLS policies and helper functions

@@ -2,7 +2,7 @@
 
 Workspace search is a hybrid retrieval system that runs keyword and semantic strategies in parallel, merges the results, and presents them in a modal overlay. Users find pages, conversations, messages, and people within the current workspace.
 
-Search is implemented as TanStack Start server functions and PostgreSQL RPCs — there is no dedicated REST `/api/search` route or external search engine.
+Human search uses TanStack Start server functions and PostgreSQL RPCs. An optional, disabled-by-default `/api/agents/search` HTTP adapter shares the same authorized execution wrapper and pipeline; it is restricted to platform owners who are also workspace admins. There is no external search engine. See [Local MCP Search](../architecture/mcp.md).
 
 ## Subsystem Docs
 
@@ -12,6 +12,7 @@ Search is implemented as TanStack Start server functions and PostgreSQL RPCs —
 | [Keyword Search](keyword.md) | Trigram-based keyword strategy and RPCs |
 | [Semantic Search](semantic.md) | Vector similarity strategy over message and page-chunk embeddings |
 | [User Search](user_search.md) | How users open search, filter, and act on results |
+| [Local MCP Search](../architecture/mcp.md) | Hosted search adapter, browser-session pairing and complete client setup |
 
 ## Purpose
 

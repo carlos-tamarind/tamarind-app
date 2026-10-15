@@ -73,6 +73,10 @@ Admin-only overlay (also opened with **⌘,**). Opening and closing it must not 
 - Creating email invites (select role, copy link)
 - Viewing pending invites
 - Revoking invites
+- A Platform tab for allowlisted platform owners
+- An **MCP Server** tab only when hosted MCP is enabled and the caller is both an allowlisted platform owner and a workspace admin
+
+The MCP panel accepts a loopback address and one-time code, opens a local auth-pairing window, and requires approval before sharing the session. It shows connection/account/workspace status and Disconnect. Closing Settings preserves a connection; the hosted tab and pairing window must remain open. Changing workspace/account or losing the renewable lease ends it. Hosted agent endpoints independently enforce the same admin gates; hiding a tab is not authorization. See [Local MCP Search](../architecture/mcp.md) for complete setup.
 
 Server functions: [`src/lib/invites.functions.ts`](../../src/lib/invites.functions.ts)
 

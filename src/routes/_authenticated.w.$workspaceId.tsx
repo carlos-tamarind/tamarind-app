@@ -44,6 +44,7 @@ import { CloseHintOverlay } from "@/components/close-hint-overlay";
 import { StatusBar, type StatusContextItem } from "@/components/status-bar";
 import { EmptyStateHome } from "@/components/empty-state-home";
 import { SaveStatusProvider } from "@/lib/save-status-context";
+import { McpConnectionProvider } from "@/components/mcp/mcp-connection-context";
 import { clearComposerDrafts } from "@/lib/composer-drafts";
 import { HOTKEYS, useHotkey } from "@/hooks/use-hotkeys";
 import {
@@ -544,7 +545,9 @@ function WorkspaceShell() {
             }}
           />
 
-          <Outlet />
+          <McpConnectionProvider key={workspaceId} workspaceId={workspaceId}>
+            <Outlet />
+          </McpConnectionProvider>
         </div>
       </SaveStatusProvider>
     </TooltipProvider>
