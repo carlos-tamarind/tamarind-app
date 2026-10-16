@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { listMyWorkspaces } from "@/lib/workspaces.functions";
+import { sanitizeInternalRedirect } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
+  const safeRedirect = sanitizeInternalRedirect(redirect);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,8 +40,8 @@ function LoginPage() {
   }, []);
 
   const routeAfterLogin = async () => {
-    if (redirect && redirect.startsWith("/")) {
-      window.location.assign(redirect);
+    if (safeRedirect) {
+      window.location.assign(safeRedirect);
       return;
     }
     try {
@@ -73,8 +75,8 @@ function LoginPage() {
   const handleGoogle = async () => {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: redirect && redirect.startsWith("/")
-        ? `${window.location.origin}${redirect}`
+      redirect_uri: safeRedirect
+        ? `${window.location.origin}${safeRedirect}`
         : window.location.origin,
     });
     if (result.error) {
