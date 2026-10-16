@@ -36,6 +36,6 @@ dist-ssr
 !.env.example
 
 # AI
-.claude
-.cursor
-.lovable
+.claude/
+.cursor/
+.lovable/
