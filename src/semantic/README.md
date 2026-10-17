@@ -196,7 +196,7 @@ Page content save (last_modified_at)
   → token-diff gate (≥ 300) or first analysis → enqueue_page_topic_job
   → claim_page_topic_job
   → live SHA-256 vs job hash (drift → COMPLETED, no write)
-  → llmProvider.complete (gpt-5.4-nano)
+  → llmProvider.complete (gpt-6-luna)
   → apply_page_topic_result (page_topics upsert + COMPLETED)
   → trigger enqueue page_topic_embeddings QUEUED when topic fields change
   → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
@@ -212,7 +212,7 @@ Cron POST /api/public/internal/run-conversation-suggestion-worker
   → claim_conversation_suggestion_job
   → recency / cooldown / topic-score / focus gates
   → search_*_semantic_for_user (winner topic embedding)
-  → llmProvider.complete (gpt-5.4-nano judge)
+  → llmProvider.complete (gpt-6-luna judge)
   → apply_conversation_suggestion_result (PENDING row or committed_none)
   → RETRY_WAIT / FAILED on error (24h cooldown after 5 transient backoffs)
 ```

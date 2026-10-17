@@ -14,7 +14,7 @@ flowchart LR
   Worker --> Claim["claim_conversation_suggestion_job"]
   Claim --> Gates["recency / cooldown / topic score / focus"]
   Gates --> Search["search_*_semantic_for_user"]
-  Search --> LLM["gpt-5.4-nano judge"]
+  Search --> LLM["gpt-6-luna judge"]
   LLM --> Apply["apply_conversation_suggestion_result"]
 ```
 
