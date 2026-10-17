@@ -113,7 +113,7 @@ After each plan, `selectCurrentTopic` scores **established** topics with `topicS
 | `CONVERSATION_TOPIC_MINIMUM_EVIDENCE_THRESHOLD` | 3 | Promotion evidence floor |
 | `CONVERSATION_TOPIC_SCORE_HALF_LIFE_HOURS` | 72 | `topicScore` recency decay |
 | `CONVERSATION_TOPIC_SCORE_HYSTERESIS_PERCENTAGE` | 0.15 | Current-topic stickiness |
-| `CTI_LLM_MODEL` | `gpt-5.4-nano` | Classification + promotion |
+| `CTI_LLM_MODEL` | `gpt-6-luna` | Classification + promotion |
 | `CTI_LLM_MAX_TOPICS` | 5 | Established topics in LLM prompt |
 | `CTI_LLM_TIMEOUT_MS` | 20_000 | LLM call timeout |
 

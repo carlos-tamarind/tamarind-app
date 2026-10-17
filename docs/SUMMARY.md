@@ -28,7 +28,7 @@ This file is a **current-state brief** of Tamarind (https://www.tamarind.so, app
 | Realtime | Supabase Realtime | Live message INSERT/UPDATE; page viewing presence |
 | Background jobs | pg_cron + pg_net → secret-gated HTTP | Embedding, CTI, page chunking/embedding/semantics, suggestions, purge, canonical topics |
 | Embeddings | OpenAI `text-embedding-3-small` (1536-d) | Indexing + query embedding; provider is swappable |
-| LLM | OpenAI Responses (`gpt-5.4-nano`) via a generic `llmProvider` | Page topics, CTI classification/promotion, suggestion judge |
+| LLM | OpenAI Responses (`gpt-6-luna`) via a generic `llmProvider` | Page topics, CTI classification/promotion, suggestion judge |
 | Tokenizer | `gpt-tokenizer` (cl100k_base) | Page chunk sizes and re-analysis token-diff gates |
 | Editor | TipTap (ProseMirror) | Chat composer + page editor; mentions, slash commands, quotes, task lists |
 | UI kit | Tailwind CSS 4, shadcn/ui (Radix), cmdk, Lucide, Sonner | Design-system shell; command palette; toasts |
@@ -248,7 +248,7 @@ A cron worker, **per participant × conversation**:
 
 - Gates: recent embedded activity, debounce, no negative-feedback cooldown, current topic score ≥ 0.8, topic “focus” (winner uniquely closest for a majority of last 10 embedded messages).
 - Retrieve related **messages and page chunks** via ACL-aware ANN using the **winner topic embedding** (not the raw last message).
-- LLM **judge** (`gpt-5.4-nano`) must be selective: high similarity ≠ useful; persist only `suggest` with confidence ≥ 0.85.
+- LLM **judge** (`gpt-6-luna`) must be selective: high similarity ≠ useful; persist only `suggest` with confidence ≥ 0.85.
 - UI: private nudge with generated `notification_text`, click-through deep link, shown/dismissed/clicked tracking, thumbs feedback (negative starts cooldown).
 
 This is the first closed loop of “the semantic layer talking back to the user.”

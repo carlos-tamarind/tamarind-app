@@ -1,4 +1,4 @@
-export const DEFAULT_LLM_MODEL = "gpt-5.4-nano";
+export const DEFAULT_LLM_MODEL = "gpt-6-luna";
 
 export type OpenAiResponsesContent = {
   type?: string;

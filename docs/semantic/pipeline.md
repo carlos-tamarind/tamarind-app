@@ -138,7 +138,7 @@ Steps:
 2. Token-count threshold 300 (or no snapshot → enqueue). `enqueue_page_topic_job`
 3. `claim_page_topic_job` — one `QUEUED` / due `RETRY_WAIT`, stale `PROCESSING` recovery via `started_at`
 4. Live SHA-256 vs job hash; mismatch → `apply_page_topic_result` `drifted` (no LLM)
-5. `llmProvider.complete` (`gpt-5.4-nano`) with title + `plain_text`
+5. `llmProvider.complete` (`gpt-6-luna`) with title + `plain_text`
 6. On success: `apply_page_topic_result` upserts `page_topics` + `COMPLETED` (trigger enqueues `page_topic_embeddings` when the topic fields change)
 7. On failure: transient → `RETRY_WAIT` (5× backoff, then 24h cooldown); permanent → `FAILED`; 429/5xx circuit-breaks the tick
 

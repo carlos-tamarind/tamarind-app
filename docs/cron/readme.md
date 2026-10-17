@@ -271,7 +271,7 @@ A pg_cron job calls the page semantic worker every minute via pg_net HTTP POST w
 2. Enqueues jobs when there is no snapshot, or the token-count delta vs `page_snapshot` is ≥ 300; cleans empty pages that still have a semantics row
 3. Claims up to 8 jobs via `claim_page_topic_job` (`QUEUED` + due `RETRY_WAIT`, stale `PROCESSING` recovery after 10 minutes)
 4. Compares live `plain_text` SHA-256 to the job hash; drift → `apply_page_topic_result` `drifted` (no LLM)
-5. Calls OpenAI `gpt-5.4-nano` for `{ name, description }`, then `apply_page_topic_result` (`committed` upserts `page_topics`; the enqueue trigger queues `page_topic_embeddings` when topic fields change)
+5. Calls OpenAI `gpt-6-luna` for `{ name, description }`, then `apply_page_topic_result` (`committed` upserts `page_topics`; the enqueue trigger queues `page_topic_embeddings` when topic fields change)
 6. Transient 429/5xx → `RETRY_WAIT` with backoff (5× then 24h cooldown); permanent → `FAILED`; infra errors circuit-break the tick
 
 See [Page Semantics](../semantic/page_semantic.md).

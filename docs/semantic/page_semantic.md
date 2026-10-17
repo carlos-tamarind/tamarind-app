@@ -13,7 +13,7 @@ flowchart LR
   Sweep --> Enqueue["enqueue_page_topic_job"]
   Worker --> Claim["claim_page_topic_job"]
   Claim --> Guard["live hash vs job hash"]
-  Guard --> LLM["gpt-5.4-nano"]
+  Guard --> LLM["gpt-6-luna"]
   LLM --> Apply["apply_page_topic_result"]
 ```
 
@@ -22,7 +22,7 @@ flowchart LR
 3. `enqueue_page_topic_job` upserts the in-flight job (`enqueued` / `requeued` / `processing` no-op).
 4. `claim_page_topic_job` claims one `QUEUED` / due `RETRY_WAIT` row (`FOR UPDATE SKIP LOCKED`), recovering stale `PROCESSING` via `started_at` (10 minutes).
 5. Live `plain_text` is hashed with `computeMessageChecksum`. Hash drift, missing page, or empty text calls `apply_page_topic_result` with the **job** hash so the RPC returns `drifted` without writing `page_topics`.
-6. Otherwise the LLM (`gpt-5.4-nano`, JSON `{ name, description }`) runs with page title + contents. Title is input only — it is not part of the snapshot.
+6. Otherwise the LLM (`gpt-6-luna`, JSON `{ name, description }`) runs with page title + contents. Title is input only — it is not part of the snapshot.
 7. `apply_page_topic_result` re-hashes live `plain_text`, upserts `page_topics` (`ON CONFLICT (page_id)`, so the row's `id` stays stable across re-analysis), and marks the job `COMPLETED` in one transaction (`committed` / `drifted` / `not_processing` / `not_found`).
 8. When `topic_name` or `topic_description` actually change, `trg_page_topics_enqueue_embedding` upserts `page_topic_embeddings` (keyed by `page_topic_id`) as `QUEUED`. The [page embedding worker](page_embedding.md) embeds `${name}: ${description}` on a later tick. Empty-page cleanup deletes `page_topics`, which cascades the topic embedding row.
 
@@ -33,7 +33,7 @@ flowchart LR
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `PAGE_SEMANTIC_SNAPSHOT_DIFF_THRESHOLD_TOKENS` | 300 | Token-count delta required to re-analyze |
-| `PAGE_SEMANTIC_LLM_MODEL` | `gpt-5.4-nano` | OpenAI Responses model |
+| `PAGE_SEMANTIC_LLM_MODEL` | `gpt-6-luna` | OpenAI Responses model |
 | `PAGE_SEMANTIC_LLM_TIMEOUT_MS` | 20 000 | LLM abort timeout |
 | `PAGE_SEMANTIC_SWEEP_BATCH_SIZE` | 20 | Due pages per tick |
 | `PAGE_SEMANTIC_DEBOUNCE_MS` | 5 min | Idle window (`p_idle`) |
