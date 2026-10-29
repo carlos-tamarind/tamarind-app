@@ -35,6 +35,22 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    plugins: [
+      {
+        // htmlparser2@10 imports entities@7 subpaths ("entities/decode", "entities/escape");
+        // the root entities@4 lacks them, so point those imports at htmlparser2's nested copy in every environment.
+        name: "entities-v7-subpaths",
+        enforce: "pre",
+        resolveId(id: string) {
+          const m = /^entities\/(decode|escape)$/.exec(id);
+          if (!m) return null;
+          return path.resolve(
+            process.cwd(),
+            `node_modules/htmlparser2/node_modules/entities/dist/esm/${m[1]}.js`,
+          );
+        },
+      },
+    ],
     define: {
       __APP_BUILT_AT__: JSON.stringify(new Date().toISOString()),
       __APP_COMMIT_HASH__: JSON.stringify(resolveCommitHash()),
