@@ -48,11 +48,20 @@ export default defineConfig({
       external: ["cloudflare:workers"],
     },
     resolve: {
-      alias: {
-        "entities/lib/decode.js": path.resolve(process.cwd(), "node_modules/entities/lib/decode.js"),
-        "entities/lib/encode.js": path.resolve(process.cwd(), "node_modules/entities/lib/encode.js"),
-        entities: path.resolve(process.cwd(), "node_modules/entities"),
-      },
+      alias: [
+        // htmlparser2@10 needs entities@7 subpaths, which the root entities@4 lacks.
+        {
+          find: /^entities\/decode$/,
+          replacement: path.resolve(process.cwd(), "node_modules/htmlparser2/node_modules/entities/dist/esm/decode.js"),
+        },
+        {
+          find: /^entities\/escape$/,
+          replacement: path.resolve(process.cwd(), "node_modules/htmlparser2/node_modules/entities/dist/esm/escape.js"),
+        },
+        { find: "entities/lib/decode.js", replacement: path.resolve(process.cwd(), "node_modules/entities/lib/decode.js") },
+        { find: "entities/lib/encode.js", replacement: path.resolve(process.cwd(), "node_modules/entities/lib/encode.js") },
+        { find: /^entities$/, replacement: path.resolve(process.cwd(), "node_modules/entities") },
+      ],
     },
   },
 });
